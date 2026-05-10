@@ -49,3 +49,4 @@ CLAUDE.local.md
 # Belt-and-suspenders: never commit secrets file even if it ends up here
 .openpip-2.0-secrets
 .git-credentials*
+
