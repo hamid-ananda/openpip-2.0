@@ -67,7 +67,6 @@
 
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
-      "Bash(git push:*--force*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean -fdx:*)",
       "Bash(git filter-branch:*)",
@@ -82,9 +81,9 @@
 
       "Bash(mysql:*)",
       "Bash(mysqldump:*)",
-      "Bash(psql:*production*)",
+      "Bash(psql:*)",
       "Bash(dropdb:*)",
-      "Bash(pg_dump:*production*)",
+      "Bash(pg_dump:*)",
 
       "Bash(sudo:*)",
       "Bash(chmod -R 777:*)",
