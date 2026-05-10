@@ -90,10 +90,10 @@
       "Bash(chmod -R 777:*)",
       "Bash(chown:*)",
 
-      "Bash(curl:*--data*)",
-      "Bash(curl:*-X DELETE*)",
-      "Bash(curl:*-X PUT*)",
-      "Bash(curl:*-X POST*openpip.usask.ca*)",
+      "Bash(curl*--data*)",
+      "Bash(curl*-X DELETE*)",
+      "Bash(curl*-X PUT*)",
+      "Bash(curl*-X POST*openpip.usask.ca*)",
 
       "Write(/home/sez876/openPIP/**)",
       "Edit(/home/sez876/openPIP/**)",
