@@ -6,6 +6,15 @@
       "headers": {
         "Authorization": "Bearer ${GITHUB_TOKEN}"
       }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/sez876/openpip-2.0",
+        "/home/sez876/openPIP"
+      ]
     }
   }
 }
