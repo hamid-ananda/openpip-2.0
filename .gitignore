@@ -49,3 +49,7 @@ CLAUDE.local.md
 # Belt-and-suspenders: never commit secrets file even if it ends up here
 .openpip-2.0-secrets
 .git-credentials*
+
+# Symlink to live legacy deployment (host-specific, never commit)
+# See migration/CLAUDE.md for rationale
+migration/legacy-live-deployment

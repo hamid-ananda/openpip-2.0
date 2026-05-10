@@ -53,3 +53,27 @@ for this work.
 ## Type translation reference
 
 See `docs/DATA_MODEL.md` for the MySQL → PostgreSQL type translation table.
+
+## Live legacy access (optional, host-specific)
+
+On hosts that have the live legacy openPIP deployment installed (currently
+just `openpip.usask.ca` at `~/openPIP/`), create a symlink so the
+Filesystem MCP can navigate legacy files efficiently:
+
+~~~bash
+ln -s /home/<user>/openPIP /home/<user>/openpip-2.0/migration/legacy-live-deployment
+~~~
+
+Why: Claude Code's Roots protocol restricts the Filesystem MCP to paths
+inside the project workspace, overriding any `.mcp.json` argv that points
+outside it. The symlink puts legacy "inside" the workspace from the MCP's
+perspective, allowing tree views and batch reads against live legacy.
+
+The symlink itself is gitignored and host-specific. Hosts without legacy
+installed simply skip this step and lose only the MCP-specific richness;
+all read access via Claude Code's built-in `Read`/`Bash` tools still works.
+
+Legacy access is **read-only by policy**, enforced at three layers:
+- `.claude/settings.json` denies `Write(~/openPIP/**)` and `Edit(~/openPIP/**)`
+- The pre-commit hook regex check blocks any commit touching legacy paths
+- The CLAUDE.md non-negotiables section
