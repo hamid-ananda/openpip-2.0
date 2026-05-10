@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project
+*.log
+.coverage
+htmlcov/
+
+# Large data dumps — keep locally, never commit
+migration/legacy-schema/dev10.0_huri.sql
+*.sql.gz
+*.dump
+
+# Claude Code — personal/local only
+.claude/settings.local.json
+CLAUDE.local.md
+.claude/.credentials.json
+
+# Other AI assistants
+.cursor/
+.cursorrules.local
+.aider*
+.continue/
+.windsurfrules.local
+.github/copilot-instructions.local.md
