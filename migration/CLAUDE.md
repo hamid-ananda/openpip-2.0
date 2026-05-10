@@ -54,26 +54,28 @@ for this work.
 
 See `docs/DATA_MODEL.md` for the MySQL → PostgreSQL type translation table.
 
-## Live legacy access (optional, host-specific)
 
-On hosts that have the live legacy openPIP deployment installed (currently
-just `openpip.usask.ca` at `~/openPIP/`), create a symlink so the
-Filesystem MCP can navigate legacy files efficiently:
+## Reading legacy openPIP
 
-~~~bash
-ln -s /home/<user>/openPIP /home/<user>/openpip-2.0/migration/legacy-live-deployment
-~~~
+The Filesystem MCP is scoped to `~/openpip-2.0/` only. Claude Code's
+Roots protocol overrides any `.mcp.json` argv pointing outside the
+project workspace, and symlinks resolving outside are also blocked
+by the MCP's security guard.
 
-Why: Claude Code's Roots protocol restricts the Filesystem MCP to paths
-inside the project workspace, overriding any `.mcp.json` argv that points
-outside it. The symlink puts legacy "inside" the workspace from the MCP's
-perspective, allowing tree views and batch reads against live legacy.
+This means MCP-level tree views, batch reads, and metadata listings
+do not work on `~/openPIP/`.
 
-The symlink itself is gitignored and host-specific. Hosts without legacy
-installed simply skip this step and lose only the MCP-specific richness;
-all read access via Claude Code's built-in `Read`/`Bash` tools still works.
+For legacy reads, use Claude Code's built-in tools instead:
 
-Legacy access is **read-only by policy**, enforced at three layers:
+- The `Read` tool reads any file Claude can access on disk, including
+  legacy. Example: `Read ~/openPIP/data-upload/uploader.py`.
+- The `Bash` tool with `ls`, `cat`, `grep`, `find`, etc. — these are
+  in the allow list (`.claude/settings.json`) and work on legacy.
+- Legacy reference snapshots already in this `migration/` directory
+  (legacy-schema/, legacy-uploader-reference/, legacy-docker-reference/)
+  are inside the workspace and ARE accessible via the Filesystem MCP.
+
+The read-only-on-legacy policy is unchanged. Three layers prevent writes:
 - `.claude/settings.json` denies `Write(~/openPIP/**)` and `Edit(~/openPIP/**)`
-- The pre-commit hook regex check blocks any commit touching legacy paths
+- The pre-commit hook regex blocks any commit touching legacy paths
 - The CLAUDE.md non-negotiables section
