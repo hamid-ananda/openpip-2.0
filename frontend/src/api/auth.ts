@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiClient } from './client'
 import { useAuthStore } from '../store/authStore'
 
@@ -16,5 +16,25 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => apiClient.post('/auth/logout').then((r) => r.data),
     onSuccess: () => logout(),
+  })
+}
+
+export function useRegister() {
+  return useMutation({
+    mutationFn: (body: { username: string; email: string; password: string }) =>
+      apiClient.post('/auth/register', body).then((r) => r.data),
+  })
+}
+
+export function useProfile() {
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  return useQuery({
+    queryKey: ['profile'],
+    queryFn: () =>
+      apiClient
+        .get('/auth/me')
+        .then((r) => r.data as { username: string; email: string; is_admin: boolean }),
+    enabled: isLoggedIn,
+    staleTime: 2 * 60 * 1000,
   })
 }

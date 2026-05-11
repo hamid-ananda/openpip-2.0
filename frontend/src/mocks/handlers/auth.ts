@@ -9,4 +9,18 @@ export const authHandlers = [
     return HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 })
   }),
   http.post('/api/auth/logout', () => HttpResponse.json({ detail: 'Logged out' })),
+
+  http.post('/api/auth/register', async ({ request }) => {
+    const body = (await request.json()) as { username: string; email: string; password: string }
+    if (!body.username || !body.email || !body.password) {
+      return HttpResponse.json({ detail: 'All fields required' }, { status: 400 })
+    }
+    return HttpResponse.json({ detail: 'Registration successful' }, { status: 201 })
+  }),
+
+  http.get('/api/auth/me', ({ request }) => {
+    const auth = request.headers.get('Authorization')
+    if (!auth) return HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })
+    return HttpResponse.json({ username: 'admin', email: 'admin@example.com', is_admin: true })
+  }),
 ]
