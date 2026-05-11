@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import CytoscapeComponent from 'react-cytoscapejs'
-import type { ElementDefinition, Stylesheet } from 'cytoscape'
+import type { ElementDefinition, StylesheetJsonBlock } from 'cytoscape'
 
 interface MiniNetworkGraphProps {
   proteins: string[]
@@ -28,7 +28,7 @@ function buildElements(proteins: string[]): ElementDefinition[] {
   return [...nodes, ...edges]
 }
 
-const STYLESHEET: Stylesheet[] = [
+const STYLESHEET: StylesheetJsonBlock[] = [
   {
     selector: 'node',
     style: {
