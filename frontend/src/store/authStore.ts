@@ -1,23 +1,25 @@
 import { create } from 'zustand'
 
+const TOKEN_KEY = 'openpip_access_token'
+
 interface AuthState {
-  token: string | null
+  isLoggedIn: boolean
   isAdmin: boolean
-  isAuthenticated: boolean
+  token: string | null
   login: (token: string, isAdmin: boolean) => void
   logout: () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: localStorage.getItem('openpip_access_token'),
+  isLoggedIn: !!localStorage.getItem(TOKEN_KEY),
   isAdmin: false,
-  isAuthenticated: !!localStorage.getItem('openpip_access_token'),
+  token: localStorage.getItem(TOKEN_KEY),
   login: (token, isAdmin) => {
-    localStorage.setItem('openpip_access_token', token)
-    set({ token, isAdmin, isAuthenticated: true })
+    localStorage.setItem(TOKEN_KEY, token)
+    set({ isLoggedIn: true, isAdmin, token })
   },
   logout: () => {
-    localStorage.removeItem('openpip_access_token')
-    set({ token: null, isAdmin: false, isAuthenticated: false })
+    localStorage.removeItem(TOKEN_KEY)
+    set({ isLoggedIn: false, isAdmin: false, token: null })
   },
 }))
