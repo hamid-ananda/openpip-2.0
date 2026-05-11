@@ -1,0 +1,23 @@
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { apiClient } from './client'
+import type { SearchResult } from '../types/search'
+
+export function useSearch(term: string) {
+  return useQuery<SearchResult>({
+    queryKey: ['search', term],
+    queryFn: () => apiClient.get('/search', { params: { q: term } }).then((r) => r.data),
+    enabled: !!term && term !== 'no_search',
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useSearchInteractors() {
+  return useMutation({
+    mutationFn: (body: {
+      searchTerm: string
+      filterParameter: string
+      searchTermArray: string[]
+      queryIdArray: number[]
+    }) => apiClient.post('/search/interactors', body).then((r) => r.data as SearchResult),
+  })
+}
