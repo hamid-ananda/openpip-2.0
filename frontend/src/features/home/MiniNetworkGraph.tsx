@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import CytoscapeComponent from 'react-cytoscapejs'
+import cytoscape from 'cytoscape'
+import cola from 'cytoscape-cola'
 import type { ElementDefinition, StylesheetJsonBlock } from 'cytoscape'
+
+cytoscape.use(cola)
 
 interface MiniNetworkGraphProps {
   proteins: string[]
@@ -55,21 +59,32 @@ export function MiniNetworkGraph({ proteins }: MiniNetworkGraphProps) {
   )
 
   return (
-    <div className="relative border rounded overflow-hidden">
-      <CytoscapeComponent
-        key={seed}
-        elements={elements}
-        stylesheet={STYLESHEET}
-        layout={{ name: 'cola' } as Parameters<typeof CytoscapeComponent>[0]['layout']}
-        style={{ width: '100%', height: 320 }}
-      />
-      <button
-        onClick={() => setSeed((s) => s + 1)}
-        className="absolute top-2 right-2 text-xs px-2 py-1 rounded border bg-white"
-        style={{ borderColor: 'var(--color-main)', color: 'var(--color-main)' }}
+    <div>
+      <p
+        className="text-xs font-medium uppercase tracking-widest mb-2"
+        style={{ color: 'var(--text-muted)' }}
       >
-        Refresh
-      </button>
+        Example network
+      </p>
+      <div
+        className="relative rounded-xl overflow-hidden"
+        style={{ border: '1px solid var(--border)' }}
+      >
+        <CytoscapeComponent
+          key={seed}
+          elements={elements}
+          stylesheet={STYLESHEET}
+          layout={{ name: 'cola' } as Parameters<typeof CytoscapeComponent>[0]['layout']}
+          style={{ width: '100%', height: 320 }}
+        />
+        <button
+          onClick={() => setSeed((s) => s + 1)}
+          className="absolute top-2.5 right-2.5 text-xs px-2.5 py-1 rounded-lg bg-white font-medium"
+          style={{ border: '1px solid var(--border)', color: 'var(--color-main)' }}
+        >
+          Refresh
+        </button>
+      </div>
     </div>
   )
 }

@@ -6,24 +6,46 @@ interface AnnouncementsListProps {
 
 export function AnnouncementsList({ announcements }: AnnouncementsListProps) {
   return (
-    <div data-testid="announcements" className="rounded border overflow-hidden">
-      <div
-        className="px-4 py-2 text-sm font-semibold"
-        style={{ backgroundColor: 'var(--color-main)', color: 'var(--color-header)' }}
+    <div data-testid="announcements">
+      <p
+        className="text-xs font-medium uppercase tracking-widest mb-2"
+        style={{ color: 'var(--text-muted)' }}
       >
         Announcements
-      </div>
-      <div className="overflow-y-auto" style={{ maxHeight: 300 }}>
-        {announcements.map((a) => (
-          <div key={a.id} className="px-4 py-3 border-b last:border-b-0">
-            <h4 className="font-semibold text-sm">{a.title}</h4>
-            {a.date && <p className="text-xs text-gray-500 mb-1">{a.date}</p>}
-            <div
-              className="text-sm text-gray-700"
-              dangerouslySetInnerHTML={{ __html: a.text }}
-            />
-          </div>
-        ))}
+      </p>
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ border: '1px solid var(--border)' }}
+      >
+        <div className="overflow-y-auto" style={{ maxHeight: 300 }}>
+          {announcements.length === 0 ? (
+            <p className="px-5 py-6 text-sm" style={{ color: 'var(--text-muted)' }}>
+              No announcements.
+            </p>
+          ) : (
+            announcements.map((a) => (
+              <div
+                key={a.id}
+                className="px-5 py-4 last:border-b-0"
+                style={{ borderBottom: '1px solid var(--border-subtle)' }}
+              >
+                <h4 className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                  {a.title}
+                </h4>
+                {a.date && (
+                  <p className="text-xs mt-0.5 mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    {a.date}
+                  </p>
+                )}
+                <div
+                  className="text-sm leading-relaxed"
+                  style={{ color: 'var(--text-secondary)' }}
+                  dangerouslySetInnerHTML={{ __html: a.text }}
+                />
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )

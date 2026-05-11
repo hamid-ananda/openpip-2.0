@@ -11,6 +11,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-query": "^5.100.9",
     "@tanstack/react-table": "^8.21.3",
@@ -22,6 +23,7 @@
     "cytoscape-cola": "^2.5.1",
     "cytoscape-expand-collapse": "^4.1.1",
     "cytoscape-panzoom": "^2.5.3",
+    "lucide-react": "^1.14.0",
     "rc-slider": "^11.1.9",
     "react": "^19.2.5",
     "react-cytoscapejs": "^2.0.0",

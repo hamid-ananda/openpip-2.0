@@ -26,36 +26,51 @@ export function Navbar({ isLoggedIn, isAdmin }: NavbarProps) {
   const logout = useLogout()
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-2 text-sm font-medium transition-opacity ${isActive ? 'underline opacity-100' : 'opacity-80 hover:opacity-100'}`
+    `px-3 py-1.5 text-sm font-medium rounded transition-all ${
+      isActive ? 'opacity-100 bg-white/15' : 'opacity-70 hover:opacity-100 hover:bg-white/10'
+    }`
 
   return (
     <nav
-      className="flex items-center gap-1 px-4 py-1 flex-wrap"
-      style={{ backgroundColor: 'var(--color-main)', color: 'var(--color-header)' }}
+      className="flex items-center flex-1 flex-wrap"
+      style={{ color: 'var(--color-header)' }}
     >
-      <div className="flex items-center gap-1 flex-1 flex-wrap">
+      <div className="flex items-center flex-1 flex-wrap px-1">
         {publicLinks.map((link) => (
-          <NavLink key={link.to} to={link.to} className={linkClass}
-            style={{ color: 'var(--color-header)' }}>
+          <NavLink
+            key={link.to}
+            to={link.to}
+            className={linkClass}
+            style={{ color: 'var(--color-header)' }}
+          >
             {link.label}
           </NavLink>
         ))}
-        {isAdmin && adminLinks.map((link) => (
-          <NavLink key={link.to} to={link.to} className={linkClass}
-            style={{ color: 'var(--color-header)' }}>
-            {link.label}
-          </NavLink>
-        ))}
+        {isAdmin &&
+          adminLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={linkClass}
+              style={{ color: 'var(--color-header)' }}
+            >
+              {link.label}
+            </NavLink>
+          ))}
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 px-3">
         {isLoggedIn ? (
           <>
-            <NavLink to="/profile" className={linkClass} style={{ color: 'var(--color-header)' }}>
+            <NavLink
+              to="/profile"
+              className={linkClass}
+              style={{ color: 'var(--color-header)' }}
+            >
               Profile
             </NavLink>
             <button
               onClick={() => logout.mutate()}
-              className="px-3 py-2 text-sm font-medium opacity-80 hover:opacity-100"
+              className="px-3 py-1.5 text-sm font-medium opacity-70 hover:opacity-100 transition-all"
               style={{ color: 'var(--color-header)' }}
             >
               Logout
@@ -63,10 +78,18 @@ export function Navbar({ isLoggedIn, isAdmin }: NavbarProps) {
           </>
         ) : (
           <>
-            <NavLink to="/register" className={linkClass} style={{ color: 'var(--color-header)' }}>
+            <NavLink
+              to="/register"
+              className={linkClass}
+              style={{ color: 'var(--color-header)' }}
+            >
               Register
             </NavLink>
-            <NavLink to="/login" className={linkClass} style={{ color: 'var(--color-header)' }}>
+            <NavLink
+              to="/login"
+              className={linkClass}
+              style={{ color: 'var(--color-header)' }}
+            >
               Login
             </NavLink>
           </>

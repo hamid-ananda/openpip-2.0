@@ -12,9 +12,11 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header>
-        <TopBar shortTitle={theme?.shortTitle ?? 'openPIP'} />
-        <Navbar isLoggedIn={isLoggedIn} isAdmin={isAdmin} />
+      <header style={{ backgroundColor: 'var(--color-main)' }}>
+        <div className="flex items-center h-14">
+          <TopBar shortTitle={theme?.shortTitle ?? 'openPIP'} />
+          <Navbar isLoggedIn={isLoggedIn} isAdmin={isAdmin} />
+        </div>
       </header>
       <main className="flex-1">
         <Outlet />

@@ -21,34 +21,35 @@ export function HeroSection({ shortTitle, proteins, interactions }: HeroSectionP
 
   return (
     <section
-      className="relative min-h-64 flex items-center justify-center overflow-hidden"
-      style={{ backgroundColor: 'var(--color-main)' }}
+      className="relative flex items-center justify-center overflow-hidden"
+      style={{ backgroundColor: 'var(--color-main)', minHeight: 300 }}
     >
       <ParticleBackground id="hero-particles" className="absolute inset-0" />
-      <div
-        className="relative z-10 bg-white rounded-lg border-2 p-8 max-w-md w-full mx-4 text-center"
-        style={{ borderColor: 'var(--color-main)' }}
-      >
+      <div className="relative z-10 text-center px-4 py-14 max-w-2xl w-full">
         <h1
-          className="font-bold mb-4"
-          style={{ color: 'var(--color-main)', fontSize: '80px', lineHeight: 1 }}
+          className="text-5xl font-bold tracking-tight mb-2"
+          style={{ color: 'var(--color-header)' }}
         >
-          {shortTitle}
+          {shortTitle || 'openPIP'}
         </h1>
-        <StatsCounter proteins={proteins} interactions={interactions} />
-        <form onSubmit={handleSearch} className="mt-6 flex gap-2">
+        <p className="text-sm mb-8 opacity-75" style={{ color: 'var(--color-header)' }}>
+          Plant protein–protein interaction database
+        </p>
+        <StatsCounter proteins={proteins} interactions={interactions} variant="hero" />
+        <form onSubmit={handleSearch} className="mt-8 flex rounded-xl overflow-hidden shadow-lg">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Enter gene names, e.g. BAD,BCL2L1"
-            className="flex-1 px-3 py-2 border rounded text-sm"
-            style={{ borderColor: 'var(--color-main)' }}
+            placeholder="Search by gene names, e.g. BAD, BCL2L1"
+            className="flex-1 px-5 py-3.5 text-sm bg-white focus:outline-none"
+            style={{ color: 'var(--text-primary)' }}
+            aria-label="Search proteins and interactions"
           />
           <button
             type="submit"
-            className="px-4 py-2 text-white text-sm rounded"
-            style={{ backgroundColor: 'var(--color-main)' }}
+            className="px-6 py-3.5 text-sm font-semibold bg-white whitespace-nowrap border-l"
+            style={{ color: 'var(--color-main)', borderColor: 'var(--border)' }}
           >
             Search
           </button>

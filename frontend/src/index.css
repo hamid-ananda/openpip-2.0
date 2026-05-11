@@ -1,6 +1,7 @@
+@import "@fontsource-variable/inter";
 @import "tailwindcss";
 
-/* Default color values — overwritten at runtime by ThemeProvider */
+/* Admin-overridable theme tokens */
 :root {
   --color-main: #a51c30;
   --color-header: #ffffff;
@@ -13,8 +14,30 @@
   --color-edge-verified: #cc0000;
   --color-edge-literature: #ff9900;
   --color-edge-mixed: #ff55dd;
+
+  /* Content surface tokens — tinted toward brand crimson (hue ≈ 18) */
+  --surface: oklch(99% 0.005 18);
+  --surface-alt: oklch(96.5% 0.008 18);
+  --surface-inset: oklch(93% 0.011 18);
+  --text-primary: oklch(18% 0.012 18);
+  --text-secondary: oklch(42% 0.010 18);
+  --text-muted: oklch(57% 0.008 18);
+  --border: oklch(87% 0.009 18);
+  --border-subtle: oklch(92% 0.006 18);
 }
 
 body {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter Variable', 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-optical-sizing: auto;
+  background-color: var(--surface);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }

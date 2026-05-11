@@ -5,7 +5,12 @@ interface FooterProps {
 export function Footer({ html }: FooterProps) {
   return (
     <footer
-      className="py-4 px-6 text-sm text-gray-600 border-t"
+      className="py-6 px-6 text-sm"
+      style={{
+        color: 'var(--text-muted)',
+        borderTop: '1px solid var(--border)',
+        backgroundColor: 'var(--surface-alt)',
+      }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )

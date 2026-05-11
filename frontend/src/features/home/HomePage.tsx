@@ -23,8 +23,8 @@ export function HomePage() {
         interactions={counts?.interactions ?? 0}
       />
 
-      <section className="py-12 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+      <section className="py-16 px-6" style={{ backgroundColor: 'var(--surface)' }}>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
           <MissionSection
             title={settings?.missionTitle ?? ''}
             text={settings?.missionText ?? ''}
@@ -33,8 +33,8 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 px-6 bg-gray-50">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+      <section className="py-14 px-6" style={{ backgroundColor: 'var(--surface-alt)' }}>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
           <AnnouncementsList announcements={announcements ?? []} />
           <ImageCarousel />
         </div>
