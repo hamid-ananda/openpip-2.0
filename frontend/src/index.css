@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Default color values — overwritten at runtime by ThemeProvider */
+:root {
+  --color-main: #a51c30;
+  --color-header: #ffffff;
+  --color-logo: #ffffff;
+  --color-button: #a51c30;
+  --color-query-node: #cc0000;
+  --color-interactor-node: #3c78d8;
+  --color-edge-published: #38761d;
+  --color-edge-validated: #1155cc;
+  --color-edge-verified: #cc0000;
+  --color-edge-literature: #ff9900;
+  --color-edge-mixed: #ff55dd;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
