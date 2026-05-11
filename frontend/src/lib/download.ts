@@ -74,7 +74,7 @@ export function buildFilename(format: string, ext: string): string {
   const day = now.getDate()
   const year = now.getFullYear()
   const time = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
-  return `HuRI_download_${format}_${month}_${day}_${year}_${time}.${ext}`
+  return `openPIP_download_${format}_${month}_${day}_${year}_${time}.${ext}`
 }
 
 export function downloadFile(filename: string, content: string): void {

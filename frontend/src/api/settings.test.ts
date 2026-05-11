@@ -13,6 +13,6 @@ describe('useSettings', () => {
   it('returns admin settings from MSW', async () => {
     const { result } = renderHook(() => useSettings(), { wrapper })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data?.shortTitle).toBe('HuRI')
+    expect(result.current.data?.shortTitle).toBe('openPIP')
   })
 })

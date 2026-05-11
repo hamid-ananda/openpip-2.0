@@ -5,7 +5,7 @@ describe('Types compile', () => {
   it('AdminSettings shape is correct', () => {
     const s: AdminSettings = {
       title: 'openPIP',
-      shortTitle: 'HuRI',
+      shortTitle: 'openPIP',
       footer: '<p>Footer</p>',
       homePage: '',
       missionTitle: 'Mission',
@@ -25,6 +25,6 @@ describe('Types compile', () => {
       url: 'https://openpip.usask.ca/',
       version: '1.0',
     }
-    expect(s.shortTitle).toBe('HuRI')
+    expect(s.shortTitle).toBe('openPIP')
   })
 })

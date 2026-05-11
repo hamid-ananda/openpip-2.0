@@ -69,9 +69,9 @@ describe('formatFASTA', () => {
 })
 
 describe('buildFilename', () => {
-  it('starts with HuRI_download_', () => {
+  it('starts with openPIP_download_', () => {
     const name = buildFilename('SIF', 'sif')
-    expect(name).toMatch(/^HuRI_download_SIF_/)
+    expect(name).toMatch(/^openPIP_download_SIF_/)
     expect(name).toMatch(/\.sif$/)
   })
 })

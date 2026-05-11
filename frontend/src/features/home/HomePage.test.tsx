@@ -8,6 +8,10 @@ vi.mock('./MiniNetworkGraph', () => ({
   MiniNetworkGraph: () => <div data-testid="mini-network-graph" />,
 }))
 
+vi.mock('../../lib/useCountUp', () => ({
+  useCountUp: (target: number) => target,
+}))
+
 function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return <QueryClientProvider client={qc}><MemoryRouter>{children}</MemoryRouter></QueryClientProvider>
@@ -16,7 +20,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('HomePage', () => {
   it('renders the site short title from MSW settings', async () => {
     render(<HomePage />, { wrapper })
-    await waitFor(() => expect(screen.getByText('HuRI')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('openPIP')).toBeInTheDocument())
   })
 
   it('renders formatted protein count from MSW counts', async () => {

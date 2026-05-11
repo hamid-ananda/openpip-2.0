@@ -3,7 +3,7 @@ import { injectCSSVars } from './theme'
 import type { AdminSettings } from '../types/api'
 
 const mockSettings: AdminSettings = {
-  title: 'openPIP', shortTitle: 'HuRI', footer: '', homePage: '',
+  title: 'openPIP', shortTitle: 'openPIP', footer: '', homePage: '',
   missionTitle: '', missionText: '', methodTitle: '', methodText: '',
   mainColorScheme: '#a51c30',
   headerColorScheme: '#ffffff',

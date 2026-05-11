@@ -12,7 +12,7 @@ vi.mock('../../../api/settings', () => ({
 
 const mockSettings = {
   title: 'openPIP — Protein Interaction Portal',
-  shortTitle: 'HuRI',
+  shortTitle: 'openPIP',
   footer: '<p>© 2026 openPIP. All rights reserved.</p>',
   homePage: '',
   missionTitle: '<h4>Our Mission</h4>',

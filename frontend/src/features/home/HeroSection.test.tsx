@@ -7,16 +7,16 @@ describe('HeroSection', () => {
   it('renders the site short title', () => {
     render(
       <MemoryRouter>
-        <HeroSection shortTitle="HuRI" proteins={8275} interactions={52569} />
+        <HeroSection shortTitle="openPIP" proteins={8275} interactions={52569} />
       </MemoryRouter>
     )
-    expect(screen.getByText('HuRI')).toBeInTheDocument()
+    expect(screen.getByText('openPIP')).toBeInTheDocument()
   })
 
   it('renders the search input', () => {
     render(
       <MemoryRouter>
-        <HeroSection shortTitle="HuRI" proteins={0} interactions={0} />
+        <HeroSection shortTitle="openPIP" proteins={0} interactions={0} />
       </MemoryRouter>
     )
     expect(screen.getByPlaceholderText(/gene names/i)).toBeInTheDocument()
@@ -25,7 +25,7 @@ describe('HeroSection', () => {
   it('renders the search button', () => {
     render(
       <MemoryRouter>
-        <HeroSection shortTitle="HuRI" proteins={0} interactions={0} />
+        <HeroSection shortTitle="openPIP" proteins={0} interactions={0} />
       </MemoryRouter>
     )
     expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument()
