@@ -5,10 +5,12 @@ import zipfile
 from django.http import FileResponse, Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework import status
 
 from .models import Dataset
 from .serializers import DatasetSerializer
+from .upload_parser import parse_and_ingest
 
 
 class DatasetListView(APIView):
@@ -44,3 +46,15 @@ class DatasetArchiveDownloadView(APIView):
                     zf.write(ds.file_path, arcname=os.path.basename(ds.file_path))
         tmp.seek(0)
         return FileResponse(open(tmp.name, 'rb'), as_attachment=True, filename='datasets.zip')
+
+
+class UploadView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        uploaded_file = request.FILES.get('file')
+        if not uploaded_file:
+            return Response({'detail': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+        file_bytes = uploaded_file.read()
+        result = parse_and_ingest(file_bytes)
+        return Response(result)
