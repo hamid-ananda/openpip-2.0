@@ -1,6 +1,78 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '../../api/settings'
+import { injectCSSVars } from '../../lib/theme'
 import type { AdminSettings } from '../../types/api'
+
+// ─────────────────────────────────────────────────────────
+// Defaults
+// ─────────────────────────────────────────────────────────
+const DEFAULT_COLORS: Partial<AdminSettings> = {
+  navStyle:            'solid',
+  mainColorScheme:     '#2563eb',
+  mainColorScheme2:    '#0ea5e9',
+  gradientAngle:       135,
+  headerColorScheme:   '#ffffff',
+  logoColorScheme:     '#ffffff',
+  buttonColorScheme:   '#2563eb',
+  queryNodeColor:      '#e11d48',
+  interactorNodeColor: '#2563eb',
+  publishedEdgeColor:  '#38761d',
+  validatedEdgeColor:  '#1155cc',
+  verifiedEdgeColor:   '#cc0000',
+  literatureEdgeColor: '#0ea5e9',
+}
+
+// ─────────────────────────────────────────────────────────
+// Preset themes
+// ─────────────────────────────────────────────────────────
+interface Preset {
+  name: string
+  preview: string
+  colors: Partial<AdminSettings>
+}
+
+const PRESETS: Preset[] = [
+  {
+    name: 'openPIP Blue',
+    preview: 'linear-gradient(135deg,#2563eb,#0ea5e9)',
+    colors: { navStyle:'gradient', mainColorScheme:'#2563eb', mainColorScheme2:'#0ea5e9', gradientAngle:135, headerColorScheme:'#ffffff', queryNodeColor:'#e11d48', interactorNodeColor:'#2563eb', literatureEdgeColor:'#0ea5e9', publishedEdgeColor:'#7c3aed', validatedEdgeColor:'#1155cc', verifiedEdgeColor:'#cc0000' },
+  },
+  {
+    name: 'Crimson',
+    preview: 'linear-gradient(135deg,#a51c30,#e11d48)',
+    colors: { navStyle:'gradient', mainColorScheme:'#a51c30', mainColorScheme2:'#e11d48', gradientAngle:135, headerColorScheme:'#ffffff', queryNodeColor:'#ff6b6b', interactorNodeColor:'#a51c30', literatureEdgeColor:'#0ea5e9', publishedEdgeColor:'#7c3aed', validatedEdgeColor:'#1155cc', verifiedEdgeColor:'#e11d48' },
+  },
+  {
+    name: 'Forest',
+    preview: 'linear-gradient(135deg,#166534,#10b981)',
+    colors: { navStyle:'gradient', mainColorScheme:'#166534', mainColorScheme2:'#10b981', gradientAngle:135, headerColorScheme:'#ffffff', queryNodeColor:'#e11d48', interactorNodeColor:'#166534', literatureEdgeColor:'#0ea5e9', publishedEdgeColor:'#10b981', validatedEdgeColor:'#1155cc', verifiedEdgeColor:'#cc0000' },
+  },
+  {
+    name: 'Purple',
+    preview: 'linear-gradient(135deg,#6d28d9,#a855f7)',
+    colors: { navStyle:'gradient', mainColorScheme:'#6d28d9', mainColorScheme2:'#a855f7', gradientAngle:135, headerColorScheme:'#ffffff', queryNodeColor:'#e11d48', interactorNodeColor:'#6d28d9', literatureEdgeColor:'#38bdf8', publishedEdgeColor:'#a855f7', validatedEdgeColor:'#6d28d9', verifiedEdgeColor:'#e11d48' },
+  },
+  {
+    name: 'Ocean',
+    preview: 'linear-gradient(135deg,#0f766e,#06b6d4)',
+    colors: { navStyle:'gradient', mainColorScheme:'#0f766e', mainColorScheme2:'#06b6d4', gradientAngle:135, headerColorScheme:'#ffffff', queryNodeColor:'#e11d48', interactorNodeColor:'#0f766e', literatureEdgeColor:'#06b6d4', publishedEdgeColor:'#10b981', validatedEdgeColor:'#0f766e', verifiedEdgeColor:'#e11d48' },
+  },
+  {
+    name: 'Midnight',
+    preview: 'linear-gradient(135deg,#0f172a,#1e40af)',
+    colors: { navStyle:'gradient', mainColorScheme:'#0f172a', mainColorScheme2:'#1e40af', gradientAngle:135, headerColorScheme:'#94a3b8', queryNodeColor:'#fb7185', interactorNodeColor:'#60a5fa', literatureEdgeColor:'#38bdf8', publishedEdgeColor:'#a78bfa', validatedEdgeColor:'#60a5fa', verifiedEdgeColor:'#fb7185' },
+  },
+  {
+    name: 'Sunset',
+    preview: 'linear-gradient(135deg,#dc2626,#ea580c,#f59e0b)',
+    colors: { navStyle:'gradient', mainColorScheme:'#dc2626', mainColorScheme2:'#f59e0b', gradientAngle:135, headerColorScheme:'#ffffff', queryNodeColor:'#dc2626', interactorNodeColor:'#ea580c', literatureEdgeColor:'#f59e0b', publishedEdgeColor:'#10b981', validatedEdgeColor:'#1155cc', verifiedEdgeColor:'#dc2626' },
+  },
+  {
+    name: 'Light',
+    preview: 'var(--surface)',
+    colors: { navStyle:'light', mainColorScheme:'#2563eb', headerColorScheme:'#1e293b', logoColorScheme:'#2563eb' },
+  },
+]
 
 // ─────────────────────────────────────────────────────────
 // Field metadata
@@ -220,43 +292,39 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ─────────────────────────────────────────────────────────
 // Live header preview
 // ─────────────────────────────────────────────────────────
-function NavPreview({ main, header }: { main: string; header: string }) {
+function NavPreview({
+  style = 'solid', main, main2, angle = 135, header,
+}: {
+  style?: string; main: string; main2?: string; angle?: number; header: string
+}) {
+  let bg: string
+  if (style === 'gradient') bg = `linear-gradient(${angle}deg, ${main}, ${main2 ?? '#0ea5e9'})`
+  else if (style === 'light') bg = 'var(--surface)'
+  else bg = main
+
+  const borderB = style === 'light' ? '1px solid var(--border)' : 'none'
+
   return (
-    <div
-      style={{
-        borderRadius: 8,
-        overflow: 'hidden',
-        border: '1px solid var(--border)',
-        marginTop: 20,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 500,
-          color: 'var(--text-muted)',
-          padding: '6px 10px',
-          background: 'var(--surface-2)',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        Preview
+    <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', marginTop: 20 }}>
+      <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', padding: '6px 10px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
+        Navbar preview
       </div>
-      <div
-        style={{
-          background: main,
-          padding: '10px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 24,
-        }}
-      >
-        <span style={{ color: header, fontWeight: 600, fontSize: 14 }}>openPIP</span>
+      <div style={{ background: bg, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 24, borderBottom: borderB }}>
+        {/* Mini logo */}
+        <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden>
+          <circle cx="16" cy="16" r="4" fill="rgba(255,255,255,0.9)" />
+          <circle cx="5"  cy="8"  r="2.2" fill="rgba(255,255,255,0.65)" />
+          <circle cx="27" cy="9"  r="2.2" fill="rgba(255,255,255,0.65)" />
+          <circle cx="6"  cy="25" r="2.2" fill="rgba(255,255,255,0.65)" />
+          <circle cx="26" cy="25" r="2.2" fill="rgba(255,255,255,0.65)" />
+        </svg>
+        <span style={{ color: header, fontWeight: 600, fontSize: 13 }}>openPIP</span>
         {['Home', 'Search', 'Downloads', 'About'].map((l) => (
-          <span key={l} style={{ color: header, opacity: 0.75, fontSize: 13 }}>
-            {l}
-          </span>
+          <span key={l} style={{ color: header, opacity: 0.72, fontSize: 12 }}>{l}</span>
         ))}
+        <span style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.35)', color: header, fontSize: 11, fontWeight: 600 }}>
+          Register
+        </span>
       </div>
     </div>
   )
@@ -480,9 +548,25 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
     setForm((f) => ({ ...f, [field]: value }))
   }, [])
 
+  // Live preview: apply CSS vars immediately as the admin adjusts any visual setting
+  useEffect(() => {
+    injectCSSVars(form)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    form.navStyle, form.mainColorScheme, form.mainColorScheme2, form.gradientAngle,
+    form.headerColorScheme, form.logoColorScheme, form.buttonColorScheme,
+    form.queryNodeColor, form.interactorNodeColor,
+    form.publishedEdgeColor, form.validatedEdgeColor, form.verifiedEdgeColor, form.literatureEdgeColor,
+  ])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     update(form)
+  }
+
+  const handleResetColors = () => {
+    if (!window.confirm('Reset all colors to defaults? Content (titles, footer, etc.) will not be changed.')) return
+    setForm((f) => ({ ...f, ...DEFAULT_COLORS }))
   }
 
   return (
@@ -577,15 +661,136 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
 
       {/* ── APPEARANCE ── */}
       <TabPanel active={activeTab === 'appearance'}>
-        <Section title="Site colors">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <ColorInput label="Primary Color"  value={form.mainColorScheme ?? '#2563eb'}   onChange={(v) => set('mainColorScheme', v)} />
-            <ColorInput label="Header Color"   value={form.headerColorScheme ?? '#ffffff'}  onChange={(v) => set('headerColorScheme', v)} />
-            <ColorInput label="Logo Color"     value={form.logoColorScheme ?? '#ffffff'}    onChange={(v) => set('logoColorScheme', v)} />
-            <ColorInput label="Button Color"   value={form.buttonColorScheme ?? '#2563eb'}  onChange={(v) => set('buttonColorScheme', v)} />
+
+        {/* Preset themes */}
+        <Section title="Themes">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, ...preset.colors }))}
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  background: 'var(--surface)',
+                  padding: 0,
+                  textAlign: 'left',
+                  transition: 'box-shadow .15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-md)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '' }}
+              >
+                <div style={{ height: 36, background: preset.preview }} />
+                <div style={{ padding: '6px 10px', fontSize: 11, fontWeight: 500, color: 'var(--text-muted)' }}>
+                  {preset.name}
+                </div>
+              </button>
+            ))}
           </div>
-          <NavPreview main={form.mainColorScheme ?? '#2563eb'} header={form.headerColorScheme ?? '#ffffff'} />
         </Section>
+
+        {/* Nav style */}
+        <Section title="Navbar style">
+          <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+            {(['solid', 'gradient', 'light'] as const).map((style) => (
+              <button
+                key={style}
+                type="button"
+                onClick={() => set('navStyle', style)}
+                style={{
+                  flex: 1,
+                  padding: '10px 0',
+                  borderRadius: 8,
+                  border: `2px solid ${(form.navStyle ?? 'solid') === style ? 'var(--primary)' : 'var(--border)'}`,
+                  background: (form.navStyle ?? 'solid') === style ? 'var(--primary-soft)' : 'var(--surface)',
+                  color: (form.navStyle ?? 'solid') === style ? 'var(--primary-deep)' : 'var(--text-muted)',
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font)',
+                  textTransform: 'capitalize',
+                  transition: 'all .15s',
+                }}
+              >
+                {style === 'solid'    && '◼ Solid'}
+                {style === 'gradient' && '◐ Gradient'}
+                {style === 'light'    && '◻ Light'}
+              </button>
+            ))}
+          </div>
+
+          {/* Colors — shown contextually */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ColorInput
+              label={(form.navStyle ?? 'solid') === 'gradient' ? 'Gradient start' : 'Primary color'}
+              value={form.mainColorScheme ?? '#2563eb'}
+              onChange={(v) => set('mainColorScheme', v)}
+            />
+            {(form.navStyle ?? 'solid') === 'gradient' && (
+              <ColorInput
+                label="Gradient end"
+                value={form.mainColorScheme2 ?? '#0ea5e9'}
+                onChange={(v) => set('mainColorScheme2', v)}
+              />
+            )}
+            {(form.navStyle ?? 'solid') !== 'light' && (
+              <ColorInput
+                label="Header text color"
+                value={form.headerColorScheme ?? '#ffffff'}
+                onChange={(v) => set('headerColorScheme', v)}
+              />
+            )}
+            <ColorInput
+              label="Logo color"
+              value={form.logoColorScheme ?? '#ffffff'}
+              onChange={(v) => set('logoColorScheme', v)}
+            />
+          </div>
+
+          {/* Gradient angle slider */}
+          {(form.navStyle ?? 'solid') === 'gradient' && (
+            <div style={{ marginTop: 16 }}>
+              <FieldLabel>Gradient angle</FieldLabel>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={360}
+                  step={5}
+                  value={form.gradientAngle ?? 135}
+                  onChange={(e) => set('gradientAngle', parseInt(e.target.value))}
+                  style={{ flex: 1, accentColor: 'var(--primary)' }}
+                />
+                <span className="op-num" style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 36 }}>
+                  {form.gradientAngle ?? 135}°
+                </span>
+              </div>
+            </div>
+          )}
+        </Section>
+
+        {/* Buttons */}
+        <Section title="Buttons &amp; accents">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ColorInput
+              label="Button color"
+              value={form.buttonColorScheme ?? '#2563eb'}
+              onChange={(v) => set('buttonColorScheme', v)}
+            />
+          </div>
+        </Section>
+
+        {/* Live nav preview */}
+        <NavPreview
+          style={form.navStyle ?? 'solid'}
+          main={form.mainColorScheme ?? '#2563eb'}
+          main2={form.mainColorScheme2 ?? '#0ea5e9'}
+          angle={form.gradientAngle ?? 135}
+          header={form.navStyle === 'light' ? 'var(--text)' : (form.headerColorScheme ?? '#ffffff')}
+        />
       </TabPanel>
 
       {/* ── HOME CONTENT ── */}
@@ -648,7 +853,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 16,
+          gap: 12,
           padding: '16px 32px',
           borderTop: '1px solid var(--border)',
           background: 'var(--surface-2)',
@@ -661,6 +866,14 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           style={{ padding: '9px 20px' }}
         >
           {isPending ? 'Saving…' : 'Save Settings'}
+        </button>
+        <button
+          type="button"
+          className="op-btn"
+          onClick={handleResetColors}
+          title="Reset all colors to their defaults"
+        >
+          Reset colors
         </button>
         {isSuccess && (
           <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 500 }}>

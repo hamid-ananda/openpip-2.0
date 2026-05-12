@@ -44,12 +44,22 @@ function wrapper({ children }: { children: React.ReactNode }) {
   )
 }
 
+import { useUploadLogo, useDeleteLogo } from '../../../api/settings'
+
 describe('AdminSettingsPage', () => {
   beforeEach(() => {
     ;(useUpdateSettings as ReturnType<typeof vi.fn>).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
       isSuccess: false,
+    })
+    ;(useUploadLogo as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    })
+    ;(useDeleteLogo as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
     })
   })
 
@@ -76,7 +86,7 @@ describe('AdminSettingsPage', () => {
     expect(screen.getByDisplayValue('openPIP — Protein Interaction Portal')).toBeInTheDocument()
   })
 
-  it('renders "Primary Color" color input', () => {
+  it('renders "Primary color" color input', () => {
     ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({
       data: mockSettings,
       isLoading: false,
@@ -84,7 +94,7 @@ describe('AdminSettingsPage', () => {
 
     render(<AdminSettingsPage />, { wrapper })
 
-    const primaryColorLabel = screen.getByText('Primary Color')
+    const primaryColorLabel = screen.getByText('Primary color')
     expect(primaryColorLabel).toBeInTheDocument()
 
     // The color input should be present with the mainColorScheme value

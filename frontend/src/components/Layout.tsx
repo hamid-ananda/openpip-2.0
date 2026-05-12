@@ -13,8 +13,7 @@ export function Layout() {
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
       <header
         style={{
-          background: 'var(--surface)',
-          borderBottom: '1px solid var(--border)',
+          background: 'var(--nav-bg, var(--color-main))',
           position: 'sticky',
           top: 0,
           zIndex: 50,

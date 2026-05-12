@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getEdgeColor, buildElements } from '../cytoscapeElements'
+import { getEdgeColorByOrder, buildElements } from '../cytoscapeElements'
 import { NETWORK_STYLESHEET } from '../cytoscapeStyles'
 import type { Protein, Interaction } from '../../../../types/api'
 
@@ -27,6 +27,7 @@ function makeInteraction(
     aId: number
     bId: number
     categoryStatus: string
+    highestOrder?: number
     score?: number | null
   }
 ): Interaction {
@@ -50,35 +51,37 @@ function makeInteraction(
     dataset_array: [],
     interaction_category_array: {
       highest_category_status: overrides.categoryStatus,
-      highest_order: 1,
+      highest_order: overrides.highestOrder ?? 1,
       interaction_category_array: [],
     },
   }
 }
 
-describe('getEdgeColor', () => {
-  it('returns #ff0000 for Literature', () => {
-    expect(getEdgeColor('Literature')).toBe('#ff0000')
+describe('getEdgeColorByOrder', () => {
+  it('order 1 → published color', () => {
+    expect(getEdgeColorByOrder(1)).toBe('#38761d')
   })
 
-  it('returns #0000ff for Published', () => {
-    expect(getEdgeColor('Published')).toBe('#0000ff')
+  it('order 2 → validated color', () => {
+    expect(getEdgeColorByOrder(2)).toBe('#1155cc')
   })
 
-  it('returns #00aa00 for Validated', () => {
-    expect(getEdgeColor('Validated')).toBe('#00aa00')
+  it('order 3 → verified color', () => {
+    expect(getEdgeColorByOrder(3)).toBe('#cc0000')
   })
 
-  it('returns #aa00aa for Verified', () => {
-    expect(getEdgeColor('Verified')).toBe('#aa00aa')
+  it('order 4 → literature color', () => {
+    expect(getEdgeColorByOrder(4)).toBe('#ff9900')
   })
 
-  it('returns #ff55dd for Mixed', () => {
-    expect(getEdgeColor('Mixed')).toBe('#ff55dd')
+  it('unknown order → fallback grey', () => {
+    expect(getEdgeColorByOrder(99)).toBe('#cccccc')
   })
 
-  it('returns #cccccc for unknown category', () => {
-    expect(getEdgeColor('UnknownCategory')).toBe('#cccccc')
+  it('respects a custom palette', () => {
+    const palette = { published: '#aaa', validated: '#bbb', verified: '#ccc', literature: '#ddd' }
+    expect(getEdgeColorByOrder(1, palette)).toBe('#aaa')
+    expect(getEdgeColorByOrder(4, palette)).toBe('#ddd')
   })
 })
 
@@ -118,7 +121,7 @@ describe('buildElements — edge structure', () => {
     makeProtein({ protein_id: 2, protein_gene_name: 'TP53' }),
   ]
   const interactions = [
-    makeInteraction({ interaction_id: 42, aId: 1, bId: 2, categoryStatus: 'Literature', score: 0.9 }),
+    makeInteraction({ interaction_id: 42, aId: 1, bId: 2, categoryStatus: 'Literature', highestOrder: 4, score: 0.9 }),
   ]
   const elements = buildElements(proteins, interactions, [1])
 
@@ -138,9 +141,9 @@ describe('buildElements — edge structure', () => {
     expect(edge.data.target).toBe('p2')
   })
 
-  it('edge has correct color for Literature', () => {
+  it('edge has correct color for Literature (order 4)', () => {
     const edge = elements.find((el) => el.data.id === 'i42')!
-    expect(edge.data.color).toBe('#ff0000')
+    expect(edge.data.color).toBe('#ff9900')
   })
 
   it('edge has correct score', () => {
@@ -154,19 +157,19 @@ describe('buildElements — edge structure', () => {
   })
 })
 
-describe('buildElements — Mixed edge color', () => {
+describe('buildElements — unknown order fallback', () => {
   const proteins = [
     makeProtein({ protein_id: 1, protein_gene_name: 'A' }),
     makeProtein({ protein_id: 2, protein_gene_name: 'B' }),
   ]
   const interactions = [
-    makeInteraction({ interaction_id: 1, aId: 1, bId: 2, categoryStatus: 'Mixed' }),
+    makeInteraction({ interaction_id: 1, aId: 1, bId: 2, categoryStatus: 'HI-Union', highestOrder: 99 }),
   ]
 
-  it('Mixed interaction edge color is #ff55dd', () => {
+  it('unknown order gets fallback grey', () => {
     const elements = buildElements(proteins, interactions, [])
     const edge = elements.find((el) => el.data.id === 'i1')!
-    expect(edge.data.color).toBe('#ff55dd')
+    expect(edge.data.color).toBe('#cccccc')
   })
 })
 

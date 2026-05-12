@@ -6,6 +6,7 @@ import cola from 'cytoscape-cola'
 import type { Protein, Interaction } from '../../../types/api'
 import { buildElements } from './cytoscapeElements'
 import { NETWORK_STYLESHEET } from './cytoscapeStyles'
+import { useSettings } from '../../../api/settings'
 
 // Register cytoscape-cola extension once at module level.
 // Wrapped in try/catch to silently ignore double-registration errors
@@ -46,12 +47,19 @@ export function CytoscapeNetwork({
   // that make strict typing impractical; see frontend/CLAUDE.md.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cyRef = useRef<any>(null)
-
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const { data: settings } = useSettings()
+
+  const palette = useMemo(() => ({
+    published:  settings?.publishedEdgeColor  ?? '#38761d',
+    validated:  settings?.validatedEdgeColor  ?? '#1155cc',
+    verified:   settings?.verifiedEdgeColor   ?? '#cc0000',
+    literature: settings?.literatureEdgeColor ?? '#ff9900',
+  }), [settings])
 
   const elements = useMemo(
-    () => buildElements(proteins, interactions, queryProteinIds),
-    [proteins, interactions, queryProteinIds]
+    () => buildElements(proteins, interactions, queryProteinIds, palette),
+    [proteins, interactions, queryProteinIds, palette]
   )
 
   // Re-run layout when the layout name changes (without remounting the whole graph).

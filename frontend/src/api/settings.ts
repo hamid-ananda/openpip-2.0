@@ -17,6 +17,8 @@ export function useUpdateSettings() {
       apiClient.patch('/settings', data).then((r) => r.data as AdminSettings),
     onSuccess: (updated) => {
       queryClient.setQueryData(['settings'], updated)
+      // Also invalidate to force ThemeProvider to re-run injectCSSVars with fresh data
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
     },
   })
 }

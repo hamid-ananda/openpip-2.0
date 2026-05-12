@@ -1,24 +1,37 @@
 import type { ElementDefinition } from 'cytoscape'
 import type { Protein, Interaction } from '../../../types/api'
 
-const EDGE_COLORS: Record<string, string> = {
-  Literature: '#ff0000',
-  Published: '#0000ff',
-  Validated: '#00aa00',
-  Verified: '#aa00aa',
-  Mixed: '#ff55dd',
+export interface EdgeColorPalette {
+  published: string   // order 1
+  validated: string   // order 2
+  verified: string    // order 3
+  literature: string  // order 4
+}
+
+const DEFAULT_PALETTE: EdgeColorPalette = {
+  published: '#38761d',
+  validated: '#1155cc',
+  verified: '#cc0000',
+  literature: '#ff9900',
 }
 
 const FALLBACK_COLOR = '#cccccc'
 
-export function getEdgeColor(categoryStatus: string): string {
-  return EDGE_COLORS[categoryStatus] ?? FALLBACK_COLOR
+export function getEdgeColorByOrder(order: number, palette: EdgeColorPalette = DEFAULT_PALETTE): string {
+  switch (order) {
+    case 1: return palette.published
+    case 2: return palette.validated
+    case 3: return palette.verified
+    case 4: return palette.literature
+    default: return FALLBACK_COLOR
+  }
 }
 
 export function buildElements(
   proteins: Protein[],
   interactions: Interaction[],
-  queryProteinIds: number[]
+  queryProteinIds: number[],
+  palette: EdgeColorPalette = DEFAULT_PALETTE
 ): ElementDefinition[] {
   const querySet = new Set(queryProteinIds)
 
@@ -31,15 +44,15 @@ export function buildElements(
   }))
 
   const edges: ElementDefinition[] = interactions.map((interaction) => {
-    const categoryStatus = interaction.interaction_category_array.highest_category_status
+    const { highest_category_status, highest_order } = interaction.interaction_category_array
     return {
       data: {
         id: `i${interaction.interaction_id}`,
         source: `p${interaction.interactor_A.protein_id}`,
         target: `p${interaction.interactor_B.protein_id}`,
-        color: getEdgeColor(categoryStatus),
+        color: getEdgeColorByOrder(highest_order, palette),
         score: interaction.score,
-        category: categoryStatus,
+        category: highest_category_status,
       },
     }
   })

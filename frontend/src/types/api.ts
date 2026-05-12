@@ -20,6 +20,9 @@ export interface AdminSettings {
   url: string
   version: string
   logoUrl?: string | null
+  navStyle?: string | null
+  mainColorScheme2?: string | null
+  gradientAngle?: number | null
 }
 
 export interface Announcement {

@@ -3,6 +3,13 @@ import { render, screen, act } from '@testing-library/react'
 import type { Protein, Interaction } from '../../../../types/api'
 
 // ------------------------------------------------------------------
+// Mock useSettings so CytoscapeNetwork doesn't need a QueryClient
+// ------------------------------------------------------------------
+vi.mock('../../../../api/settings', () => ({
+  useSettings: () => ({ data: undefined }),
+}))
+
+// ------------------------------------------------------------------
 // Mock cytoscape-cola — no real DOM canvas needed
 // ------------------------------------------------------------------
 vi.mock('cytoscape-cola', () => ({ default: {} }))

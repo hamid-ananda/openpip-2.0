@@ -58,13 +58,21 @@ const initialState = {
 export const useSearchStore = create<SearchState>()((set) => ({
   ...initialState,
   setSearchData: (result) =>
-    set({
-      allProteins: result.all_proteins,
-      allInteractions: result.all_interactions,
-      queryProteinIds: result.query_protein_id_array,
-      searchTerm: result.search_term,
-      foundSummary: result.found_protein_summary,
-      unfoundSummary: result.unfound_protein_summary,
+    set((s) => {
+      const categoryFilter = { ...s.categoryFilter }
+      for (const ix of result.all_interactions) {
+        const cat = ix.interaction_category_array.highest_category_status
+        if (cat && !(cat in categoryFilter)) categoryFilter[cat] = true
+      }
+      return {
+        allProteins: result.all_proteins,
+        allInteractions: result.all_interactions,
+        queryProteinIds: result.query_protein_id_array,
+        searchTerm: result.search_term,
+        foundSummary: result.found_protein_summary,
+        unfoundSummary: result.unfound_protein_summary,
+        categoryFilter,
+      }
     }),
   setScoreFilter: (n) => set({ scoreFilter: n }),
   setCategoryFilter: (name, val) =>

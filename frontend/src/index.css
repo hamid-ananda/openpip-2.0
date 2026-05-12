@@ -20,10 +20,10 @@
   --text-muted: #5b6473;
   --text-soft: #8a93a3;
 
-  /* Brand accent — --primary-soft and --primary-deep auto-derive via color-mix */
+  /* Brand accent — overridden at runtime by injectCSSVars from admin settings */
   --primary: #2563eb;
-  --primary-soft: color-mix(in oklab, var(--primary) 14%, white);
-  --primary-deep: color-mix(in oklab, var(--primary) 75%, black);
+  --primary-soft: #dbeafe;
+  --primary-deep: #1e40af;
   --accent: #0ea5e9;
   --accent-2: #06b6d4;
 
@@ -56,10 +56,11 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Admin-overridable network viz colors (injected at runtime by ThemeProvider) */
+  /* Admin-overridable header + network colors — overwritten at runtime by injectCSSVars */
+  --nav-bg: #2563eb;
   --color-main: #2563eb;
-  --color-header: #0b1220;
-  --color-logo: #e11d48;
+  --color-header: #ffffff;
+  --color-logo: rgba(255,255,255,0.8);
   --color-button: #2563eb;
   --color-query-node: #e11d48;
   --color-interactor-node: #2563eb;
