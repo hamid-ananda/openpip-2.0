@@ -3,34 +3,36 @@
 One-time migration: legacy MySQL (mysql8 Docker container) → 2.0 Postgres.
 
 Usage:
-    python migration/migrate_legacy.py [--reset]
+    cd ~/openpip-2.0
+    backend/.venv/bin/python migration/migrate_legacy.py [--reset]
 
-    --reset   Truncate all target tables before inserting (for re-runs during dev).
-              Default: fail loudly on duplicate PKs.
+    --reset   Truncate all target tables before inserting (for dev re-runs).
 
 Prerequisites:
-    - docker compose up -d db  (2.0 Postgres running, port 5432 exposed to host)
-    - python manage.py migrate  (Django tables created)
-    - pip install -r migration/requirements.txt
+    - docker compose up -d db  (2.0 Postgres running on localhost:5432)
+    - cd backend && python manage.py migrate
     - DATABASE_URL in ~/openpip-2.0/.env
 """
 import argparse
-import io
 import os
-import subprocess
 import sys
 
 import psycopg2
+import psycopg2.extras
+import pymysql
+import pymysql.cursors
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-MYSQL_CONTAINER = 'mysql8'
+MYSQL_HOST = '172.18.0.3'
 MYSQL_USER = 'root'
 MYSQL_PASS = 'secret'
 MYSQL_DB = 'huri'
 
-# Tables in dependency order (parents before children)
+BATCH_SIZE = 5000
+
+# Tables in FK dependency order — parents before children.
 # Skip: user (FOSUserBundle format), fos_group, fos_user_user_group, test_table
 TABLES = [
     'admin_settings',
@@ -65,73 +67,99 @@ TABLES = [
 ]
 
 
-def mysql_tsv(table: str) -> str:
-    """Stream table from MySQL container as TSV (with header row)."""
-    result = subprocess.run(
-        [
-            'docker', 'exec', MYSQL_CONTAINER,
-            'mysql', f'-u{MYSQL_USER}', f'-p{MYSQL_PASS}', MYSQL_DB,
-            '--batch', '--silent', '-e', f'SELECT * FROM `{table}`',
-        ],
-        capture_output=True, text=True, timeout=300,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f'MySQL error on {table}: {result.stderr}')
-    return result.stdout
+def get_mysql_columns(mysql_conn, table: str) -> list[str]:
+    with mysql_conn.cursor() as cur:
+        cur.execute(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s ORDER BY ORDINAL_POSITION",
+            (MYSQL_DB, table),
+        )
+        return [row['COLUMN_NAME'] for row in cur.fetchall()]
 
 
-def get_columns(table: str) -> list[str]:
-    """Return column names for the table in ordinal order."""
-    result = subprocess.run(
-        [
-            'docker', 'exec', MYSQL_CONTAINER,
-            'mysql', f'-u{MYSQL_USER}', f'-p{MYSQL_PASS}', MYSQL_DB,
-            '--batch', '--silent', '-e',
-            f"SELECT COLUMN_NAME FROM information_schema.COLUMNS "
-            f"WHERE TABLE_SCHEMA='{MYSQL_DB}' AND TABLE_NAME='{table}' "
-            f"ORDER BY ORDINAL_POSITION",
-        ],
-        capture_output=True, text=True,
-    )
-    return [c.strip() for c in result.stdout.strip().splitlines() if c.strip()]
+def get_pg_columns(pg_conn, table: str) -> set[str]:
+    with pg_conn.cursor() as cur:
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema='public' AND table_name=%s",
+            (table,),
+        )
+        return {row[0] for row in cur.fetchall()}
 
 
-def migrate_table(conn, table: str, reset: bool) -> int:
-    columns = get_columns(table)
-    if not columns:
-        print(f'  {table}: no columns found, skipping')
+def get_pg_bool_columns(pg_conn, table: str) -> set[str]:
+    with pg_conn.cursor() as cur:
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema='public' AND table_name=%s AND data_type='boolean'",
+            (table,),
+        )
+        return {row[0] for row in cur.fetchall()}
+
+
+def migrate_table(mysql_conn, pg_conn, table: str, reset: bool) -> int:
+    mysql_cols = get_mysql_columns(mysql_conn, table)
+    pg_cols = get_pg_columns(pg_conn, table)
+    bool_cols = get_pg_bool_columns(pg_conn, table)
+
+    # Only migrate columns that exist in both schemas
+    shared_cols = [c for c in mysql_cols if c in pg_cols]
+    if not shared_cols:
+        print(f'  {table}: no shared columns, skipping')
         return 0
 
-    tsv_data = mysql_tsv(table)
-    lines = tsv_data.strip().splitlines()
-    if len(lines) <= 1:
+    skipped = [c for c in mysql_cols if c not in pg_cols]
+    if skipped:
+        print(f'  {table}: skipping legacy-only columns: {skipped}')
+
+    col_list = ', '.join(f'`{c}`' for c in shared_cols)
+    with mysql_conn.cursor() as cur:
+        cur.execute(f'SELECT COUNT(*) as n FROM `{table}`')
+        total = cur.fetchone()['n']
+
+    if total == 0:
         print(f'  {table}: empty')
         return 0
 
-    data_lines = lines[1:]  # skip header row
-    row_count = len(data_lines)
-
-    with conn.cursor() as cur:
+    with pg_conn.cursor() as cur:
         if reset:
             cur.execute(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
-
-        # Disable FK triggers during bulk load
         cur.execute('SET session_replication_role = replica')
+    pg_conn.commit()
 
-        buf = io.StringIO('\n'.join(data_lines))
-        cur.copy_from(buf, table, columns=columns, null='\\N', sep='\t')
+    inserted = 0
+    pg_col_list = ', '.join(f'"{c}"' for c in shared_cols)
+    placeholders = ', '.join(['%s'] * len(shared_cols))
+    insert_sql = f'INSERT INTO "{table}" ({pg_col_list}) VALUES %s ON CONFLICT DO NOTHING'
 
+    with mysql_conn.cursor() as cur:
+        cur.execute(f'SELECT {col_list} FROM `{table}`')
+        while True:
+            rows = cur.fetchmany(BATCH_SIZE)
+            if not rows:
+                break
+            values = [
+                tuple(
+                    bool(row[c]) if c in bool_cols and row[c] is not None else row[c]
+                    for c in shared_cols
+                )
+                for row in rows
+            ]
+            with pg_conn.cursor() as pg_cur:
+                psycopg2.extras.execute_values(pg_cur, insert_sql, values)
+            pg_conn.commit()
+            inserted += len(rows)
+
+    with pg_conn.cursor() as cur:
         cur.execute('SET session_replication_role = DEFAULT')
-
-        # Reset sequence to avoid PK collisions on subsequent inserts
-        if 'id' in columns:
+        if 'id' in shared_cols:
             cur.execute(
                 f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
                 f"COALESCE(MAX(id), 1)) FROM \"{table}\""
             )
+    pg_conn.commit()
 
-    conn.commit()
-    return row_count
+    return inserted
 
 
 def main():
@@ -140,23 +168,29 @@ def main():
                         help='Truncate tables before inserting (safe for dev re-runs)')
     args = parser.parse_args()
 
-    db_url = os.environ.get('DATABASE_URL', 'postgres://openpip:openpip@localhost:5432/openpip')
-    conn = psycopg2.connect(db_url)
+    db_url = os.environ.get('DATABASE_URL', 'postgres://openpip:openpip_dev@localhost:5432/openpip')
+    pg_conn = psycopg2.connect(db_url)
+    mysql_conn = pymysql.connect(
+        host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASS,
+        database=MYSQL_DB, cursorclass=pymysql.cursors.DictCursor,
+        charset='utf8mb4',
+    )
 
     total_rows = 0
     failed = []
 
     for table in TABLES:
         try:
-            rows = migrate_table(conn, table, reset=args.reset)
+            rows = migrate_table(mysql_conn, pg_conn, table, reset=args.reset)
             print(f'  OK {table}: {rows} rows')
             total_rows += rows
         except Exception as exc:
             print(f'  FAIL {table}: {exc}')
             failed.append(table)
-            conn.rollback()
+            pg_conn.rollback()
 
-    conn.close()
+    mysql_conn.close()
+    pg_conn.close()
 
     print(f'\nDone. {total_rows} total rows migrated.')
     if failed:

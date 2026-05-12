@@ -111,10 +111,10 @@ class ComplexProtein(models.Model):
 class AnnotationType(models.Model):
     type = models.CharField(max_length=100)
     label = models.CharField(max_length=100)
-    description = models.TextField()
-    fields = models.TextField()
-    show_in_filter = models.CharField(max_length=10)
-    show_in_table = models.CharField(max_length=10)
+    description = models.TextField(null=True)
+    fields = models.TextField(null=True)
+    show_in_filter = models.CharField(max_length=10, null=True)
+    show_in_table = models.CharField(max_length=10, null=True)
 
     class Meta:
         db_table = 'annotation_type'
@@ -125,7 +125,7 @@ class AnnotationType(models.Model):
 
 class Annotation(models.Model):
     annotation = models.CharField(max_length=5000, null=True)
-    identifier = models.IntegerField(null=True)
+    identifier = models.CharField(max_length=100, null=True)  # stores Ensembl IDs e.g. ENSG00000000457
     annotation_type = models.IntegerField(null=True)
     type_name = models.CharField(max_length=100, null=True)
 
