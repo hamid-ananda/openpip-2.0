@@ -1,43 +1,235 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 @import "@fontsource-variable/inter";
 @import "tailwindcss";
 
-/* Admin-overridable theme tokens */
+/* ─────────────────────────────────────────────────────────
+   openPIP design tokens  |  light theme
+   ───────────────────────────────────────────────────────── */
 :root {
-  --color-main: #a51c30;
-  --color-header: #ffffff;
-  --color-logo: #ffffff;
-  --color-button: #a51c30;
-  --color-query-node: #cc0000;
-  --color-interactor-node: #3c78d8;
+  /* Surfaces */
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f6f9;
+
+  /* Borders */
+  --border: #e5e9ef;
+  --border-strong: #cbd2dc;
+
+  /* Text */
+  --text: #0b1220;
+  --text-muted: #5b6473;
+  --text-soft: #8a93a3;
+
+  /* Brand accent — --primary-soft and --primary-deep auto-derive via color-mix */
+  --primary: #2563eb;
+  --primary-soft: color-mix(in oklab, var(--primary) 14%, white);
+  --primary-deep: color-mix(in oklab, var(--primary) 75%, black);
+  --accent: #0ea5e9;
+  --accent-2: #06b6d4;
+
+  /* Semantic */
+  --danger: #e11d48;
+  --success: #10b981;
+  --warn: #f59e0b;
+
+  /* Network viz — linked to admin-overridable color vars */
+  --query: var(--color-query-node);
+  --interactor: var(--color-interactor-node);
+  --literature: var(--color-edge-literature);
+  --hi-union: var(--color-edge-published);
+  --huri-lit: var(--color-edge-validated);
+
+  /* Shape */
+  --radius: 10px;
+  --radius-sm: 6px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(11,18,32,.04), 0 1px 1px rgba(11,18,32,.03);
+  --shadow-md: 0 4px 12px rgba(11,18,32,.06), 0 1px 3px rgba(11,18,32,.04);
+  --shadow-lg: 0 18px 40px rgba(11,18,32,.10), 0 4px 10px rgba(11,18,32,.05);
+
+  /* Typography */
+  --font: 'Geist', 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Animation */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Admin-overridable network viz colors (injected at runtime by ThemeProvider) */
+  --color-main: #2563eb;
+  --color-header: #0b1220;
+  --color-logo: #e11d48;
+  --color-button: #2563eb;
+  --color-query-node: #e11d48;
+  --color-interactor-node: #2563eb;
   --color-edge-published: #38761d;
   --color-edge-validated: #1155cc;
   --color-edge-verified: #cc0000;
-  --color-edge-literature: #ff9900;
-  --color-edge-mixed: #ff55dd;
+  --color-edge-literature: #0ea5e9;
+  --color-edge-mixed: #7c3aed;
 
-  /* Content surface tokens — tinted toward brand crimson (hue ≈ 18) */
-  --surface: oklch(99% 0.005 18);
-  --surface-alt: oklch(96.5% 0.008 18);
-  --surface-inset: oklch(93% 0.011 18);
-  --text-primary: oklch(18% 0.012 18);
-  --text-secondary: oklch(42% 0.010 18);
-  --text-muted: oklch(57% 0.008 18);
-  --border: oklch(87% 0.009 18);
-  --border-subtle: oklch(92% 0.006 18);
+  /* Backwards-compatibility aliases */
+  --surface-alt: var(--surface-2);
+  --surface-inset: #e2e8f0;
+  --text-primary: var(--text);
+  --text-secondary: var(--text-muted);
+  --border-subtle: var(--border);
 }
 
+/* ─────────────────────────────────────────────────────────
+   Dark theme
+   ───────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg: #0a0e17;
+  --surface: #11161f;
+  --surface-2: #161c28;
+  --border: #232b3a;
+  --border-strong: #313b4f;
+  --text: #e6e9ef;
+  --text-muted: #8993a5;
+  --text-soft: #5f6878;
+  --primary: #5b8bff;
+  --primary-soft: #1a2540;
+  --primary-deep: #93b4ff;
+  --accent: #38bdf8;
+  --accent-2: #22d3ee;
+  --danger: #fb7185;
+  --success: #34d399;
+  --warn: #fbbf24;
+  --query: #fb7185;
+  --interactor: #5b8bff;
+  --hi-union: #a78bfa;
+  --literature: #38bdf8;
+  --huri-lit: #f472b6;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.25);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.3);
+  --shadow-lg: 0 18px 50px rgba(0,0,0,.55), 0 4px 12px rgba(0,0,0,.3);
+  --surface-alt: var(--surface-2);
+  --text-primary: var(--text);
+  --text-secondary: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Base reset
+   ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
-  font-family: 'Inter Variable', 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-optical-sizing: auto;
-  background-color: var(--surface);
-  color: var(--text-primary);
+  font-family: var(--font);
+  background-color: var(--bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  text-wrap: balance;
+h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* ─────────────────────────────────────────────────────────
+   Design system utilities
+   ───────────────────────────────────────────────────────── */
+.op-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.op-chip.primary {
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  border-color: transparent;
+}
+.op-chip.dot::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
-p {
-  text-wrap: pretty;
+.op-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: var(--font);
+  font-weight: 500;
+  font-size: 13px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: all .15s;
+  text-decoration: none;
+}
+.op-btn:hover { background: var(--surface-2); }
+.op-btn.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.op-btn.primary:hover {
+  background: var(--primary-deep);
+  border-color: var(--primary-deep);
+}
+.op-btn.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.op-btn.ghost:hover { background: var(--surface-2); }
+
+.op-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.op-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.op-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.op-num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Animations
+   ───────────────────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 450ms var(--ease-out-expo) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

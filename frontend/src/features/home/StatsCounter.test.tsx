@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { StatsCounter } from './StatsCounter'
+
+vi.mock('../../lib/useCountUp', () => ({
+  useCountUp: (target: number) => target,
+}))
 
 describe('StatsCounter', () => {
   it('displays formatted protein count', () => {

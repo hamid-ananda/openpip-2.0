@@ -8,6 +8,8 @@ import { useSettings, useUpdateSettings } from '../../../api/settings'
 vi.mock('../../../api/settings', () => ({
   useSettings: vi.fn(),
   useUpdateSettings: vi.fn(),
+  useUploadLogo: vi.fn(),
+  useDeleteLogo: vi.fn(),
 }))
 
 const mockSettings = {

@@ -8,14 +8,21 @@ import { useAuthStore } from '../store/authStore'
 export function Layout() {
   const theme = useTheme()
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
-  const isAdmin = useAuthStore((s) => s.isAdmin)
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header style={{ backgroundColor: 'var(--color-main)' }}>
-        <div className="flex items-center h-14">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
+      <header
+        style={{
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--border)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', height: 56 }}>
           <TopBar shortTitle={theme?.shortTitle ?? 'openPIP'} />
-          <Navbar isLoggedIn={isLoggedIn} isAdmin={isAdmin} />
+          <Navbar isLoggedIn={isLoggedIn} />
         </div>
       </header>
       <main className="flex-1">

@@ -22,6 +22,7 @@ class AdminSettings(models.Model):
     header_color_scheme = models.CharField(max_length=10, null=True)
     logo_color_scheme = models.CharField(max_length=10, null=True)
     button_color_scheme = models.CharField(max_length=10, null=True)
+    logo = models.FileField(upload_to='logos/', null=True, blank=True)
     example_1 = models.CharField(max_length=100, null=True)
     example_2 = models.CharField(max_length=100, null=True)
     example_3 = models.CharField(max_length=100, null=True)

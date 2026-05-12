@@ -5,6 +5,9 @@ import { ThemeProvider } from './components/ThemeProvider'
 import { HomePage } from './features/home/HomePage'
 import { SearchResultsPage } from './features/search/SearchResultsPage'
 import { AdminSettingsPage } from './features/admin/AdminSettingsPage'
+import { AdminAnnouncementPage } from './features/admin/AdminAnnouncementPage'
+import { AdminDataPage } from './features/admin/AdminDataPage'
+import { AdminFilePage } from './features/admin/AdminFilePage'
 import { AdminRoute } from './features/admin/AdminRoute'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
@@ -42,6 +45,18 @@ const router = createBrowserRouter([
       {
         path: 'admin/settings',
         element: <AdminRoute><AdminSettingsPage /></AdminRoute>,
+      },
+      {
+        path: 'admin/announcement',
+        element: <AdminRoute><AdminAnnouncementPage /></AdminRoute>,
+      },
+      {
+        path: 'admin/data',
+        element: <AdminRoute><AdminDataPage /></AdminRoute>,
+      },
+      {
+        path: 'admin/files',
+        element: <AdminRoute><AdminFilePage /></AdminRoute>,
       },
     ],
   },

@@ -1,54 +1,197 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useProfile, useLogout } from '../../api/auth'
 import { useAuthStore } from '../../store/authStore'
+import { Settings, Megaphone, Database, Folder } from 'lucide-react'
+
+const ADMIN_LINKS = [
+  { to: '/admin/settings',      label: 'Site Settings',       icon: Settings,  desc: 'Colors, titles, footer, logo' },
+  { to: '/admin/announcement',  label: 'Announcements',       icon: Megaphone, desc: 'Manage homepage notices' },
+  { to: '/admin/data',          label: 'Data Manager',        icon: Database,  desc: 'Datasets and database stats' },
+  { to: '/admin/files',         label: 'File Manager',        icon: Folder,    desc: 'Upload supplementary files' },
+]
 
 export function ProfilePage() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  const isAdmin = useAuthStore((s) => s.isAdmin)
   const navigate = useNavigate()
   const { data: profile, isLoading } = useProfile()
   const { mutate: logout, isPending } = useLogout()
 
   if (!isLoggedIn) {
     return (
-      <div className="max-w-md mx-auto mt-16 px-4 text-center">
-        <p className="text-gray-600 mb-4">You are not logged in.</p>
-        <a href="/login" style={{ color: 'var(--color-main)' }}>
-          Log in
-        </a>
+      <div
+        style={{
+          minHeight: 'calc(100vh - 56px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 16, fontSize: 14 }}>
+            You are not logged in.
+          </p>
+          <Link to="/login" className="op-btn primary">
+            Sign in
+          </Link>
+        </div>
       </div>
     )
   }
 
   if (isLoading) {
-    return <div className="p-8 text-center text-gray-500">Loading profile...</div>
+    return (
+      <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>
+        Loading profile…
+      </div>
+    )
   }
 
   return (
-    <div className="max-w-md mx-auto mt-16 px-4">
-      <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--color-main)' }}>
-        My Profile
-      </h1>
-      <div className="border rounded p-4 mb-6 space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="font-medium text-gray-600">Username</span>
-          <span>{profile?.username ?? '—'}</span>
+    <div style={{ background: 'var(--bg)', minHeight: 'calc(100vh - 56px)', padding: '48px 80px' }}>
+      <div style={{ maxWidth: 640, margin: '0 auto' }}>
+
+        {/* Account card */}
+        <div className="op-card" style={{ padding: 28, marginBottom: 20 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '.08em',
+              marginBottom: 16,
+            }}
+          >
+            Account
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                background: 'var(--primary-soft)',
+                color: 'var(--primary)',
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: 20,
+                fontWeight: 600,
+                fontFamily: 'var(--mono)',
+                flexShrink: 0,
+              }}
+            >
+              {(profile?.username ?? '?')[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text)' }}>
+                {profile?.username ?? '—'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+                {profile?.email ?? '—'}
+              </div>
+            </div>
+            {profile?.is_admin && (
+              <span className="op-chip primary" style={{ marginLeft: 'auto' }}>
+                Admin
+              </span>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 12,
+              paddingTop: 16,
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-soft)', marginBottom: 2 }}>Role</div>
+              <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
+                {profile?.is_admin ? 'Administrator' : 'Registered user'}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="font-medium text-gray-600">Email</span>
-          <span>{profile?.email ?? '—'}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="font-medium text-gray-600">Role</span>
-          <span>{profile?.is_admin ? 'Administrator' : 'User'}</span>
-        </div>
+
+        {/* Admin Settings section */}
+        {isAdmin && (
+          <div className="op-card" style={{ padding: 28, marginBottom: 20 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '.08em',
+                marginBottom: 16,
+              }}
+            >
+              Admin Settings
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {ADMIN_LINKS.map(({ to, label, icon: Icon, desc }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 14px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    textDecoration: 'none',
+                    transition: 'all .15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--primary)'
+                    e.currentTarget.style.background = 'var(--primary-soft)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.background = 'var(--surface)'
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: 'var(--surface-2)',
+                      color: 'var(--text-muted)',
+                      display: 'grid',
+                      placeItems: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon size={16} aria-hidden />
+                  </span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{desc}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sign out */}
+        <button
+          onClick={() => logout(undefined, { onSuccess: () => navigate('/') })}
+          disabled={isPending}
+          className="op-btn"
+          style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
+        >
+          {isPending ? 'Signing out…' : 'Sign out'}
+        </button>
       </div>
-      <button
-        onClick={() => logout(undefined, { onSuccess: () => navigate('/') })}
-        disabled={isPending}
-        className="w-full py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-60"
-      >
-        {isPending ? 'Logging out...' : 'Log Out'}
-      </button>
     </div>
   )
 }

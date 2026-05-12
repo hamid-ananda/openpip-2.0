@@ -20,3 +20,29 @@ export function useUpdateSettings() {
     },
   })
 }
+
+export function useUploadLogo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('logo', file)
+      return apiClient
+        .post('/settings/logo', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+        .then((r) => r.data as AdminSettings)
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['settings'], updated)
+    },
+  })
+}
+
+export function useDeleteLogo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiClient.delete('/settings/logo').then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+    },
+  })
+}

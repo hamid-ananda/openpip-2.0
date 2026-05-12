@@ -7,45 +7,47 @@ interface AnnouncementsListProps {
 export function AnnouncementsList({ announcements }: AnnouncementsListProps) {
   return (
     <div data-testid="announcements">
-      <p
-        className="text-xs font-medium uppercase tracking-widest mb-2"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        Announcements
-      </p>
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{ border: '1px solid var(--border)' }}
-      >
-        <div className="overflow-y-auto" style={{ maxHeight: 300 }}>
-          {announcements.length === 0 ? (
-            <p className="px-5 py-6 text-sm" style={{ color: 'var(--text-muted)' }}>
-              No announcements.
-            </p>
-          ) : (
-            announcements.map((a) => (
-              <div
-                key={a.id}
-                className="px-5 py-4 last:border-b-0"
-                style={{ borderBottom: '1px solid var(--border-subtle)' }}
-              >
-                <h4 className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+      <div style={{ overflow: 'hidden auto', maxHeight: 300 }}>
+        {announcements.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 0' }}>
+            No announcements.
+          </p>
+        ) : (
+          announcements.map((a, i) => (
+            <div
+              key={a.id}
+              style={{
+                display: 'flex',
+                gap: 12,
+                padding: '14px 0',
+                borderBottom: i < announcements.length - 1 ? '1px solid var(--border)' : 'none',
+              }}
+            >
+              {a.date && (
+                <span
+                  className="op-num"
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-soft)',
+                    minWidth: 72,
+                    paddingTop: 2,
+                  }}
+                >
+                  {a.date}
+                </span>
+              )}
+              <div>
+                <h4 style={{ fontWeight: 500, fontSize: 14, margin: '0 0 4px', color: 'var(--text)' }}>
                   {a.title}
                 </h4>
-                {a.date && (
-                  <p className="text-xs mt-0.5 mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    {a.date}
-                  </p>
-                )}
                 <div
-                  className="text-sm leading-relaxed"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55 }}
                   dangerouslySetInnerHTML={{ __html: a.text }}
                 />
               </div>
-            ))
-          )}
-        </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

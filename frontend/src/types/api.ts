@@ -19,6 +19,7 @@ export interface AdminSettings {
   literatureEdgeColor: string
   url: string
   version: string
+  logoUrl?: string | null
 }
 
 export interface Announcement {

@@ -15,7 +15,7 @@ function wrap(ui: React.ReactElement) {
 
 describe('Navbar', () => {
   it('shows public links when logged out', () => {
-    wrap(<Navbar isLoggedIn={false} isAdmin={false} />)
+    wrap(<Navbar isLoggedIn={false} />)
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /search/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /downloads/i })).toBeInTheDocument()
@@ -24,18 +24,8 @@ describe('Navbar', () => {
   })
 
   it('shows Profile and hides Login when logged in', () => {
-    wrap(<Navbar isLoggedIn={true} isAdmin={false} />)
+    wrap(<Navbar isLoggedIn={true} />)
     expect(screen.getByRole('link', { name: /profile/i })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /login/i })).not.toBeInTheDocument()
-  })
-
-  it('shows admin Settings link when isAdmin is true', () => {
-    wrap(<Navbar isLoggedIn={true} isAdmin={true} />)
-    expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
-  })
-
-  it('hides admin links for regular users', () => {
-    wrap(<Navbar isLoggedIn={true} isAdmin={false} />)
-    expect(screen.queryByRole('link', { name: /settings/i })).not.toBeInTheDocument()
   })
 })

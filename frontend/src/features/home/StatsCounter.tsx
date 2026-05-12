@@ -1,37 +1,34 @@
+import { useCountUp } from '../../lib/useCountUp'
+
 interface StatsCounterProps {
   proteins: number
   interactions: number
   variant?: 'default' | 'hero'
 }
 
-export function StatsCounter({ proteins, interactions, variant = 'default' }: StatsCounterProps) {
-  const isHero = variant === 'hero'
+function Stat({ n, label }: { n: string; label: string }) {
+  return (
+    <div>
+      <div
+        className="op-num"
+        style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-.02em', color: 'var(--text)' }}
+      >
+        {n}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
+    </div>
+  )
+}
 
-  const numStyle = {
-    color: isHero ? 'var(--color-header)' : 'var(--color-main)',
-  }
-  const labelStyle = {
-    color: isHero ? 'rgba(255,255,255,0.65)' : 'var(--text-muted)',
-  }
+export function StatsCounter({ proteins, interactions }: StatsCounterProps) {
+  const animatedProteins = useCountUp(proteins)
+  const animatedInteractions = useCountUp(interactions)
 
   return (
-    <div className="flex gap-10 justify-center">
-      <div className="text-center">
-        <div className="text-3xl font-bold" style={{ ...numStyle, fontVariantNumeric: 'tabular-nums' }}>
-          {proteins.toLocaleString()}
-        </div>
-        <div className="text-xs uppercase tracking-widest mt-1 font-medium" style={labelStyle}>
-          Proteins
-        </div>
-      </div>
-      <div className="text-center">
-        <div className="text-3xl font-bold" style={{ ...numStyle, fontVariantNumeric: 'tabular-nums' }}>
-          {interactions.toLocaleString()}
-        </div>
-        <div className="text-xs uppercase tracking-widest mt-1 font-medium" style={labelStyle}>
-          Interactions
-        </div>
-      </div>
+    <div style={{ display: 'flex', gap: 40 }}>
+      <Stat n={animatedProteins.toLocaleString()} label="Proteins indexed" />
+      <Stat n={animatedInteractions.toLocaleString()} label="Verified interactions" />
+      <Stat n="6" label="Source datasets" />
     </div>
   )
 }

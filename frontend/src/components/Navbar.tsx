@@ -3,94 +3,106 @@ import { useLogout } from '../api/auth'
 
 interface NavbarProps {
   isLoggedIn: boolean
-  isAdmin: boolean
 }
 
 const publicLinks = [
-  { to: '/', label: 'Home' },
-  { to: '/search', label: 'Search' },
-  { to: '/download', label: 'Downloads' },
-  { to: '/about', label: 'About' },
-  { to: '/faq', label: 'FAQ' },
-  { to: '/contact', label: 'Contact' },
+  { to: '/', label: 'Home', end: true },
+  { to: '/search', label: 'Search', end: false },
+  { to: '/download', label: 'Downloads', end: false },
+  { to: '/about', label: 'About', end: false },
+  { to: '/faq', label: 'FAQ', end: false },
+  { to: '/contact', label: 'Contact', end: false },
 ]
 
-const adminLinks = [
-  { to: '/admin/announcement', label: 'Announcements' },
-  { to: '/admin/data', label: 'Data' },
-  { to: '/admin/files', label: 'Files' },
-  { to: '/admin/settings', label: 'Settings' },
-]
+const linkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
+  padding: '6px 12px',
+  borderRadius: 6,
+  fontSize: 13,
+  fontWeight: 500,
+  color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+  background: isActive ? 'var(--primary-soft)' : 'transparent',
+  textDecoration: 'none',
+  transition: 'all .15s',
+  display: 'inline-block',
+})
 
-export function Navbar({ isLoggedIn, isAdmin }: NavbarProps) {
+export function Navbar({ isLoggedIn }: NavbarProps) {
   const logout = useLogout()
-
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-1.5 text-sm font-medium rounded transition-all ${
-      isActive ? 'opacity-100 bg-white/15' : 'opacity-70 hover:opacity-100 hover:bg-white/10'
-    }`
 
   return (
     <nav
-      className="flex items-center flex-1 flex-wrap"
-      style={{ color: 'var(--color-header)' }}
+      style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap' }}
+      aria-label="Main navigation"
     >
-      <div className="flex items-center flex-1 flex-wrap px-1">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          flex: 1,
+          flexWrap: 'wrap',
+          gap: 2,
+          padding: '0 8px',
+        }}
+      >
         {publicLinks.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className={linkClass}
-            style={{ color: 'var(--color-header)' }}
-          >
+          <NavLink key={link.to} to={link.to} style={linkStyle} end={link.end}>
             {link.label}
           </NavLink>
         ))}
-        {isAdmin &&
-          adminLinks.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={linkClass}
-              style={{ color: 'var(--color-header)' }}
-            >
-              {link.label}
-            </NavLink>
-          ))}
       </div>
-      <div className="flex items-center gap-1 px-3">
+
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          alignItems: 'center',
+          padding: '0 20px',
+          flexShrink: 0,
+        }}
+      >
         {isLoggedIn ? (
           <>
-            <NavLink
-              to="/profile"
-              className={linkClass}
-              style={{ color: 'var(--color-header)' }}
-            >
+            <NavLink to="/profile" style={linkStyle}>
               Profile
             </NavLink>
             <button
               onClick={() => logout.mutate()}
-              className="px-3 py-1.5 text-sm font-medium opacity-70 hover:opacity-100 transition-all"
-              style={{ color: 'var(--color-header)' }}
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--text-muted)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px 12px',
+                borderRadius: 6,
+                fontFamily: 'var(--font)',
+                transition: 'all .15s',
+              }}
             >
               Logout
             </button>
           </>
         ) : (
           <>
-            <NavLink
-              to="/register"
-              className={linkClass}
-              style={{ color: 'var(--color-header)' }}
-            >
-              Register
+            <NavLink to="/login" style={linkStyle}>
+              Login
             </NavLink>
             <NavLink
-              to="/login"
-              className={linkClass}
-              style={{ color: 'var(--color-header)' }}
+              to="/register"
+              style={{
+                padding: '7px 14px',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 500,
+                background: 'var(--primary)',
+                color: '#fff',
+                textDecoration: 'none',
+                transition: 'background .15s',
+                display: 'inline-block',
+              }}
             >
-              Login
+              Register
             </NavLink>
           </>
         )}

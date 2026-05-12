@@ -33,7 +33,7 @@ describe('LoginPage', () => {
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
   })
 
-  it('renders submit button labeled "Log In"', () => {
+  it('renders submit button', () => {
     vi.mocked(useLogin).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
@@ -42,7 +42,7 @@ describe('LoginPage', () => {
 
     render(<LoginPage />, { wrapper })
 
-    expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
   it('shows error message when mutation returns error', () => {
