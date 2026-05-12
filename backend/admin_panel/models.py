@@ -22,7 +22,10 @@ class AdminSettings(models.Model):
     header_color_scheme = models.CharField(max_length=10, null=True)
     logo_color_scheme = models.CharField(max_length=10, null=True)
     button_color_scheme = models.CharField(max_length=10, null=True)
-    logo = models.FileField(upload_to='logos/', null=True, blank=True)
+    logo = models.FileField(upload_to="logos/", null=True, blank=True)
+    nav_style = models.CharField(max_length=20, default="solid", null=True, blank=True)
+    main_color_scheme_2 = models.CharField(max_length=20, null=True, blank=True)
+    gradient_angle = models.IntegerField(default=135, null=True, blank=True)
     example_1 = models.CharField(max_length=100, null=True)
     example_2 = models.CharField(max_length=100, null=True)
     example_3 = models.CharField(max_length=100, null=True)
@@ -34,11 +37,11 @@ class AdminSettings(models.Model):
     literature_edge_color = models.CharField(max_length=20, null=True)
 
     class Meta:
-        db_table = 'admin_settings'
-        verbose_name_plural = 'admin settings'
+        db_table = "admin_settings"
+        verbose_name_plural = "admin settings"
 
     def __str__(self):
-        return self.title or 'AdminSettings'
+        return self.title or "AdminSettings"
 
 
 class Announcement(models.Model):
@@ -49,7 +52,7 @@ class Announcement(models.Model):
     show_on_home_page = models.BooleanField(default=True)
 
     class Meta:
-        db_table = 'announcement'
+        db_table = "announcement"
 
     def __str__(self):
         return self.title

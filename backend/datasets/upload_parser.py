@@ -1,4 +1,5 @@
 """PSI-MI TAB parser — mirrors legacy DataController::insertAction behavior."""
+
 import csv
 import io
 
@@ -8,18 +9,18 @@ from interactions.models import Interaction
 
 def _get_naming_convention(identifier: str) -> str:
     lower = identifier.lower()
-    if lower.startswith('uniprotkb:') or lower.startswith('uniprot:'):
-        return 'uniprotkb'
-    if lower.startswith('ensembl:'):
-        return 'ensembl'
-    if lower.startswith('entrez gene:') or lower.startswith('entrez:'):
-        return 'entrez'
-    return 'gene_name'
+    if lower.startswith("uniprotkb:") or lower.startswith("uniprot:"):
+        return "uniprotkb"
+    if lower.startswith("ensembl:"):
+        return "ensembl"
+    if lower.startswith("entrez gene:") or lower.startswith("entrez:"):
+        return "entrez"
+    return "gene_name"
 
 
 def _strip_prefix(identifier: str) -> str:
-    if ':' in identifier:
-        return identifier.split(':', 1)[1].strip()
+    if ":" in identifier:
+        return identifier.split(":", 1)[1].strip()
     return identifier.strip()
 
 
@@ -35,8 +36,8 @@ def _protein_handler(raw_id: str) -> Protein:
             return link.protein
 
     protein = Protein.objects.create(
-        uniprot_id=clean_id if naming_convention == 'uniprotkb' else None,
-        gene_name=clean_id if naming_convention == 'gene_name' else None,
+        uniprot_id=clean_id if naming_convention == "uniprotkb" else None,
+        gene_name=clean_id if naming_convention == "gene_name" else None,
     )
     identifier_obj = Identifier.objects.create(
         identifier=clean_id,
@@ -62,8 +63,8 @@ def parse_and_ingest(file_bytes: bytes) -> dict:
     skipped = 0
     errors = []
 
-    text = file_bytes.decode('utf-8', errors='replace')
-    reader = csv.reader(io.StringIO(text), delimiter='\t')
+    text = file_bytes.decode("utf-8", errors="replace")
+    reader = csv.reader(io.StringIO(text), delimiter="\t")
 
     for row_num, row in enumerate(reader):
         if row_num == 0 or not row:
@@ -84,12 +85,12 @@ def parse_and_ingest(file_bytes: bytes) -> dict:
                 Interaction.objects.create(
                     interactor_A=protein_a,
                     interactor_B=protein_b,
-                    removed='0',
+                    removed="0",
                 )
                 created += 1
             else:
                 skipped += 1
         except Exception as exc:
-            errors.append(f'Row {row_num}: {exc}')
+            errors.append(f"Row {row_num}: {exc}")
 
-    return {'created': created, 'skipped': skipped, 'errors': errors}
+    return {"created": created, "skipped": skipped, "errors": errors}

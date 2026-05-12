@@ -6,28 +6,28 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('proteins', '0002_fix_annotation_identifier_type'),
+        ("proteins", "0002_fix_annotation_identifier_type"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='annotationtype',
-            name='description',
+            model_name="annotationtype",
+            name="description",
             field=models.TextField(null=True),
         ),
         migrations.AlterField(
-            model_name='annotationtype',
-            name='fields',
+            model_name="annotationtype",
+            name="fields",
             field=models.TextField(null=True),
         ),
         migrations.AlterField(
-            model_name='annotationtype',
-            name='show_in_filter',
+            model_name="annotationtype",
+            name="show_in_filter",
             field=models.CharField(max_length=10, null=True),
         ),
         migrations.AlterField(
-            model_name='annotationtype',
-            name='show_in_table',
+            model_name="annotationtype",
+            name="show_in_table",
             field=models.CharField(max_length=10, null=True),
         ),
     ]

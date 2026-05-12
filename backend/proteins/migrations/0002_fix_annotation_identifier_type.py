@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('proteins', '0001_initial'),
+        ("proteins", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='annotation',
-            name='identifier',
+            model_name="annotation",
+            name="identifier",
             field=models.CharField(max_length=100, null=True),
         ),
     ]

@@ -4,41 +4,61 @@ from django.db import models
 
 class User(AbstractUser):
     class Meta:
-        db_table = 'user'
+        db_table = "user"
 
     def __str__(self):
         return self.username
 
 
 class UserDataset(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='user_id',
-                             related_name='user_datasets')
-    dataset = models.ForeignKey('datasets.Dataset', on_delete=models.CASCADE, db_column='dataset_id',
-                                related_name='user_datasets')
-
-    class Meta:
-        db_table = 'user_datasets'
-
-
-class UserInteractionNetwork(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='user_id',
-                             related_name='user_networks')
-    interaction_network = models.ForeignKey(
-        'interactions.InteractionNetwork',
+    user = models.ForeignKey(
+        User,
         on_delete=models.CASCADE,
-        db_column='interaction_network_id',
-        related_name='user_networks',
+        db_column="user_id",
+        related_name="user_datasets",
+    )
+    dataset = models.ForeignKey(
+        "datasets.Dataset",
+        on_delete=models.CASCADE,
+        db_column="dataset_id",
+        related_name="user_datasets",
     )
 
     class Meta:
-        db_table = 'user_interaction_networks'
+        db_table = "user_datasets"
+
+
+class UserInteractionNetwork(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        db_column="user_id",
+        related_name="user_networks",
+    )
+    interaction_network = models.ForeignKey(
+        "interactions.InteractionNetwork",
+        on_delete=models.CASCADE,
+        db_column="interaction_network_id",
+        related_name="user_networks",
+    )
+
+    class Meta:
+        db_table = "user_interaction_networks"
 
 
 class UserProtein(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='user_id',
-                             related_name='user_proteins')
-    protein = models.ForeignKey('proteins.Protein', on_delete=models.CASCADE, db_column='protein_id',
-                                related_name='user_proteins')
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        db_column="user_id",
+        related_name="user_proteins",
+    )
+    protein = models.ForeignKey(
+        "proteins.Protein",
+        on_delete=models.CASCADE,
+        db_column="protein_id",
+        related_name="user_proteins",
+    )
 
     class Meta:
-        db_table = 'user_protein'
+        db_table = "user_protein"

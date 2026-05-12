@@ -9,10 +9,17 @@ class DatasetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dataset
-        fields = ['dataset_reference', 'dataset_author', 'year', 'description', 'interaction_status', 'name']
+        fields = [
+            "dataset_reference",
+            "dataset_author",
+            "year",
+            "description",
+            "interaction_status",
+            "name",
+        ]
 
     def get_dataset_reference(self, obj):
-        return obj.pubmed_id or ''
+        return obj.pubmed_id or ""
 
     def get_dataset_author(self, obj):
-        return obj.author if obj.author else 'Unpublished Dataset'
+        return obj.author if obj.author else "Unpublished Dataset"

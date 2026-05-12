@@ -12,7 +12,7 @@ from .serializers import AdminSettingsSerializer, AnnouncementSerializer
 
 class AdminSettingsView(APIView):
     def get_permissions(self):
-        if self.request.method == 'PATCH':
+        if self.request.method == "PATCH":
             return [IsAdminUser()]
         return [AllowAny()]
 
@@ -35,13 +35,23 @@ class LogoUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        logo_file = request.FILES.get('logo')
+        logo_file = request.FILES.get("logo")
         if not logo_file:
-            return Response({'detail': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
-        allowed_types = {'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml', 'image/webp'}
+        allowed_types = {
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/svg+xml",
+            "image/webp",
+        }
         if logo_file.content_type not in allowed_types:
-            return Response({'detail': 'Unsupported file type.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Unsupported file type."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         settings_obj, _ = AdminSettings.objects.get_or_create(pk=1)
         if settings_obj.logo:
@@ -56,14 +66,14 @@ class LogoUploadView(APIView):
             settings_obj.logo.delete(save=False)
             settings_obj.logo = None
             settings_obj.save()
-        return Response({'detail': 'Logo removed.'})
+        return Response({"detail": "Logo removed."})
 
 
 class AnnouncementListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        qs = Announcement.objects.filter(show_on_home_page=True).order_by('-date')
+        qs = Announcement.objects.filter(show_on_home_page=True).order_by("-date")
         return Response(AnnouncementSerializer(qs, many=True).data)
 
 
@@ -71,7 +81,9 @@ class CountsView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        return Response({
-            'proteins': Protein.objects.count(),
-            'interactions': Interaction.objects.filter(removed='0').count(),
-        })
+        return Response(
+            {
+                "proteins": Protein.objects.count(),
+                "interactions": Interaction.objects.filter(removed="0").count(),
+            }
+        )

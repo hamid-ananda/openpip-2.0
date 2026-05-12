@@ -8,72 +8,135 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Dataset',
+            name="Dataset",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, null=True)),
-                ('pubmed_id', models.CharField(max_length=100, null=True)),
-                ('author', models.CharField(max_length=100, null=True)),
-                ('year', models.CharField(max_length=10, null=True)),
-                ('interaction_status', models.CharField(max_length=100, null=True)),
-                ('description', models.CharField(max_length=1000, null=True)),
-                ('number_of_interactions', models.CharField(max_length=100, null=True)),
-                ('file_path', models.CharField(max_length=100, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100, null=True)),
+                ("pubmed_id", models.CharField(max_length=100, null=True)),
+                ("author", models.CharField(max_length=100, null=True)),
+                ("year", models.CharField(max_length=10, null=True)),
+                ("interaction_status", models.CharField(max_length=100, null=True)),
+                ("description", models.CharField(max_length=1000, null=True)),
+                ("number_of_interactions", models.CharField(max_length=100, null=True)),
+                ("file_path", models.CharField(max_length=100, null=True)),
             ],
             options={
-                'db_table': 'dataset',
+                "db_table": "dataset",
             },
         ),
         migrations.CreateModel(
-            name='DatasetRequest',
+            name="DatasetRequest",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('email', models.EmailField(max_length=254)),
-                ('request', models.TextField()),
-                ('md5', models.CharField(max_length=32, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("email", models.EmailField(max_length=254)),
+                ("request", models.TextField()),
+                ("md5", models.CharField(max_length=32, null=True)),
             ],
             options={
-                'db_table': 'dataset_request',
+                "db_table": "dataset_request",
             },
         ),
         migrations.CreateModel(
-            name='UploadFiles',
+            name="UploadFiles",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file_name', models.CharField(max_length=200)),
-                ('file_path', models.CharField(max_length=500)),
-                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("file_name", models.CharField(max_length=200)),
+                ("file_path", models.CharField(max_length=500)),
+                ("uploaded_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'db_table': 'upload_files',
+                "db_table": "upload_files",
             },
         ),
         migrations.CreateModel(
-            name='DataFile',
+            name="DataFile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file_name', models.CharField(max_length=200)),
-                ('file_path', models.CharField(max_length=500)),
-                ('dataset', models.ForeignKey(db_column='dataset_id', on_delete=django.db.models.deletion.CASCADE, related_name='data_files', to='datasets.dataset')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("file_name", models.CharField(max_length=200)),
+                ("file_path", models.CharField(max_length=500)),
+                (
+                    "dataset",
+                    models.ForeignKey(
+                        db_column="dataset_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="data_files",
+                        to="datasets.dataset",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'data_file',
+                "db_table": "data_file",
             },
         ),
         migrations.CreateModel(
-            name='DatasetRequestDataset',
+            name="DatasetRequestDataset",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('dataset', models.ForeignKey(db_column='dataset_id', on_delete=django.db.models.deletion.CASCADE, related_name='dataset_requests', to='datasets.dataset')),
-                ('dataset_request', models.ForeignKey(db_column='dataset_request_id', on_delete=django.db.models.deletion.CASCADE, related_name='request_datasets', to='datasets.datasetrequest')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "dataset",
+                    models.ForeignKey(
+                        db_column="dataset_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="dataset_requests",
+                        to="datasets.dataset",
+                    ),
+                ),
+                (
+                    "dataset_request",
+                    models.ForeignKey(
+                        db_column="dataset_request_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="request_datasets",
+                        to="datasets.datasetrequest",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'dataset_request_dataset',
+                "db_table": "dataset_request_dataset",
             },
         ),
     ]

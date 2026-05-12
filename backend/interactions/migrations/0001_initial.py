@@ -9,135 +9,347 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('admin_panel', '0001_initial'),
-        ('datasets', '0001_initial'),
-        ('proteins', '0001_initial'),
+        ("admin_panel", "0001_initial"),
+        ("datasets", "0001_initial"),
+        ("proteins", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='InteractionNetwork',
+            name="InteractionNetwork",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, null=True)),
-                ('interactor_query_string', models.CharField(max_length=3000, null=True)),
-                ('score_parameter', models.CharField(max_length=100, null=True)),
-                ('category_array', models.CharField(max_length=100, null=True)),
-                ('tissue_expression_array', models.CharField(max_length=100, null=True)),
-                ('query', models.CharField(max_length=100, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100, null=True)),
+                (
+                    "interactor_query_string",
+                    models.CharField(max_length=3000, null=True),
+                ),
+                ("score_parameter", models.CharField(max_length=100, null=True)),
+                ("category_array", models.CharField(max_length=100, null=True)),
+                (
+                    "tissue_expression_array",
+                    models.CharField(max_length=100, null=True),
+                ),
+                ("query", models.CharField(max_length=100, null=True)),
             ],
             options={
-                'db_table': 'interaction_network',
+                "db_table": "interaction_network",
             },
         ),
         migrations.CreateModel(
-            name='SupportInformation',
+            name="SupportInformation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('description', models.CharField(max_length=100, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("description", models.CharField(max_length=100, null=True)),
             ],
             options={
-                'db_table': 'support_information',
+                "db_table": "support_information",
             },
         ),
         migrations.CreateModel(
-            name='Interaction',
+            name="Interaction",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('score', models.CharField(max_length=10, null=True)),
-                ('binding_start', models.CharField(max_length=10, null=True)),
-                ('binding_end', models.CharField(max_length=10, null=True)),
-                ('removed', models.CharField(default='0', max_length=10)),
-                ('domain', models.IntegerField(null=True)),
-                ('interactor_A', models.ForeignKey(db_column='interactor_A', on_delete=django.db.models.deletion.CASCADE, related_name='interactions_as_A', to='proteins.protein')),
-                ('interactor_B', models.ForeignKey(db_column='interactor_B', on_delete=django.db.models.deletion.CASCADE, related_name='interactions_as_B', to='proteins.protein')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("score", models.CharField(max_length=10, null=True)),
+                ("binding_start", models.CharField(max_length=10, null=True)),
+                ("binding_end", models.CharField(max_length=10, null=True)),
+                ("removed", models.CharField(default="0", max_length=10)),
+                ("domain", models.IntegerField(null=True)),
+                (
+                    "interactor_A",
+                    models.ForeignKey(
+                        db_column="interactor_A",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interactions_as_A",
+                        to="proteins.protein",
+                    ),
+                ),
+                (
+                    "interactor_B",
+                    models.ForeignKey(
+                        db_column="interactor_B",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interactions_as_B",
+                        to="proteins.protein",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'interaction',
+                "db_table": "interaction",
             },
         ),
         migrations.CreateModel(
-            name='AnnotationInteraction',
+            name="AnnotationInteraction",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('annotation', models.ForeignKey(db_column='annotation_id', on_delete=django.db.models.deletion.CASCADE, related_name='annotation_interactions', to='proteins.annotation')),
-                ('interaction', models.ForeignKey(db_column='interaction_id', on_delete=django.db.models.deletion.CASCADE, related_name='annotation_interactions', to='interactions.interaction')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "annotation",
+                    models.ForeignKey(
+                        db_column="annotation_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="annotation_interactions",
+                        to="proteins.annotation",
+                    ),
+                ),
+                (
+                    "interaction",
+                    models.ForeignKey(
+                        db_column="interaction_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="annotation_interactions",
+                        to="interactions.interaction",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'annotation_interaction',
+                "db_table": "annotation_interaction",
             },
         ),
         migrations.CreateModel(
-            name='InteractionCategory',
+            name="InteractionCategory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('category_name', models.CharField(max_length=200, null=True)),
-                ('order', models.CharField(max_length=200, null=True)),
-                ('color_scheme', models.CharField(max_length=200, null=True)),
-                ('description', models.CharField(max_length=1000, null=True)),
-                ('selected_by_default', models.CharField(max_length=10, null=True)),
-                ('include_in_home_page_count', models.CharField(max_length=10, null=True)),
-                ('admin_settings', models.ForeignKey(db_column='admin_settings_id', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='interaction_categories', to='admin_panel.adminsettings')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("category_name", models.CharField(max_length=200, null=True)),
+                ("order", models.CharField(max_length=200, null=True)),
+                ("color_scheme", models.CharField(max_length=200, null=True)),
+                ("description", models.CharField(max_length=1000, null=True)),
+                ("selected_by_default", models.CharField(max_length=10, null=True)),
+                (
+                    "include_in_home_page_count",
+                    models.CharField(max_length=10, null=True),
+                ),
+                (
+                    "admin_settings",
+                    models.ForeignKey(
+                        db_column="admin_settings_id",
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="interaction_categories",
+                        to="admin_panel.adminsettings",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'interaction_category',
+                "db_table": "interaction_category",
             },
         ),
         migrations.CreateModel(
-            name='InteractionDataset',
+            name="InteractionDataset",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('dataset', models.ForeignKey(db_column='dataset_id', on_delete=django.db.models.deletion.CASCADE, related_name='interaction_datasets', to='datasets.dataset')),
-                ('interaction', models.ForeignKey(db_column='interaction_id', on_delete=django.db.models.deletion.CASCADE, related_name='interaction_datasets', to='interactions.interaction')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "dataset",
+                    models.ForeignKey(
+                        db_column="dataset_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interaction_datasets",
+                        to="datasets.dataset",
+                    ),
+                ),
+                (
+                    "interaction",
+                    models.ForeignKey(
+                        db_column="interaction_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interaction_datasets",
+                        to="interactions.interaction",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'interaction_dataset',
+                "db_table": "interaction_dataset",
             },
         ),
         migrations.CreateModel(
-            name='InteractionDomain',
+            name="InteractionDomain",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('domain', models.ForeignKey(db_column='domain_id', on_delete=django.db.models.deletion.CASCADE, related_name='interaction_domains', to='proteins.domain')),
-                ('interaction', models.ForeignKey(db_column='interaction_id', on_delete=django.db.models.deletion.CASCADE, related_name='interaction_domains', to='interactions.interaction')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "domain",
+                    models.ForeignKey(
+                        db_column="domain_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interaction_domains",
+                        to="proteins.domain",
+                    ),
+                ),
+                (
+                    "interaction",
+                    models.ForeignKey(
+                        db_column="interaction_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interaction_domains",
+                        to="interactions.interaction",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'interaction_domain',
+                "db_table": "interaction_domain",
             },
         ),
         migrations.CreateModel(
-            name='InteractionInteractionCategory',
+            name="InteractionInteractionCategory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('interaction', models.ForeignKey(db_column='interaction_id', on_delete=django.db.models.deletion.CASCADE, related_name='interaction_categories', to='interactions.interaction')),
-                ('interaction_category', models.ForeignKey(db_column='interaction_category_id', on_delete=django.db.models.deletion.CASCADE, related_name='interaction_categories', to='interactions.interactioncategory')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "interaction",
+                    models.ForeignKey(
+                        db_column="interaction_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interaction_categories",
+                        to="interactions.interaction",
+                    ),
+                ),
+                (
+                    "interaction_category",
+                    models.ForeignKey(
+                        db_column="interaction_category_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interaction_categories",
+                        to="interactions.interactioncategory",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'interaction_interaction_category',
+                "db_table": "interaction_interaction_category",
             },
         ),
         migrations.CreateModel(
-            name='InteractionInteractionNetworks',
+            name="InteractionInteractionNetworks",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('interaction', models.ForeignKey(db_column='interaction_id', on_delete=django.db.models.deletion.CASCADE, related_name='network_memberships', to='interactions.interaction')),
-                ('interaction_network', models.ForeignKey(db_column='interaction_network_id', on_delete=django.db.models.deletion.CASCADE, related_name='network_interactions', to='interactions.interactionnetwork')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "interaction",
+                    models.ForeignKey(
+                        db_column="interaction_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="network_memberships",
+                        to="interactions.interaction",
+                    ),
+                ),
+                (
+                    "interaction_network",
+                    models.ForeignKey(
+                        db_column="interaction_network_id",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="network_interactions",
+                        to="interactions.interactionnetwork",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'interaction_interaction_networks',
+                "db_table": "interaction_interaction_networks",
             },
         ),
         migrations.CreateModel(
-            name='InteractionSupportInformation',
+            name="InteractionSupportInformation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('value', models.CharField(max_length=100, null=True)),
-                ('interaction', models.ForeignKey(db_column='interaction_id', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='support_info', to='interactions.interaction')),
-                ('support_information', models.ForeignKey(db_column='support_information_id', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='interaction_support', to='interactions.supportinformation')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("value", models.CharField(max_length=100, null=True)),
+                (
+                    "interaction",
+                    models.ForeignKey(
+                        db_column="interaction_id",
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="support_info",
+                        to="interactions.interaction",
+                    ),
+                ),
+                (
+                    "support_information",
+                    models.ForeignKey(
+                        db_column="support_information_id",
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interaction_support",
+                        to="interactions.supportinformation",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'interaction_support_information',
+                "db_table": "interaction_support_information",
             },
         ),
     ]
