@@ -1,0 +1,89 @@
+[
+  {
+    "model": "admin_panel.adminsettings",
+    "pk": 1,
+    "fields": {
+      "title": "openPIP — Protein Interaction Portal",
+      "short_title": "openPIP",
+      "url": "http://localhost:8000",
+      "version": "2.0",
+      "home_page": "",
+      "mission_title": "<h4>Our Mission</h4>",
+      "mission_text": "<p>openPIP provides a curated map of human protein–protein interactions.</p>",
+      "method_title": "<h4>Methods</h4>",
+      "method_text": "<p>Interactions are sourced from published experimental datasets.</p>",
+      "about": "",
+      "faq": "",
+      "download": "",
+      "contact": "",
+      "show_downloads": false,
+      "show_download_all": false,
+      "footer": "<p>© 2026 openPIP. All rights reserved.</p>",
+      "main_color_scheme": "#a51c30",
+      "header_color_scheme": "#ffffff",
+      "logo_color_scheme": "#ffffff",
+      "button_color_scheme": "#a51c30",
+      "example_1": "BAD",
+      "example_2": "BCL2L1",
+      "example_3": "TP53",
+      "query_node_color": "#cc0000",
+      "interactor_node_color": "#3c78d8",
+      "published_edge_color": "#38761d",
+      "validated_edge_color": "#1155cc",
+      "verified_edge_color": "#cc0000",
+      "literature_edge_color": "#ff9900"
+    }
+  },
+  {
+    "model": "interactions.interactioncategory",
+    "pk": 1,
+    "fields": {
+      "admin_settings": 1,
+      "category_name": "Published",
+      "order": "1",
+      "color_scheme": "#38761d",
+      "description": "Published interactions from peer-reviewed sources.",
+      "selected_by_default": "1",
+      "include_in_home_page_count": "1"
+    }
+  },
+  {
+    "model": "interactions.interactioncategory",
+    "pk": 2,
+    "fields": {
+      "admin_settings": 1,
+      "category_name": "Validated",
+      "order": "2",
+      "color_scheme": "#1155cc",
+      "description": "Validated interactions from high-throughput experiments.",
+      "selected_by_default": "1",
+      "include_in_home_page_count": "1"
+    }
+  },
+  {
+    "model": "interactions.interactioncategory",
+    "pk": 3,
+    "fields": {
+      "admin_settings": 1,
+      "category_name": "Verified",
+      "order": "3",
+      "color_scheme": "#cc0000",
+      "description": "Verified interactions with experimental evidence.",
+      "selected_by_default": "1",
+      "include_in_home_page_count": "1"
+    }
+  },
+  {
+    "model": "interactions.interactioncategory",
+    "pk": 4,
+    "fields": {
+      "admin_settings": 1,
+      "category_name": "Literature",
+      "order": "4",
+      "color_scheme": "#ff9900",
+      "description": "Literature-curated interactions.",
+      "selected_by_default": "1",
+      "include_in_home_page_count": "1"
+    }
+  }
+]
