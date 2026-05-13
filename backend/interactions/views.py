@@ -2,7 +2,22 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
+from .models import InteractionCategory
 from .search_service import execute_search
+
+
+class InteractionCategoryListView(APIView):
+    """Return all InteractionCategory rows ordered by their 'order' field."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        categories = InteractionCategory.objects.all().order_by("order")
+        data = [
+            {"id": cat.id, "category_name": cat.category_name, "order": cat.order}
+            for cat in categories
+        ]
+        return Response(data)
 
 
 class SearchView(APIView):

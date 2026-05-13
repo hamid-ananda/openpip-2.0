@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from interactions.views import InteractionCategoryListView
 
 urlpatterns = [
     path("django-admin/", admin.site.urls),
@@ -10,6 +11,7 @@ urlpatterns = [
     path("api/", include("proteins.urls")),
     path("api/", include("datasets.urls")),
     path("api/", include("interactions.urls")),
+    path("api/interactions/categories", InteractionCategoryListView.as_view()),
 ]
 
 if settings.DEBUG:

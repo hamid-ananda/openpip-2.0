@@ -128,3 +128,24 @@ def test_search_query_protein_is_last_in_all_proteins(api_client):
     data = response.json()
     protein_ids = [p["protein_id"] for p in data["all_proteins"]]
     assert protein_ids[-1] == p_query.id
+
+
+@pytest.mark.django_db
+def test_categories_endpoint_returns_all_categories(api_client):
+    InteractionCategoryFactory(category_name="Published", order="1")
+    InteractionCategoryFactory(category_name="Validated", order="2")
+    response = api_client.get("/api/interactions/categories")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["category_name"] == "Published"
+    assert data[0]["order"] == "1"
+    assert "id" in data[0]
+
+
+@pytest.mark.django_db
+def test_categories_endpoint_is_public(api_client):
+    InteractionCategoryFactory(category_name="HI-Union", order="3")
+    response = api_client.get("/api/interactions/categories")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
