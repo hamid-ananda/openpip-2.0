@@ -3,6 +3,8 @@ from .views import (
     DatasetListView,
     DatasetFileDownloadView,
     DatasetArchiveDownloadView,
+    DatasetPreviewView,
+    DatasetUploadView,
     UploadView,
 )
 
@@ -13,4 +15,6 @@ urlpatterns = [
         "datasets/<str:dataset_reference>/download", DatasetFileDownloadView.as_view()
     ),
     path("upload/", UploadView.as_view()),
+    path("datasets/preview", DatasetPreviewView.as_view()),
+    path("datasets/upload", DatasetUploadView.as_view()),
 ]

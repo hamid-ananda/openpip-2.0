@@ -29,7 +29,7 @@ describe('OverlaySystem', () => {
   it('renders LoadingOverlay when activeModal is "loading"', () => {
     useSearchStore.setState({ activeModal: 'loading' })
     wrap()
-    expect(screen.getByText('Processing...')).toBeInTheDocument()
+    expect(screen.getByText('Preparing network data for export.')).toBeInTheDocument()
   })
 
   it('renders DownloadAuthModal when activeModal is "downloadAuth"', () => {

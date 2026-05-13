@@ -55,19 +55,36 @@ export function SearchResultsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div
-          className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: 'var(--color-main)' }}
-        />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 320, gap: 20 }}>
+        <div style={{
+          width: 34,
+          height: 34,
+          borderRadius: '50%',
+          border: '2px solid var(--border)',
+          borderTopColor: 'var(--primary)',
+          animation: 'spin .8s linear infinite',
+        }} />
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+            {term}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+            Querying interactome...
+          </div>
+        </div>
       </div>
     )
   }
 
   if (isError) {
     return (
-      <div className="p-8 text-center text-red-600">
-        Failed to load search results. Please try again.
+      <div style={{ padding: '80px 32px', textAlign: 'center' }}>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>
+          Could not reach the database.
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+          Check your connection and try the search again.
+        </div>
       </div>
     )
   }

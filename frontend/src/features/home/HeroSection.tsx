@@ -101,6 +101,7 @@ function InteractomePreview() {
         return (
           <g
             key={n.id}
+            className={n.query ? 'hero-query-node' : undefined}
             transform={`translate(${cx + n.x},${cy + n.y})`}
             style={{
               cursor: 'pointer',

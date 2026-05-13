@@ -1,0 +1,655 @@
+{
+  "nodes": [
+    {
+      "id": "file::appcache",
+      "label": "AppCache.php",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/AppCache.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppCache.php:1"
+    },
+    {
+      "id": "appcache::appcache",
+      "label": "AppCache",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/AppCache.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppCache.php:5"
+    },
+    {
+      "id": "file::symfonyrequirements",
+      "label": "SymfonyRequirements.php",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:1"
+    },
+    {
+      "id": "symfonyrequirements::requirement",
+      "label": "Requirement",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:33"
+    },
+    {
+      "id": "symfonyrequirements::requirement::__construct",
+      "label": ".__construct",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:50"
+    },
+    {
+      "id": "symfonyrequirements::requirement::isfulfilled",
+      "label": ".isFulfilled",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:64"
+    },
+    {
+      "id": "symfonyrequirements::requirement::gettestmessage",
+      "label": ".getTestMessage",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:74"
+    },
+    {
+      "id": "symfonyrequirements::requirement::gethelptext",
+      "label": ".getHelpText",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:84"
+    },
+    {
+      "id": "symfonyrequirements::requirement::gethelphtml",
+      "label": ".getHelpHtml",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:94"
+    },
+    {
+      "id": "symfonyrequirements::requirement::isoptional",
+      "label": ".isOptional",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:104"
+    },
+    {
+      "id": "symfonyrequirements::phpinirequirement",
+      "label": "PhpIniRequirement",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:115"
+    },
+    {
+      "id": "symfonyrequirements::phpinirequirement::__construct",
+      "label": ".__construct",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:131"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection",
+      "label": "RequirementCollection",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:169"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::getiterator",
+      "label": ".getIterator",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:181"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::add",
+      "label": ".add",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:191"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::addrequirement",
+      "label": ".addRequirement",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:204"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::addrecommendation",
+      "label": ".addRecommendation",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:217"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::addphpinirequirement",
+      "label": ".addPhpIniRequirement",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:235"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::addphpinirecommendation",
+      "label": ".addPhpIniRecommendation",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:253"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::addcollection",
+      "label": ".addCollection",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:263"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::all",
+      "label": ".all",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:273"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::getrequirements",
+      "label": ".getRequirements",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:283"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::getfailedrequirements",
+      "label": ".getFailedRequirements",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:300"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::getrecommendations",
+      "label": ".getRecommendations",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:317"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::getfailedrecommendations",
+      "label": ".getFailedRecommendations",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:334"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::hasphpiniconfigissue",
+      "label": ".hasPhpIniConfigIssue",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:351"
+    },
+    {
+      "id": "symfonyrequirements::requirementcollection::getphpiniconfigpath",
+      "label": ".getPhpIniConfigPath",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:367"
+    },
+    {
+      "id": "symfonyrequirements::symfonyrequirements",
+      "label": "SymfonyRequirements",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:380"
+    },
+    {
+      "id": "symfonyrequirements::symfonyrequirements::__construct",
+      "label": ".__construct",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:388"
+    },
+    {
+      "id": "symfonyrequirements::symfonyrequirements::getrealpathcachesize",
+      "label": ".getRealpathCacheSize",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:773"
+    },
+    {
+      "id": "symfonyrequirements::symfonyrequirements::getphprequiredversion",
+      "label": ".getPhpRequiredVersion",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:799"
+    },
+    {
+      "id": "file::autoload",
+      "label": "autoload.php",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/autoload.php",
+      "sourceLocation": "/home/sez876/openPIP/app/autoload.php:1"
+    },
+    {
+      "id": "file::appkernel",
+      "label": "AppKernel.php",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:1"
+    },
+    {
+      "id": "appkernel::appkernel",
+      "label": "AppKernel",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:6"
+    },
+    {
+      "id": "appkernel::appkernel::__construct",
+      "label": ".__construct",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:10"
+    },
+    {
+      "id": "appkernel::appkernel::registerbundles",
+      "label": ".registerBundles",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:16"
+    },
+    {
+      "id": "appkernel::appkernel::registercontainerconfiguration",
+      "label": ".registerContainerConfiguration",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:49"
+    },
+    {
+      "id": "file::check",
+      "label": "check.php",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:1"
+    },
+    {
+      "id": "check::get_error_message",
+      "label": "get_error_message",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:76"
+    },
+    {
+      "id": "check::echo_title",
+      "label": "echo_title",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:88"
+    },
+    {
+      "id": "check::echo_style",
+      "label": "echo_style",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:98"
+    },
+    {
+      "id": "check::echo_block",
+      "label": "echo_block",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:115"
+    },
+    {
+      "id": "check::has_color_support",
+      "label": "has_color_support",
+      "fileType": "code",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:132"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file::appcache",
+      "target": "appcache::appcache",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/AppCache.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppCache.php:5",
+      "weight": 1
+    },
+    {
+      "source": "file::symfonyrequirements",
+      "target": "symfonyrequirements::requirement",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:33",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirement",
+      "target": "symfonyrequirements::requirement::__construct",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:50",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirement",
+      "target": "symfonyrequirements::requirement::isfulfilled",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:64",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirement",
+      "target": "symfonyrequirements::requirement::gettestmessage",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:74",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirement",
+      "target": "symfonyrequirements::requirement::gethelptext",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:84",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirement",
+      "target": "symfonyrequirements::requirement::gethelphtml",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:94",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirement",
+      "target": "symfonyrequirements::requirement::isoptional",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:104",
+      "weight": 1
+    },
+    {
+      "source": "file::symfonyrequirements",
+      "target": "symfonyrequirements::phpinirequirement",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:115",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::phpinirequirement",
+      "target": "symfonyrequirements::phpinirequirement::__construct",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:131",
+      "weight": 1
+    },
+    {
+      "source": "file::symfonyrequirements",
+      "target": "symfonyrequirements::requirementcollection",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:169",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::getiterator",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:181",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::add",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:191",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::addrequirement",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:204",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::addrecommendation",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:217",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::addphpinirequirement",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:235",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::addphpinirecommendation",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:253",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::addcollection",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:263",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::all",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:273",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::getrequirements",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:283",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::getfailedrequirements",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:300",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::getrecommendations",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:317",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::getfailedrecommendations",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:334",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::hasphpiniconfigissue",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:351",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::requirementcollection",
+      "target": "symfonyrequirements::requirementcollection::getphpiniconfigpath",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:367",
+      "weight": 1
+    },
+    {
+      "source": "file::symfonyrequirements",
+      "target": "symfonyrequirements::symfonyrequirements",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:380",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::symfonyrequirements",
+      "target": "symfonyrequirements::symfonyrequirements::__construct",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:388",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::symfonyrequirements",
+      "target": "symfonyrequirements::symfonyrequirements::getrealpathcachesize",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:773",
+      "weight": 1
+    },
+    {
+      "source": "symfonyrequirements::symfonyrequirements",
+      "target": "symfonyrequirements::symfonyrequirements::getphprequiredversion",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/SymfonyRequirements.php",
+      "sourceLocation": "/home/sez876/openPIP/app/SymfonyRequirements.php:799",
+      "weight": 1
+    },
+    {
+      "source": "file::appkernel",
+      "target": "appkernel::appkernel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:6",
+      "weight": 1
+    },
+    {
+      "source": "appkernel::appkernel",
+      "target": "appkernel::appkernel::__construct",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:10",
+      "weight": 1
+    },
+    {
+      "source": "appkernel::appkernel",
+      "target": "appkernel::appkernel::registerbundles",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:16",
+      "weight": 1
+    },
+    {
+      "source": "appkernel::appkernel",
+      "target": "appkernel::appkernel::registercontainerconfiguration",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/AppKernel.php",
+      "sourceLocation": "/home/sez876/openPIP/app/AppKernel.php:49",
+      "weight": 1
+    },
+    {
+      "source": "file::check",
+      "target": "check::get_error_message",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:76",
+      "weight": 1
+    },
+    {
+      "source": "file::check",
+      "target": "check::echo_title",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:88",
+      "weight": 1
+    },
+    {
+      "source": "file::check",
+      "target": "check::echo_style",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:98",
+      "weight": 1
+    },
+    {
+      "source": "file::check",
+      "target": "check::echo_block",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:115",
+      "weight": 1
+    },
+    {
+      "source": "file::check",
+      "target": "check::has_color_support",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "sourceFile": "/home/sez876/openPIP/app/check.php",
+      "sourceLocation": "/home/sez876/openPIP/app/check.php:132",
+      "weight": 1
+    }
+  ],
+  "metadata": {
+    "files": 5,
+    "nodes": 43,
+    "edges": 38,
+    "builtAt": "2026-05-11T04:02:43.767Z"
+  }
+}

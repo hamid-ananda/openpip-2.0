@@ -54,9 +54,9 @@ describe('SearchResultsPage', () => {
 
     renderWithRoute('BAD')
 
-    // Spinner is rendered — check for the animate-spin div
-    const spinner = document.querySelector('.animate-spin')
-    expect(spinner).not.toBeNull()
+    // Spinner is rendered — check for the query term and loading text
+    expect(screen.getByText('BAD')).toBeInTheDocument()
+    expect(screen.getByText('Querying interactome...')).toBeInTheDocument()
   })
 
   it('shows error message when isError is true', () => {
@@ -68,7 +68,7 @@ describe('SearchResultsPage', () => {
 
     renderWithRoute('BAD')
 
-    expect(screen.getByText(/Failed to load search results/i)).toBeInTheDocument()
+    expect(screen.getByText(/Could not reach the database/i)).toBeInTheDocument()
   })
 
   it('shows "Enter a search term" when term is empty (no route param)', () => {

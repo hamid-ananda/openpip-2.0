@@ -1,8 +1,27 @@
 export function LoadingOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60">
-      <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="text-white text-lg">Processing...</p>
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 50,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'rgba(11,18,32,0.5)',
+    }}>
+      <div style={{
+        width: 34,
+        height: 34,
+        borderRadius: '50%',
+        border: '2px solid rgba(255,255,255,0.2)',
+        borderTopColor: '#fff',
+        animation: 'spin .8s linear infinite',
+        marginBottom: 16,
+      }} />
+      <p style={{ color: '#fff', fontSize: 14, fontWeight: 500, margin: 0 }}>
+        Preparing network data for export.
+      </p>
     </div>
   )
 }

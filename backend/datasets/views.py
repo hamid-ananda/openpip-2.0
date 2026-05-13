@@ -3,6 +3,7 @@ import tempfile
 import zipfile
 
 from django.http import FileResponse, Http404
+from rest_framework.parsers import MultiPartParser
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -63,5 +64,71 @@ class UploadView(APIView):
                 {"detail": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
             )
         file_bytes = uploaded_file.read()
-        result = parse_and_ingest(file_bytes)
+        result = parse_and_ingest(file_bytes, dataset_name="")
         return Response(result)
+
+
+class DatasetPreviewView(APIView):
+    """Dry-run parse: returns counts without writing anything to the database."""
+
+    permission_classes = [IsAdminUser]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            return Response(
+                {"detail": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        dataset_name = request.data.get("dataset_name", "").strip()
+        if not dataset_name:
+            return Response(
+                {"detail": "dataset_name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        interaction_status = request.data.get("interaction_status", "published")
+        category_id_raw = request.data.get("category_id")
+        category_id = int(category_id_raw) if category_id_raw else None
+
+        file_bytes = uploaded_file.read()
+        result = parse_and_ingest(
+            file_bytes,
+            dataset_name=dataset_name,
+            interaction_status=interaction_status,
+            category_id=category_id,
+            dry_run=True,
+        )
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class DatasetUploadView(APIView):
+    """Full ingest: parses and writes all rows to the database."""
+
+    permission_classes = [IsAdminUser]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            return Response(
+                {"detail": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        dataset_name = request.data.get("dataset_name", "").strip()
+        if not dataset_name:
+            return Response(
+                {"detail": "dataset_name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        interaction_status = request.data.get("interaction_status", "published")
+        category_id_raw = request.data.get("category_id")
+        category_id = int(category_id_raw) if category_id_raw else None
+
+        file_bytes = uploaded_file.read()
+        result = parse_and_ingest(
+            file_bytes,
+            dataset_name=dataset_name,
+            interaction_status=interaction_status,
+            category_id=category_id,
+            dry_run=False,
+        )
+        return Response(result, status=status.HTTP_201_CREATED)

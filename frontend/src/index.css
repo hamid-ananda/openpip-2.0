@@ -188,6 +188,11 @@ p { text-wrap: pretty; }
   border-color: transparent;
 }
 .op-btn.ghost:hover { background: var(--surface-2); }
+.op-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+  transition-duration: .05s;
+}
 
 .op-input {
   width: 100%;
@@ -204,6 +209,7 @@ p { text-wrap: pretty; }
 .op-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-soft);
+  transition: border-color .1s, box-shadow .3s var(--ease-out-expo);
 }
 
 .op-card {
@@ -225,6 +231,20 @@ p { text-wrap: pretty; }
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-up { animation: fade-up 450ms var(--ease-out-expo) both; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes node-breathe {
+  0%, 100% { transform: scale(1);    }
+  50%       { transform: scale(1.08); }
+}
+.hero-query-node {
+  animation: node-breathe 3.5s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
