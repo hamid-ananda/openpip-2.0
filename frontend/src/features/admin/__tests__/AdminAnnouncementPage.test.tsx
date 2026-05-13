@@ -17,8 +17,8 @@ vi.mock('../../../api/announcements', () => ({
   useDeleteAnnouncement: vi.fn(),
 }))
 
-// react-quill renders a controlled editor; stub it to a plain textarea for tests
-vi.mock('react-quill', () => ({
+// react-quill-new renders a controlled editor; stub it to a plain textarea for tests
+vi.mock('react-quill-new', () => ({
   default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
     <textarea
       data-testid="quill-editor"
