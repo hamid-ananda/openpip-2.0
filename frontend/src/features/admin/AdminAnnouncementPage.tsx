@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
+
+const QUILL_STYLE = `
+  .ql-editor { min-height: 200px; font-size: 14px; line-height: 1.6; }
+  .ql-toolbar.ql-snow { border-bottom: 1px solid var(--border); background: var(--surface-2); border-radius: 8px 8px 0 0; }
+  .ql-container.ql-snow { border-radius: 0 0 8px 8px; }
+`
 import {
   useAdminAnnouncements,
   useCreateAnnouncement,
@@ -146,7 +152,6 @@ function AnnouncementForm({ initial, isPending, onSubmit, onCancel, submitLabel 
           style={{
             border: '1px solid var(--border-strong)',
             borderRadius: 8,
-            overflow: 'hidden',
             background: 'var(--surface)',
           }}
         >
@@ -379,6 +384,7 @@ export function AdminAnnouncementPage() {
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 80px' }}>
+      <style>{QUILL_STYLE}</style>
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
         {/* ── Header ── */}
         <div
