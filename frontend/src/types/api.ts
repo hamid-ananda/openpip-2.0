@@ -30,6 +30,7 @@ export interface Announcement {
   title: string
   text: string
   date: string | null
+  show: boolean
   showOnHomePage: boolean
 }
 

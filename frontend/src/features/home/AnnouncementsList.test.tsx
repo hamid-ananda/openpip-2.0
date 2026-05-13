@@ -4,8 +4,8 @@ import { AnnouncementsList } from './AnnouncementsList'
 import type { Announcement } from '../../types/api'
 
 const announcements: Announcement[] = [
-  { id: 1, title: 'New release', text: '<p>v2 is out</p>', date: '2026-05-01', showOnHomePage: true },
-  { id: 2, title: 'Maintenance', text: '<p>Scheduled downtime</p>', date: '2026-04-10', showOnHomePage: true },
+  { id: 1, title: 'New release', text: '<p>v2 is out</p>', date: '2026-05-01', show: true, showOnHomePage: true },
+  { id: 2, title: 'Maintenance', text: '<p>Scheduled downtime</p>', date: '2026-04-10', show: true, showOnHomePage: true },
 ]
 
 describe('AnnouncementsList', () => {

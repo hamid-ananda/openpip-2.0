@@ -102,4 +102,4 @@ class AnnouncementSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Announcement
-        fields = ["id", "title", "text", "date", "showOnHomePage"]
+        fields = ["id", "title", "text", "date", "show", "showOnHomePage"]

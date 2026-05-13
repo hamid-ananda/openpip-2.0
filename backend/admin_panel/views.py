@@ -77,6 +77,46 @@ class AnnouncementListView(APIView):
         return Response(AnnouncementSerializer(qs, many=True).data)
 
 
+class AnnouncementAdminView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        qs = Announcement.objects.all().order_by("-date")
+        return Response(AnnouncementSerializer(qs, many=True).data)
+
+    def post(self, request):
+        serializer = AnnouncementSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class AnnouncementAdminDetailView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def _get_object(self, pk: int):
+        try:
+            return Announcement.objects.get(pk=pk)
+        except Announcement.DoesNotExist:
+            return None
+
+    def patch(self, request, pk: int):
+        obj = self._get_object(pk)
+        if obj is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = AnnouncementSerializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk: int):
+        obj = self._get_object(pk)
+        if obj is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class CountsView(APIView):
     permission_classes = [AllowAny]
 
