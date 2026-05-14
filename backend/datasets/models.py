@@ -65,6 +65,8 @@ class DatasetRequestDataset(models.Model):
 class UploadFiles(models.Model):
     file_name = models.CharField(max_length=200)
     file_path = models.CharField(max_length=500)
+    file_size = models.IntegerField(default=0)
+    show = models.BooleanField(default=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

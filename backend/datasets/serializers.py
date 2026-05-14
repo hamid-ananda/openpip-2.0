@@ -10,6 +10,7 @@ class DatasetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dataset
         fields = [
+            "id",
             "dataset_reference",
             "dataset_author",
             "year",
