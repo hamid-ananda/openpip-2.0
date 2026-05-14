@@ -1,16 +1,37 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSearch } from '../../api/search'
 import { useSearchStore } from './searchStore'
 import { filterProteinsAndInteractions } from './filterInteractions'
 import { CytoscapeNetwork } from './network/CytoscapeNetwork'
-import { NetworkToolbar } from './toolbar/NetworkToolbar'
 import { ResultTablePanel } from './tables/ResultTablePanel'
 import { EnrichmentPanel } from './enrichment/EnrichmentPanel'
 import { OverlaySystem } from './modals/OverlaySystem'
+import { SearchSidebar } from './SearchSidebar'
+
+const MIN_NETWORK_H = 150
+const MAX_NETWORK_H = window.innerHeight - 56 - 120 // leave room for at least one table row
 
 export function SearchResultsPage() {
   const { term = '' } = useParams<{ term: string }>()
+  const [networkHeight, setNetworkHeight] = useState(500)
+
+  function startDrag(e: React.MouseEvent) {
+    e.preventDefault()
+    const startY = e.clientY
+    const startH = networkHeight
+
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.min(MAX_NETWORK_H, Math.max(MIN_NETWORK_H, startH + ev.clientY - startY))
+      setNetworkHeight(next)
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
   const { data, isLoading, isError } = useSearch(term)
 
   const {
@@ -25,111 +46,148 @@ export function SearchResultsPage() {
     filterMode,
     tissueExpressionActive,
     tissueSpecificityActive,
-    foundSummary,
-    unfoundSummary,
-    searchTerm,
   } = useSearchStore()
 
-  // Load search data into store when query completes
   useEffect(() => {
     if (data) setSearchData(data)
   }, [data, setSearchData])
 
-  // Derive filtered proteins and interactions for the network view
   const { proteins, interactions } = filterProteinsAndInteractions(
     allProteins,
     allInteractions,
-    {
-      scoreFilter,
-      categoryFilter,
-      annotationFilter,
-      filterMode,
-      tissueExpressionActive,
-      tissueSpecificityActive,
-    },
+    { scoreFilter, categoryFilter, annotationFilter, filterMode, tissueExpressionActive, tissueSpecificityActive },
     queryProteinIds
   )
 
-  // Gene names for enrichment
   const geneNames = proteins.map((p) => p.protein_gene_name)
 
-  if (isLoading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 320, gap: 20 }}>
+  const renderMain = () => {
+    if (!term) {
+      return (
         <div style={{
-          width: 34,
-          height: 34,
-          borderRadius: '50%',
-          border: '2px solid var(--border)',
-          borderTopColor: 'var(--primary)',
-          animation: 'spin .8s linear infinite',
-        }} />
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
-            {term}
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          minHeight: 400,
+          gap: 8,
+          padding: 48,
+        }}>
+          <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>
+            Search for a protein to see its interaction network.
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-            Querying interactome...
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            Enter a gene symbol or UniProt ID in the panel on the left.
           </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
-  if (isError) {
-    return (
-      <div style={{ padding: '80px 32px', textAlign: 'center' }}>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>
-          Could not reach the database.
+    if (isLoading) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          minHeight: 400,
+          gap: 20,
+        }}>
+          <div style={{
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            border: '2px solid var(--border)',
+            borderTopColor: 'var(--primary)',
+            animation: 'spin .8s linear infinite',
+          }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+              {term}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+              Querying interactome...
+            </div>
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>
-          Check your connection and try the search again.
-        </div>
-      </div>
-    )
-  }
+      )
+    }
 
-  if (!term) {
+    if (isError) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          minHeight: 400,
+          gap: 6,
+        }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Could not reach the database.</div>
+          <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>Check your connection and try again.</div>
+        </div>
+      )
+    }
+
     return (
-      <div className="p-8 text-center text-gray-500">Enter a search term to see results.</div>
+      <>
+        {/* Network */}
+        <CytoscapeNetwork
+          proteins={proteins}
+          interactions={interactions}
+          queryProteinIds={queryProteinIds}
+          layout={selectedLayout}
+          height={networkHeight}
+        />
+
+        {/* Drag handle */}
+        <div
+          onMouseDown={startDrag}
+          title="Drag to resize"
+          style={{
+            height: 10,
+            flexShrink: 0,
+            cursor: 'row-resize',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--surface)',
+            borderTop: '1px solid var(--border)',
+            borderBottom: '1px solid var(--border)',
+            userSelect: 'none',
+          }}
+        >
+          <svg width="20" height="6" viewBox="0 0 20 6" fill="none" aria-hidden="true">
+            <circle cx="4"  cy="3" r="1.5" fill="var(--text-soft)" />
+            <circle cx="10" cy="3" r="1.5" fill="var(--text-soft)" />
+            <circle cx="16" cy="3" r="1.5" fill="var(--text-soft)" />
+          </svg>
+        </div>
+
+        {/* Tables */}
+        <ResultTablePanel />
+
+        {/* Enrichment */}
+        <EnrichmentPanel geneNames={geneNames} />
+
+        {/* Modals */}
+        <OverlaySystem />
+      </>
     )
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Summary bar */}
-      {foundSummary && (
-        <div className="text-sm text-gray-700">
-          <span className="font-medium">Found: </span>
-          <span dangerouslySetInnerHTML={{ __html: foundSummary }} />
-          {unfoundSummary && (
-            <span className="ml-4 text-amber-700">
-              <span className="font-medium">Not found: </span>
-              {unfoundSummary}
-            </span>
-          )}
-        </div>
-      )}
+    <div style={{ display: 'flex', height: 'calc(100vh - 56px)' }}>
+      {/* Sidebar — left */}
+      <SearchSidebar key={term} term={term} />
 
-      {/* Toolbar */}
-      <NetworkToolbar searchTerm={searchTerm} />
-
-      {/* Network visualization */}
-      <CytoscapeNetwork
-        proteins={proteins}
-        interactions={interactions}
-        queryProteinIds={queryProteinIds}
-        layout={selectedLayout}
-      />
-
-      {/* Data tables */}
-      <ResultTablePanel />
-
-      {/* Enrichment */}
-      <EnrichmentPanel geneNames={geneNames} />
-
-      {/* Modals */}
-      <OverlaySystem />
+      {/* Main — scrolls vertically */}
+      <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
+        {renderMain()}
+      </main>
     </div>
   )
 }

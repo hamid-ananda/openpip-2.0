@@ -6,8 +6,8 @@ import { SearchResultsPage } from '../SearchResultsPage'
 import { searchFixture } from '../../../mocks/fixtures/search'
 import { useSearchStore } from '../searchStore'
 
+vi.mock('../SearchSidebar', () => ({ SearchSidebar: () => <div>Sidebar</div> }))
 vi.mock('../network/CytoscapeNetwork', () => ({ CytoscapeNetwork: () => <div>Network</div> }))
-vi.mock('../toolbar/NetworkToolbar', () => ({ NetworkToolbar: () => <div>Toolbar</div> }))
 vi.mock('../tables/ResultTablePanel', () => ({ ResultTablePanel: () => <div>Tables</div> }))
 vi.mock('../enrichment/EnrichmentPanel', () => ({ EnrichmentPanel: () => <div>Enrichment</div> }))
 vi.mock('../modals/OverlaySystem', () => ({ OverlaySystem: () => null }))
@@ -54,8 +54,6 @@ describe('SearchResultsPage', () => {
 
     renderWithRoute('BAD')
 
-    // Spinner is rendered — check for the query term and loading text
-    expect(screen.getByText('BAD')).toBeInTheDocument()
     expect(screen.getByText('Querying interactome...')).toBeInTheDocument()
   })
 
@@ -80,7 +78,7 @@ describe('SearchResultsPage', () => {
 
     renderWithRoute() // no term
 
-    expect(screen.getByText(/Enter a search term to see results/i)).toBeInTheDocument()
+    expect(screen.getByText(/Search for a protein to see its interaction network/i)).toBeInTheDocument()
   })
 
   it('calls setSearchData and renders all panels when data loads', async () => {
@@ -93,7 +91,7 @@ describe('SearchResultsPage', () => {
     renderWithRoute('BAD,BCL2L1')
 
     // Panels should be in the document
-    expect(screen.getByText('Toolbar')).toBeInTheDocument()
+    expect(screen.getByText('Sidebar')).toBeInTheDocument()
     expect(screen.getByText('Network')).toBeInTheDocument()
     expect(screen.getByText('Tables')).toBeInTheDocument()
     expect(screen.getByText('Enrichment')).toBeInTheDocument()

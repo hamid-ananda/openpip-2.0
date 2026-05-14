@@ -4,7 +4,7 @@ import cytoscape from 'cytoscape'
 import type { LayoutOptions } from 'cytoscape'
 import cola from 'cytoscape-cola'
 import type { Protein, Interaction } from '../../../types/api'
-import { buildElements } from './cytoscapeElements'
+import { buildElements, getEdgeColorByOrder } from './cytoscapeElements'
 import { NETWORK_STYLESHEET } from './cytoscapeStyles'
 import { useSettings } from '../../../api/settings'
 
@@ -24,6 +24,7 @@ interface CytoscapeNetworkProps {
   interactions: Interaction[]
   queryProteinIds: number[]
   layout: LayoutName
+  height?: number
   onNodeClick?: (protein: Protein) => void
   onEdgeClick?: (interaction: Interaction) => void
 }
@@ -39,6 +40,7 @@ export function CytoscapeNetwork({
   interactions,
   queryProteinIds,
   layout,
+  height = 500,
   onNodeClick,
   onEdgeClick,
 }: CytoscapeNetworkProps) {
@@ -109,8 +111,31 @@ export function CytoscapeNetwork({
     }
   }, [proteins, interactions, onNodeClick, onEdgeClick])
 
+  // Build edge legend from actual category names in the current data so labels
+  // match whatever the dataset calls them (e.g. "HI-Union" instead of "Verified").
+  const edgeLegendItems = useMemo(() => {
+    const seen = new Map<string, { color: string; order: number }>()
+    interactions.forEach(({ interaction_category_array: { highest_category_status, highest_order } }) => {
+      if (!seen.has(highest_category_status)) {
+        seen.set(highest_category_status, {
+          color: getEdgeColorByOrder(highest_order, palette),
+          order: highest_order,
+        })
+      }
+    })
+    return Array.from(seen.entries())
+      .sort((a, b) => a[1].order - b[1].order)
+      .map(([label, { color }]) => ({ label, color, shape: 'line' as const }))
+  }, [interactions, palette])
+
+  const legendItems = [
+    { label: 'Query node',  color: 'var(--color-query-node)',      shape: 'circle' as const },
+    { label: 'Interactor',  color: 'var(--color-interactor-node)', shape: 'circle' as const },
+    ...edgeLegendItems,
+  ]
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', height }}>
       {/* key={layout} forces a full remount when layout changes to avoid
           stale internal Cytoscape layout state */}
       <CytoscapeComponent
@@ -118,11 +143,53 @@ export function CytoscapeNetwork({
         elements={elements}
         stylesheet={NETWORK_STYLESHEET}
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}
-        style={{ width: '100%', height: 500 }}
+        style={{ width: '100%', height }}
         cy={(cy) => {
           cyRef.current = cy
         }}
       />
+
+      {/* Floating legend */}
+      <div style={{
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 6,
+        padding: '10px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 7,
+        pointerEvents: 'none',
+        zIndex: 10,
+      }}>
+        {legendItems.map(({ label, color, shape }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {shape === 'circle' ? (
+              <span style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: color,
+                flexShrink: 0,
+              }} />
+            ) : (
+              <span style={{
+                width: 16,
+                height: 3,
+                borderRadius: 2,
+                background: color,
+                flexShrink: 0,
+              }} />
+            )}
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              {label}
+            </span>
+          </div>
+        ))}
+      </div>
+
       {tooltip && (
         <div
           style={{
