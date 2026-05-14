@@ -6,6 +6,9 @@ env = environ.Env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# Read .env before any env() calls so DATABASE_URL etc. are available
+environ.Env.read_env(BASE_DIR.parent / ".env", overwrite=False)
+
 SECRET_KEY = env("SECRET_KEY", default="django-insecure-dev-key-change-in-production")
 
 DEBUG = False
