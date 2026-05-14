@@ -34,7 +34,7 @@ describe('AboutPage', () => {
     expect(screen.getByText('About TestDB')).toBeInTheDocument()
   })
 
-  it('renders the homePage HTML content', () => {
+  it('renders static about content', () => {
     vi.mocked(useSettings).mockReturnValue(
       mockSettings as unknown as ReturnType<typeof useSettings>
     )
@@ -45,6 +45,6 @@ describe('AboutPage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('About content')).toBeInTheDocument()
+    expect(screen.getByText('CCSB Proteome-scale efforts')).toBeInTheDocument()
   })
 })

@@ -22,7 +22,7 @@ const interaction: Interaction = {
   interactor_B: { protein_id: 2, protein_uniprot_id: 'Q07817', protein_gene_name: 'BCL2L1', protein_ensembl_id: 'ENSG2' },
   score: 0.82,
   annotation_array: {}, experiment_array: [],
-  dataset_array: [{ dataset_reference: '12345', dataset_author: 'Rolland et al.(2014)', year: '2014', description: 'HuRI', interaction_status: 'Published', name: 'HuRI' }],
+  dataset_array: [{ id: 1, dataset_reference: '12345', dataset_author: 'Rolland et al.(2014)', year: '2014', description: 'HuRI', interaction_status: 'Published', name: 'HuRI' }],
   interaction_category_array: { highest_category_status: 'Published', highest_order: 1, interaction_category_array: [{ category_name: 'Published', order: 1 }] },
 }
 

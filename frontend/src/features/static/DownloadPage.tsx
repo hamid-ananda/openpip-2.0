@@ -1,5 +1,28 @@
+import { useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useDatasets } from '../../api/downloads'
+import { usePublicFiles } from '../../api/files'
+import type { UploadedFile } from '../../api/files'
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+
+async function triggerDownload(datasetId: number, fmt: string, token: string | null) {
+  const url = `${BASE_URL}/datasets/${datasetId}/download?fmt=${fmt}`
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) return
+  const blob = await res.blob()
+  const disposition = res.headers.get('Content-Disposition') ?? ''
+  const match = disposition.match(/filename="([^"]+)"/)
+  const filename = match ? match[1] : `dataset_${datasetId}.${fmt}`
+  const objectUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = objectUrl
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(objectUrl)
+}
 
 const STATUS_BADGE: Record<string, string> = {
   Published: 'var(--literature)',
@@ -22,7 +45,17 @@ function KindChip({ status }: { status: string }) {
 
 export function DownloadPage() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  const token = useAuthStore((s) => s.token)
   const { data: datasets, isLoading } = useDatasets()
+  const { data: suppFiles } = usePublicFiles()
+  const [downloading, setDownloading] = useState<string | null>(null)
+
+  async function handleDownload(datasetId: number, fmt: string) {
+    const key = `${datasetId}-${fmt}`
+    setDownloading(key)
+    await triggerDownload(datasetId, fmt, token)
+    setDownloading(null)
+  }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100%' }}>
@@ -70,40 +103,41 @@ export function DownloadPage() {
       <section style={{ padding: '0 80px 32px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div
-            className="op-card"
             style={{
-              padding: '16px 20px',
-              borderLeft: '3px solid var(--warn)',
+              borderBottom: '3px solid var(--warn)',
+              padding: '18px 24px',
               display: 'flex',
-              gap: 16,
+              gap: 14,
               alignItems: 'flex-start',
             }}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--warn)"
-              strokeWidth="2"
-              style={{ flexShrink: 0, marginTop: 2 }}
-              aria-hidden="true"
-            >
-              <path d="M12 9v4m0 4h.01M10.3 3.86l-8.6 14.91A2 2 0 0 0 3.4 22h17.2a2 2 0 0 0 1.7-3.23L13.7 3.86a2 2 0 0 0-3.4 0Z" />
-            </svg>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: 'var(--warn)',
+                flexShrink: 0,
+                marginTop: 6,
+              }}
+            />
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 5 }}>
                 Publication moratorium
               </div>
-              <div
-                style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 680 }}
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.65, margin: '0 0 10px', maxWidth: 680 }}>
+                Preliminary, unpublished CCSB Human Interactome data has a{' '}
+                <strong style={{ color: 'var(--text)', fontWeight: 600 }}>12-month moratorium</strong>{' '}
+                on global analysis. Small-scale use of up to{' '}
+                <strong style={{ color: 'var(--text)', fontWeight: 600 }}>10 interactions</strong>{' '}
+                is permitted.
+              </p>
+              <a
+                href="/about"
+                style={{ fontSize: 12, fontWeight: 500, color: 'var(--primary)', textDecoration: 'none' }}
               >
-                Preliminary, unpublished CCSB Human Interactome data has a 12-month moratorium on
-                global analysis. Small-scale use (up to 10 interactions) is permitted.{' '}
-                <a href="/about" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                  Read full guidelines →
-                </a>
-              </div>
+                Read full guidelines →
+              </a>
             </div>
           </div>
         </div>
@@ -141,7 +175,7 @@ export function DownloadPage() {
               {/* Table rows */}
               {datasets?.map((ds) => (
                 <div
-                  key={ds.dataset_reference}
+                  key={ds.id}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 160px 200px',
@@ -182,21 +216,28 @@ export function DownloadPage() {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
                     {isLoggedIn ? (
                       <>
-                        {['tab', 'sif', 'csv'].map((fmt) => (
-                          <a
-                            key={fmt}
-                            href={`/api/datasets/${ds.dataset_reference}/download?format=${fmt}`}
-                            className="op-btn"
-                            style={{
-                              padding: '5px 10px',
-                              fontSize: 11,
-                              fontFamily: 'var(--mono)',
-                              textTransform: 'uppercase',
-                            }}
-                          >
-                            .{fmt}
-                          </a>
-                        ))}
+                        {(['tab', 'sif', 'csv'] as const).map((fmt) => {
+                          const key = `${ds.id}-${fmt}`
+                          const busy = downloading === key
+                          return (
+                            <button
+                              key={fmt}
+                              className="op-btn"
+                              disabled={busy}
+                              onClick={() => handleDownload(ds.id, fmt)}
+                              style={{
+                                padding: '5px 10px',
+                                fontSize: 11,
+                                fontFamily: 'var(--mono)',
+                                textTransform: 'uppercase',
+                                opacity: busy ? 0.6 : 1,
+                                cursor: busy ? 'wait' : 'pointer',
+                              }}
+                            >
+                              {busy ? '…' : `.${fmt}`}
+                            </button>
+                          )
+                        })}
                       </>
                     ) : (
                       <a
@@ -219,6 +260,111 @@ export function DownloadPage() {
           )}
         </div>
       </section>
+
+      {/* Supplementary Files */}
+      {isLoggedIn && suppFiles && suppFiles.length > 0 && (
+        <section style={{ padding: '0 80px 64px' }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '.08em',
+                marginBottom: 14,
+              }}
+            >
+              Supplementary Files
+            </div>
+            <div className="op-card" style={{ overflow: 'hidden' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 80px 200px',
+                  padding: '12px 24px',
+                  background: 'var(--surface-2)',
+                  borderBottom: '1px solid var(--border)',
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '.06em',
+                }}
+              >
+                <div>File</div>
+                <div>Size</div>
+                <div style={{ textAlign: 'right' }}>Download</div>
+              </div>
+              {suppFiles.map((f: UploadedFile) => (
+                <SuppFileRow key={f.id} file={f} token={token} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function SuppFileRow({ file, token }: { file: UploadedFile; token: string | null }) {
+  const [busy, setBusy] = useState(false)
+  const ext = file.file_name.split('.').pop()?.toLowerCase() ?? ''
+
+  async function handleDownload() {
+    setBusy(true)
+    const res = await fetch(`${BASE_URL}/files/${file.id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (res.ok) {
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = file.file_name
+      a.click()
+      URL.revokeObjectURL(a.href)
+    }
+    setBusy(false)
+  }
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 80px 200px',
+        padding: '14px 24px',
+        borderBottom: '1px solid var(--border)',
+        alignItems: 'center',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span
+          className="op-chip"
+          style={{ fontSize: 10, background: 'transparent', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+        >
+          .{ext}
+        </span>
+        <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--mono)' }}>
+          {file.file_name}
+        </span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatBytes(file.file_size)}</div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          className="op-btn"
+          disabled={busy}
+          onClick={handleDownload}
+          style={{ padding: '5px 14px', fontSize: 11, opacity: busy ? 0.6 : 1, cursor: busy ? 'wait' : 'pointer' }}
+        >
+          {busy ? '…' : 'Download'}
+        </button>
+      </div>
     </div>
   )
 }

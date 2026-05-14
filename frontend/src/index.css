@@ -232,6 +232,9 @@ p { text-wrap: pretty; }
 }
 .animate-fade-up { animation: fade-up 450ms var(--ease-out-expo) both; }
 
+.faq-answer p { margin: 0 0 12px; }
+.faq-answer p:last-child { margin-bottom: 0; }
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

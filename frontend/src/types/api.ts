@@ -40,6 +40,7 @@ export interface Counts {
 }
 
 export interface DatasetRef {
+  id: number
   dataset_reference: string
   dataset_author: string
   year: string
