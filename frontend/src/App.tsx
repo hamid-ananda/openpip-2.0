@@ -13,6 +13,7 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { ProfilePage } from './features/auth/ProfilePage'
+import { ProteinDetailPage } from './features/protein/ProteinDetailPage'
 import { DownloadPage } from './features/static/DownloadPage'
 import { AboutPage } from './features/static/AboutPage'
 import { FAQPage } from './features/static/FAQPage'
@@ -35,6 +36,7 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'search', element: <SearchResultsPage /> },
       { path: 'search/:term', element: <SearchResultsPage /> },
+      { path: 'protein/:identifier', element: <ProteinDetailPage /> },
       { path: 'download', element: <DownloadPage /> },
       { path: 'about', element: <AboutPage /> },
       { path: 'faq', element: <FAQPage /> },

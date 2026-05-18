@@ -1,8 +1,9 @@
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
-from .models import Identifier
+from .models import Annotation, AnnotationProtein, Identifier, Protein
 
 
 class AutocompleteView(APIView):
@@ -18,3 +19,68 @@ class AutocompleteView(APIView):
             .distinct()[:20]
         )
         return Response(list(matching))
+
+
+class ProteinDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, identifier: str):
+        identifier = identifier.strip()
+
+        # Resolve via Identifier table first (handles gene names, UniProt IDs, etc.)
+        id_row = (
+            Identifier.objects.filter(identifier__iexact=identifier)
+            .select_related()
+            .first()
+        )
+        if id_row:
+            protein = Protein.objects.filter(
+                protein_identifiers__identifier=id_row
+            ).first()
+        else:
+            # Fall back to direct field lookup
+            protein = (
+                Protein.objects.filter(gene_name__iexact=identifier).first()
+                or Protein.objects.filter(uniprot_id__iexact=identifier).first()
+                or Protein.objects.filter(ensembl_id__iexact=identifier).first()
+                or Protein.objects.filter(entrez_id__iexact=identifier).first()
+            )
+
+        if not protein:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Annotations
+        annotation_ids = AnnotationProtein.objects.filter(protein=protein).values_list(
+            "annotation_id", flat=True
+        )
+        annotations = Annotation.objects.filter(id__in=annotation_ids)
+        annotation_array: dict = {}
+        for ann in annotations:
+            if ann.type_name:
+                annotation_array.setdefault(ann.type_name, [])
+                if ann.annotation:
+                    annotation_array[ann.type_name].append(ann.annotation)
+
+        # Identifiers list
+        identifiers = list(
+            Identifier.objects.filter(protein_identifiers__protein=protein).values(
+                "identifier", "naming_convention"
+            )
+        )
+
+        return Response(
+            {
+                "protein_id": protein.id,
+                "protein_gene_name": protein.gene_name or "",
+                "protein_protein_name": protein.protein_name or "",
+                "protein_uniprot_id": protein.uniprot_id or "",
+                "protein_ensembl_id": protein.ensembl_id or "",
+                "protein_entrez_id": protein.entrez_id or "",
+                "protein_description": protein.description or "",
+                "protein_sequence": protein.sequence or "",
+                "number_of_interactions_in_database": protein.number_of_interactions_in_database
+                or 0,
+                "annotation_array": annotation_array,
+                "identifiers": identifiers,
+            }
+        )

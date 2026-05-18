@@ -6,20 +6,20 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('interactions', '0002_add_search_indexes'),
+        ("interactions", "0002_add_search_indexes"),
     ]
 
     operations = [
         migrations.RemoveIndex(
-            model_name='interaction',
-            name='interaction_removed_idx',
+            model_name="interaction",
+            name="interaction_removed_idx",
         ),
         migrations.RemoveIndex(
-            model_name='interaction',
-            name='interaction_a_b_idx',
+            model_name="interaction",
+            name="interaction_a_b_idx",
         ),
         migrations.RemoveIndex(
-            model_name='interaction',
-            name='interaction_b_a_idx',
+            model_name="interaction",
+            name="interaction_b_a_idx",
         ),
     ]

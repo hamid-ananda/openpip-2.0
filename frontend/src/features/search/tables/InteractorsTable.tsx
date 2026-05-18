@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   useReactTable,
   getCoreRowModel,
@@ -24,6 +25,18 @@ function buildColumns(queryProteinIds: number[]): ColumnDef<Protein>[] {
     {
       accessorKey: 'protein_gene_name',
       header: 'Gene Name',
+      cell: ({ getValue }) => {
+        const name = getValue<string>()
+        if (!name) return '—'
+        return (
+          <Link
+            to={`/protein/${encodeURIComponent(name)}`}
+            style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}
+          >
+            {name}
+          </Link>
+        )
+      },
     },
     {
       accessorKey: 'protein_uniprot_id',

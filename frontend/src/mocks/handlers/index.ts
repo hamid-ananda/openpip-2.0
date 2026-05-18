@@ -6,6 +6,7 @@ import { searchHandlers } from './search'
 import { downloadHandlers } from './downloads'
 import { contactHandlers } from './contact'
 import { datasetHandlers } from './datasets'
+import { proteinHandlers } from './proteins'
 
 export const handlers = [
   ...settingsHandlers,
@@ -16,4 +17,5 @@ export const handlers = [
   ...downloadHandlers,
   ...contactHandlers,
   ...datasetHandlers,
+  ...proteinHandlers,
 ]
