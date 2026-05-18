@@ -7,21 +7,22 @@ import { useCounts } from '../../../api/counts'
 import { useDatasets } from '../../../api/downloads'
 import {
   useInteractionCategories,
-  useDatasetPreview,
   useDatasetUpload,
+  useDatasetDelete,
 } from '../../../api/datasets'
 
 vi.mock('../../../api/counts', () => ({ useCounts: vi.fn() }))
 vi.mock('../../../api/downloads', () => ({ useDatasets: vi.fn() }))
 vi.mock('../../../api/datasets', () => ({
   useInteractionCategories: vi.fn(),
-  useDatasetPreview: vi.fn(),
   useDatasetUpload: vi.fn(),
+  useDatasetDelete: vi.fn(),
 }))
 
 const mockCounts = { proteins: 12345, interactions: 67890 }
 const mockDatasets = [
   {
+    id: 1,
     dataset_reference: '24153252',
     dataset_author: 'Rolland et al.(2014)',
     year: '2014',
@@ -34,22 +35,6 @@ const mockCategories = [
   { id: 1, category_name: 'HI-Union', order: '3' },
   { id: 2, category_name: 'Published', order: '1' },
 ]
-const mockPreviewResult = {
-  dry_run: true,
-  proteins_created: 10,
-  proteins_existing: 5,
-  interactions_created: 20,
-  interactions_skipped: 2,
-  errors: [],
-}
-const mockUploadResult = {
-  dry_run: false,
-  proteins_created: 10,
-  proteins_existing: 5,
-  interactions_created: 20,
-  interactions_skipped: 2,
-  errors: [],
-}
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -71,19 +56,13 @@ describe('AdminDataPage', () => {
       data: mockCategories,
       isLoading: false,
     })
-    ;(useDatasetPreview as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-      isError: false,
-      data: undefined,
-      error: null,
-    })
     ;(useDatasetUpload as ReturnType<typeof vi.fn>).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
-      isError: false,
-      data: undefined,
-      error: null,
+    })
+    ;(useDatasetDelete as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
     })
   })
 
@@ -104,7 +83,6 @@ describe('AdminDataPage', () => {
   it('renders datasets count stat card', () => {
     render(<AdminDataPage />, { wrapper })
     expect(screen.getByText('Datasets')).toBeInTheDocument()
-    // datasets.length = 1 — multiple "1"s may appear (step indicator), so check at least one
     expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1)
   })
 
@@ -151,6 +129,7 @@ describe('AdminDataPage', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /next →/i })).not.toBeDisabled())
     fireEvent.click(screen.getByRole('button', { name: /next →/i }))
     await waitFor(() => expect(screen.getByText('Dataset name')).toBeInTheDocument())
+    return new File(['col1\tcol2'], 'huri-2024.tab', { type: 'text/plain' })
   }
 
   it('shows metadata fields after file is selected and Next clicked', async () => {
@@ -168,103 +147,52 @@ describe('AdminDataPage', () => {
 
   it('shows category options from useInteractionCategories', async () => {
     await goToStep2()
-    // HI-Union only appears as a category option
     expect(screen.getByText('HI-Union')).toBeInTheDocument()
-    // "Published" appears in the datasets table chip and the category select
     expect(screen.getAllByText('Published').length).toBeGreaterThanOrEqual(1)
   })
 
-  // ── Step 3 ───────────────────────────────────────────────
+  // ── Step 3 — batched preview via MSW ─────────────────────
+
+  async function goToStep3() {
+    render(<AdminDataPage />, { wrapper })
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    // Two data rows so runBatchedPreview has something to parse
+    const file = new File(['#header\nprotA\tprotB\nprotC\tprotD'], 'huri.tab', { type: 'text/plain' })
+    fireEvent.change(input, { target: { files: [file] } })
+    await waitFor(() => expect(screen.getByRole('button', { name: /next →/i })).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: /next →/i }))
+    await waitFor(() => expect(screen.getByText('Dataset name')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /preview →/i }))
+    await waitFor(() => expect(screen.getByText('Preview results')).toBeInTheDocument(), { timeout: 3000 })
+  }
 
   it('shows preview results when preview data is available', async () => {
-    ;(useDatasetPreview as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-      isError: false,
-      data: mockPreviewResult,
-      error: null,
-    })
-
-    render(<AdminDataPage />, { wrapper })
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-    const file = new File(['col1\tcol2'], 'huri.tab', { type: 'text/plain' })
-    fireEvent.change(fileInput, { target: { files: [file] } })
-    await waitFor(() => expect(screen.getByRole('button', { name: /next →/i })).not.toBeDisabled())
-    fireEvent.click(screen.getByRole('button', { name: /next →/i }))
-    await waitFor(() => expect(screen.getByText('Dataset name')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /preview →/i }))
-
-    await waitFor(() => expect(screen.getByText('Preview results')).toBeInTheDocument())
+    await goToStep3()
     expect(screen.getByText('Proteins new')).toBeInTheDocument()
-    expect(screen.getByText('Interactions new')).toBeInTheDocument()
+    expect(screen.getByText('Proteins existing')).toBeInTheDocument()
   })
 
-  // ── Step 4 ───────────────────────────────────────────────
+  // ── Step 4 — batched import via MSW ──────────────────────
 
   it('shows success counts after upload completes', async () => {
-    ;(useDatasetPreview as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-      isError: false,
-      data: mockPreviewResult,
-      error: null,
-    })
-    ;(useDatasetUpload as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-      isError: false,
-      data: mockUploadResult,
-      error: null,
-    })
-
-    render(<AdminDataPage />, { wrapper })
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-    const file = new File(['col1\tcol2'], 'huri.tab', { type: 'text/plain' })
-    fireEvent.change(fileInput, { target: { files: [file] } })
-    await waitFor(() => expect(screen.getByRole('button', { name: /next →/i })).not.toBeDisabled())
-    fireEvent.click(screen.getByRole('button', { name: /next →/i }))
-    await waitFor(() => expect(screen.getByText('Dataset name')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /preview →/i }))
-    await waitFor(() => expect(screen.getByText('Import →')).toBeInTheDocument())
+    await goToStep3()
     fireEvent.click(screen.getByRole('button', { name: /import →/i }))
 
-    await waitFor(() =>
-      expect(screen.getByText('Dataset imported successfully')).toBeInTheDocument(),
+    await waitFor(
+      () => expect(screen.getByText('Dataset imported successfully')).toBeInTheDocument(),
+      { timeout: 3000 },
     )
     expect(screen.getByText('Proteins created')).toBeInTheDocument()
     expect(screen.getByText('Interactions created')).toBeInTheDocument()
-    expect(screen.getByText('Interactions skipped')).toBeInTheDocument()
   })
 
   it('shows "Upload another file" button after success', async () => {
-    ;(useDatasetPreview as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-      isError: false,
-      data: mockPreviewResult,
-      error: null,
-    })
-    ;(useDatasetUpload as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-      isError: false,
-      data: mockUploadResult,
-      error: null,
-    })
-
-    render(<AdminDataPage />, { wrapper })
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-    const file = new File(['col1\tcol2'], 'huri.tab', { type: 'text/plain' })
-    fireEvent.change(fileInput, { target: { files: [file] } })
-    await waitFor(() => expect(screen.getByRole('button', { name: /next →/i })).not.toBeDisabled())
-    fireEvent.click(screen.getByRole('button', { name: /next →/i }))
-    await waitFor(() => expect(screen.getByText('Dataset name')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /preview →/i }))
-    await waitFor(() => expect(screen.getByText('Import →')).toBeInTheDocument())
+    await goToStep3()
     fireEvent.click(screen.getByRole('button', { name: /import →/i }))
 
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /upload another file/i })).toBeInTheDocument(),
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: /upload another file/i })).toBeInTheDocument(),
+      { timeout: 3000 },
     )
   })
 })

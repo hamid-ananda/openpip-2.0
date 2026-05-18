@@ -9,11 +9,12 @@ export interface InteractionCategory {
 
 export interface DatasetPreviewResult {
   dry_run: boolean
+  rows_sampled: number | null
   proteins_created: number
   proteins_existing: number
   interactions_created: number
   interactions_skipped: number
-  errors: string[]
+  errors: { row: number; reason: string }[]
 }
 
 export function useInteractionCategories() {
@@ -32,6 +33,17 @@ export function useDatasetPreview() {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         .then((r) => r.data),
+  })
+}
+
+export function useDatasetDelete() {
+  const queryClient = useQueryClient()
+  return useMutation<void, Error, number>({
+    mutationFn: (id) => apiClient.delete(`/datasets/${id}`).then(() => {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['datasets'] })
+      queryClient.invalidateQueries({ queryKey: ['counts'] })
+    },
   })
 }
 

@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCounts } from '../../api/counts'
 import { useDatasets } from '../../api/downloads'
 import {
   useInteractionCategories,
-  useDatasetPreview,
-  useDatasetUpload,
+  useDatasetDelete,
 } from '../../api/datasets'
 import type { DatasetPreviewResult } from '../../api/datasets'
+import { apiClient } from '../../api/client'
 
 // ─────────────────────────────────────────────────────────
 // Stat card
@@ -143,15 +144,6 @@ const INITIAL_STATE: WizardState = {
   datasetName: '',
   interactionStatus: 'published',
   categoryId: '',
-}
-
-function buildFormData(state: WizardState): FormData {
-  const fd = new FormData()
-  if (state.file) fd.append('file', state.file)
-  fd.append('dataset_name', state.datasetName)
-  fd.append('interaction_status', state.interactionStatus)
-  if (state.categoryId) fd.append('category_id', state.categoryId)
-  return fd
 }
 
 // ─────────────────────────────────────────────────────────
@@ -372,6 +364,82 @@ function Step2({ state, onChange, onBack, onNext }: Step2Props) {
 // Step 3 — dry-run preview
 // ─────────────────────────────────────────────────────────
 
+const PSIMI_COLS = [
+  { idx: 0,  label: 'Protein A' },
+  { idx: 1,  label: 'Protein B' },
+  { idx: 6,  label: 'Method' },
+  { idx: 8,  label: 'PubMed' },
+  { idx: 9,  label: 'Taxon A' },
+  { idx: 14, label: 'Score' },
+]
+
+interface FileSnippet { rows: string[][]; totalRows: number }
+
+function parseFileSnippet(file: File): Promise<FileSnippet> {
+  return file.text().then((text) => {
+    const dataLines = text.split('\n').filter((l) => l.trim() && !l.startsWith('#'))
+    return { rows: dataLines.slice(0, 5).map((l) => l.split('\t')), totalRows: dataLines.length }
+  })
+}
+
+const BATCH = 500
+
+async function runBatchedPreview(
+  file: File,
+  onProgress: (p: number) => void,
+  onDone: (r: DatasetPreviewResult) => void,
+  onError: (msg: string) => void,
+) {
+  try {
+    const text = await file.text()
+    const uniqueIds = new Set<string>()
+    let totalRows = 0
+
+    for (const line of text.split('\n')) {
+      const l = line.trim()
+      if (!l || l.startsWith('#')) continue
+      const cols = l.split('\t')
+      if (cols.length < 2) continue
+      const a = cols[0]?.trim(); const b = cols[1]?.trim()
+      if (!a || !b) continue
+      totalRows++
+      uniqueIds.add(a)
+      if (a !== b) uniqueIds.add(b)
+    }
+
+    const ids = Array.from(uniqueIds)
+    const batches: string[][] = []
+    for (let i = 0; i < ids.length; i += BATCH) batches.push(ids.slice(i, i + BATCH))
+    if (batches.length === 0) {
+      onDone({ dry_run: true, rows_sampled: null, proteins_created: 0, proteins_existing: 0, interactions_created: 0, interactions_skipped: 0, errors: [] })
+      return
+    }
+
+    let completed = 0
+    const counts = await Promise.all(
+      batches.map(async (batch) => {
+        const res = await apiClient.post<{ existing: number }>('/datasets/check-proteins', { identifiers: batch })
+        completed++
+        onProgress(Math.round((completed / batches.length) * 100))
+        return res.data.existing
+      })
+    )
+    const existingTotal = counts.reduce((s, n) => s + n, 0)
+
+    onDone({
+      dry_run: true,
+      rows_sampled: null,
+      proteins_created: ids.length - existingTotal,
+      proteins_existing: existingTotal,
+      interactions_created: totalRows,
+      interactions_skipped: 0,
+      errors: [],
+    })
+  } catch (e: unknown) {
+    onError(e instanceof Error ? e.message : 'Unknown error')
+  }
+}
+
 interface Step3Props {
   state: WizardState
   onBack: () => void
@@ -379,129 +447,124 @@ interface Step3Props {
 }
 
 function Step3({ state, onBack, onNext }: Step3Props) {
-  const preview = useDatasetPreview()
   const hasRun = useRef(false)
+  const [snippet, setSnippet] = useState<FileSnippet | null>(null)
+  const [progress, setProgress] = useState(0)
+  const [result, setResult] = useState<DatasetPreviewResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (state.file) parseFileSnippet(state.file).then(setSnippet)
     if (hasRun.current) return
     hasRun.current = true
-    preview.mutate(buildFormData(state))
+    if (!state.file) return
+    runBatchedPreview(state.file, setProgress, setResult, setError)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const result = preview.data
+  const isPending = !result && !error
 
   return (
     <div>
-      {preview.isPending && (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-          <div
-            aria-label="Loading preview"
-            style={{
-              width: 36,
-              height: 36,
-              border: '3px solid var(--border)',
-              borderTop: '3px solid var(--primary)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-              margin: '0 auto 12px',
-            }}
-          />
-          <div style={{ fontSize: 14 }}>Running dry-run preview…</div>
+      {/* File snippet — shown immediately from local parse */}
+      {snippet && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8, display: 'flex', gap: 10, alignItems: 'baseline' }}>
+            File contents
+            <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+              {snippet.totalRows.toLocaleString()} data rows · {state.file?.name}
+            </span>
+          </div>
+          <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--border)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--mono)' }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-2)' }}>
+                  {PSIMI_COLS.map((c) => (
+                    <th key={c.idx} style={{ padding: '7px 12px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
+                      {c.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {snippet.rows.map((row, ri) => (
+                  <tr key={ri} style={{ borderBottom: ri < snippet.rows.length - 1 ? '1px solid var(--border)' : undefined }}>
+                    {PSIMI_COLS.map((c) => {
+                      const val = row[c.idx] ?? '—'
+                      return (
+                        <td key={c.idx} title={val} style={{ padding: '6px 12px', color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                          {val.length > 30 ? val.slice(0, 30) + '…' : val || '—'}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {preview.isError && (
-        <div
-          style={{
-            background: 'rgba(241,87,66,.08)',
-            border: '1px solid var(--warn)',
-            borderRadius: 8,
-            padding: '16px 20px',
-            color: 'var(--warn)',
-            fontSize: 13,
-            marginBottom: 20,
-          }}
-        >
-          Preview failed: {preview.error?.message ?? 'Unknown error'}
+      {/* Progress bar — real batched progress */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            {error ? 'Analysis failed' : isPending ? 'Checking proteins against database…' : 'Analysis complete'}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>
+            {progress}%
+          </div>
+        </div>
+        <div style={{ height: 6, borderRadius: 99, background: 'var(--border)', overflow: 'hidden' }}>
+          <div
+            style={{
+              height: '100%',
+              width: `${error ? 100 : progress}%`,
+              borderRadius: 99,
+              background: error ? 'var(--warn)' : 'var(--primary)',
+              transition: 'width 0.15s ease-out',
+            }}
+          />
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ background: 'rgba(241,87,66,.08)', border: '1px solid var(--warn)', borderRadius: 8, padding: '16px 20px', color: 'var(--warn)', fontSize: 13, marginBottom: 20 }}>
+          Preview failed: {error}
         </div>
       )}
 
       {result && (
-        <div>
-          <div
-            className="op-card"
-            style={{ padding: '20px 24px', marginBottom: 16 }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
-              Preview results
+        <div className="op-card" style={{ padding: '20px 24px', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
+            Preview results
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)' }}>{result.proteins_created.toLocaleString()}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Proteins new</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)' }}>
-                  {result.proteins_created.toLocaleString()}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Proteins new</div>
-              </div>
-              <div>
-                <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)' }}>
-                  {result.proteins_existing.toLocaleString()}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Proteins existing</div>
-              </div>
-              <div>
-                <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--success)' }}>
-                  {result.interactions_created.toLocaleString()}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions new</div>
-              </div>
-              <div>
-                <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-muted)' }}>
-                  {result.interactions_skipped.toLocaleString()}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions skipped</div>
-              </div>
+            <div>
+              <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)' }}>{result.proteins_existing.toLocaleString()}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Proteins existing</div>
+            </div>
+            <div>
+              <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--success)' }}>{result.interactions_created.toLocaleString()}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions (total rows)</div>
+            </div>
+            <div>
+              <div className="op-num" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-muted)' }}>{result.interactions_skipped.toLocaleString()}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions skipped</div>
             </div>
           </div>
-
-          {result.errors.length > 0 && (
-            <div
-              style={{
-                background: 'rgba(245,158,11,.08)',
-                border: '1px solid var(--warn)',
-                borderRadius: 8,
-                padding: '14px 18px',
-                marginBottom: 16,
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--warn)', marginBottom: 8 }}>
-                {result.errors.length} warning{result.errors.length !== 1 ? 's' : ''} — you may still import
-              </div>
-              <div
-                style={{
-                  maxHeight: 140,
-                  overflowY: 'auto',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                }}
-              >
-                {result.errors.slice(0, 10).map((err, i) => (
-                  <div key={i} style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>
-                    {err}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>
-        <button className="op-btn" onClick={onBack} disabled={preview.isPending}>← Back</button>
+        <button className="op-btn" onClick={onBack} disabled={isPending}>← Back</button>
         <button
           className="op-btn primary"
           onClick={() => result && onNext(result)}
-          disabled={preview.isPending || preview.isError || !result}
+          disabled={isPending || !!error || !result}
         >
           Import →
         </button>
@@ -514,111 +577,173 @@ function Step3({ state, onBack, onNext }: Step3Props) {
 // Step 4 — final upload
 // ─────────────────────────────────────────────────────────
 
+const IMPORT_BATCH = 300
+
+interface ImportTotals {
+  proteins_created: number
+  interactions_created: number
+  interactions_skipped: number
+  errors: { row: number; reason: string }[]
+}
+
+async function runBatchedImport(
+  file: File,
+  meta: { dataset_name: string; interaction_status: string; category_id: string },
+  onProgress: (p: number, totals: ImportTotals) => void,
+  onDone: (totals: ImportTotals) => void,
+  onError: (msg: string) => void,
+) {
+  try {
+    const text = await file.text()
+    const dataLines = text.split('\n').filter((l) => l.trim() && !l.startsWith('#'))
+    const batches: string[][] = []
+    for (let i = 0; i < dataLines.length; i += IMPORT_BATCH)
+      batches.push(dataLines.slice(i, i + IMPORT_BATCH))
+    if (batches.length === 0) { onDone({ proteins_created: 0, interactions_created: 0, interactions_skipped: 0, errors: [] }); return }
+
+    const totals: ImportTotals = { proteins_created: 0, interactions_created: 0, interactions_skipped: 0, errors: [] }
+
+    for (let i = 0; i < batches.length; i++) {
+      const res = await apiClient.post<DatasetPreviewResult>('/datasets/upload-rows', {
+        lines: batches[i],
+        dataset_name: meta.dataset_name,
+        interaction_status: meta.interaction_status,
+        category_id: meta.category_id || null,
+        is_last_batch: i === batches.length - 1,
+      })
+      totals.proteins_created += res.data.proteins_created
+      totals.interactions_created += res.data.interactions_created
+      totals.interactions_skipped += res.data.interactions_skipped
+      if (res.data.errors?.length) totals.errors.push(...res.data.errors)
+      onProgress(Math.round(((i + 1) / batches.length) * 100), { ...totals })
+    }
+
+    onDone({ ...totals })
+  } catch (e: unknown) {
+    onError(e instanceof Error ? e.message : 'Unknown error')
+  }
+}
+
 interface Step4Props {
   state: WizardState
   onReset: () => void
 }
 
 function Step4({ state, onReset }: Step4Props) {
-  const upload = useDatasetUpload()
+  const queryClient = useQueryClient()
   const hasRun = useRef(false)
+  const [progress, setProgress] = useState(0)
+  const [totals, setTotals] = useState<ImportTotals>({ proteins_created: 0, interactions_created: 0, interactions_skipped: 0, errors: [] })
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (hasRun.current) return
     hasRun.current = true
-    upload.mutate(buildFormData(state))
+    if (!state.file) return
+    runBatchedImport(
+      state.file,
+      { dataset_name: state.datasetName, interaction_status: state.interactionStatus, category_id: state.categoryId },
+      (p, t) => { setProgress(p); setTotals(t) },
+      (t) => {
+        setTotals(t)
+        setDone(true)
+        queryClient.invalidateQueries({ queryKey: ['datasets'] })
+        queryClient.invalidateQueries({ queryKey: ['counts'] })
+      },
+      setError,
+    )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const result = upload.data
+  const isPending = !done && !error
 
   return (
     <div>
-      {upload.isPending && (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-          <div
-            aria-label="Uploading dataset"
-            style={{
-              width: 36,
-              height: 36,
-              border: '3px solid var(--border)',
-              borderTop: '3px solid var(--primary)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-              margin: '0 auto 12px',
-            }}
-          />
-          <div style={{ fontSize: 14 }}>Importing dataset…</div>
-        </div>
-      )}
-
-      {upload.isError && (
-        <div
-          style={{
-            background: 'rgba(241,87,66,.08)',
-            border: '1px solid var(--warn)',
-            borderRadius: 8,
-            padding: '16px 20px',
-            color: 'var(--warn)',
-            fontSize: 13,
-            marginBottom: 20,
-          }}
-        >
-          Import failed: {upload.error?.message ?? 'Unknown error'}
-        </div>
-      )}
-
-      {result && (
-        <div
-          className="op-card"
-          style={{ padding: '24px', textAlign: 'center', marginBottom: 24 }}
-        >
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              background: 'rgba(16,185,129,.12)',
-              color: 'var(--success)',
-              display: 'grid',
-              placeItems: 'center',
-              margin: '0 auto 14px',
-            }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
+      {/* Progress bar */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            {error ? 'Import failed' : done ? 'Import complete' : 'Importing dataset…'}
           </div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>
-            Dataset imported successfully
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>{progress}%</div>
+        </div>
+        <div style={{ height: 6, borderRadius: 99, background: 'var(--border)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            width: `${error ? 100 : progress}%`,
+            borderRadius: 99,
+            background: error ? 'var(--warn)' : done ? 'var(--success)' : 'var(--primary)',
+            transition: 'width 0.15s ease-out',
+          }} />
+        </div>
+      </div>
+
+      {/* Live running totals while importing */}
+      {isPending && (
+        <div className="op-card" style={{ padding: '16px 20px', marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <div>
+            <div className="op-num" style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>{totals.proteins_created.toLocaleString()}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Proteins so far</div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <div>
-              <div className="op-num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>
-                {result.proteins_created.toLocaleString()}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Proteins created</div>
-            </div>
-            <div>
-              <div className="op-num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--success)' }}>
-                {result.interactions_created.toLocaleString()}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions created</div>
-            </div>
-            <div>
-              <div className="op-num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-muted)' }}>
-                {result.interactions_skipped.toLocaleString()}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions skipped</div>
-            </div>
+          <div>
+            <div className="op-num" style={{ fontSize: 18, fontWeight: 600, color: 'var(--success)' }}>{totals.interactions_created.toLocaleString()}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Interactions so far</div>
+          </div>
+          <div>
+            <div className="op-num" style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-muted)' }}>{totals.interactions_skipped.toLocaleString()}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Skipped so far</div>
           </div>
         </div>
       )}
 
-      {(result || upload.isError) && (
+      {error && (
+        <div style={{ background: 'rgba(241,87,66,.08)', border: '1px solid var(--warn)', borderRadius: 8, padding: '16px 20px', color: 'var(--warn)', fontSize: 13, marginBottom: 20 }}>
+          Import failed: {error}
+        </div>
+      )}
+
+      {done && (
+        <div className="op-card" style={{ padding: '24px', marginBottom: 24 }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(16,185,129,.12)', color: 'var(--success)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>Dataset imported successfully</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div>
+                <div className="op-num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{totals.proteins_created.toLocaleString()}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Proteins created</div>
+              </div>
+              <div>
+                <div className="op-num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--success)' }}>{totals.interactions_created.toLocaleString()}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions created</div>
+              </div>
+              <div>
+                <div className="op-num" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-muted)' }}>{totals.interactions_skipped.toLocaleString()}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Interactions skipped</div>
+              </div>
+            </div>
+          </div>
+          {totals.errors.length > 0 && (
+            <div style={{ marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--warn)', marginBottom: 8 }}>
+                {totals.errors.length} row{totals.errors.length !== 1 ? 's' : ''} failed (first few shown):
+              </div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 140, overflowY: 'auto' }}>
+                {totals.errors.slice(0, 5).map((e, i) => (
+                  <div key={i}>row {e.row}: {e.reason}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(done || error) && (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <button className="op-btn" onClick={onReset}>
-            Upload another file
-          </button>
+          <button className="op-btn" onClick={onReset}>Upload another file</button>
         </div>
       )}
     </div>
@@ -628,6 +753,117 @@ function Step4({ state, onReset }: Step4Props) {
 // ─────────────────────────────────────────────────────────
 // Upload wizard orchestrator
 // ─────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────
+// Datasets table with delete
+// ─────────────────────────────────────────────────────────
+
+import type { DatasetRef } from '../../types/api'
+
+function DatasetTable({ datasets }: { datasets: DatasetRef[] }) {
+  const deleteMutation = useDatasetDelete()
+  const [confirmId, setConfirmId] = useState<number | null>(null)
+
+  function handleDelete(id: number) {
+    deleteMutation.mutate(id, { onSuccess: () => setConfirmId(null) })
+  }
+
+  return (
+    <div className="op-card" style={{ overflow: 'hidden' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 80px 160px 40px',
+          padding: '12px 20px',
+          background: 'var(--surface-2)',
+          borderBottom: '1px solid var(--border)',
+          fontSize: 11,
+          fontWeight: 500,
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '.06em',
+        }}
+      >
+        <div>Dataset</div>
+        <div>Year</div>
+        <div>Status</div>
+        <div />
+      </div>
+      {datasets.map((ds) => (
+        <div key={ds.id}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 80px 160px 40px',
+              padding: '12px 20px',
+              borderBottom: confirmId === ds.id ? 'none' : '1px solid var(--border)',
+              alignItems: 'center',
+              fontSize: 13,
+            }}
+          >
+            <div>
+              <span className="op-num" style={{ fontWeight: 500, color: 'var(--text)', marginRight: 8 }}>
+                {ds.name}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ds.description}</span>
+            </div>
+            <div className="op-num" style={{ color: 'var(--text-muted)', fontSize: 13 }}>{ds.year ?? '—'}</div>
+            <div><span className="op-chip" style={{ fontSize: 10 }}>{ds.interaction_status}</span></div>
+            <div>
+              <button
+                onClick={() => setConfirmId(confirmId === ds.id ? null : ds.id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', lineHeight: 0 }}
+                title="Delete dataset"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4h6v2" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {confirmId === ds.id && (
+            <div
+              style={{
+                padding: '12px 20px',
+                borderBottom: '1px solid var(--border)',
+                background: 'rgba(241,87,66,.05)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                fontSize: 13,
+              }}
+            >
+              <span style={{ color: 'var(--warn)', flex: 1 }}>
+                Delete <strong>{ds.name}</strong>? This will also remove interactions that belong only to this dataset.
+              </span>
+              <button
+                className="op-btn"
+                onClick={() => setConfirmId(null)}
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                className="op-btn"
+                style={{ background: 'var(--warn)', color: '#fff', borderColor: 'var(--warn)' }}
+                onClick={() => handleDelete(ds.id)}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+      {datasets.length === 0 && (
+        <div style={{ padding: '24px 20px', color: 'var(--text-muted)', fontSize: 13 }}>No datasets yet.</div>
+      )}
+    </div>
+  )
+}
 
 function UploadWizard() {
   const [step, setStep] = useState(1)
@@ -767,57 +1003,7 @@ export function AdminDataPage() {
           {isLoading ? (
             <div style={{ color: 'var(--text-muted)', fontSize: 14, padding: '16px 0' }}>Loading…</div>
           ) : (
-            <div className="op-card" style={{ overflow: 'hidden' }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 100px 180px',
-                  padding: '12px 20px',
-                  background: 'var(--surface-2)',
-                  borderBottom: '1px solid var(--border)',
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '.06em',
-                }}
-              >
-                <div>Dataset</div>
-                <div>Year</div>
-                <div>Status</div>
-              </div>
-              {datasets?.map((ds) => (
-                <div
-                  key={ds.dataset_reference}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 100px 180px',
-                    padding: '12px 20px',
-                    borderBottom: '1px solid var(--border)',
-                    alignItems: 'center',
-                    fontSize: 13,
-                  }}
-                >
-                  <div>
-                    <span
-                      className="op-num"
-                      style={{ fontWeight: 500, color: 'var(--text)', marginRight: 8 }}
-                    >
-                      {ds.name}
-                    </span>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ds.description}</span>
-                  </div>
-                  <div className="op-num" style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                    {ds.year ?? '—'}
-                  </div>
-                  <div>
-                    <span className="op-chip" style={{ fontSize: 10 }}>
-                      {ds.interaction_status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DatasetTable datasets={datasets ?? []} />
           )}
         </div>
 

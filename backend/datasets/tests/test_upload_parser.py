@@ -139,6 +139,7 @@ def test_score_missing_dash_stays_none():
 
 @pytest.mark.django_db
 def test_dataset_created_and_linked():
+    # Dataset is now created by the admin-supplied name, not extracted from PSI-MI cols 7/8.
     content = _file(
         _build_row(author="Rolland et al. (2014)", pub_id="pubmed:25416956")
     )
@@ -146,9 +147,7 @@ def test_dataset_created_and_linked():
 
     from datasets.models import Dataset
 
-    ds = Dataset.objects.get(pubmed_id="25416956")
-    assert ds.name == "HuRI"
-    assert ds.author == "Rolland et al. (2014)"
+    ds = Dataset.objects.get(name="HuRI")
     assert ds.interaction_status == "published"
 
     ix = Interaction.objects.get()

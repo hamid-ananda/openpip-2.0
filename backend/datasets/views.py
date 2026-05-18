@@ -1,20 +1,38 @@
 import csv
 import io
+import logging
 import os
 import tempfile
+import time
 import zipfile
 
+from django.db.models import Count, OuterRef, Subquery
 from django.http import FileResponse, Http404, StreamingHttpResponse
-from rest_framework.parsers import MultiPartParser
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from interactions.models import InteractionDataset
+from interactions.models import Interaction, InteractionDataset
+from proteins.models import Identifier
 from .models import Dataset
 from .serializers import DatasetSerializer
-from .upload_parser import parse_and_ingest
+from .upload_parser import parse_and_ingest, fast_preview, process_line_batch
+
+logger = logging.getLogger(__name__)
+
+
+def _refresh_dataset_counts() -> None:
+    """Update number_of_interactions for all datasets from InteractionDataset records."""
+    Dataset.objects.update(
+        number_of_interactions=Subquery(
+            InteractionDataset.objects.filter(dataset_id=OuterRef("pk"))
+            .values("dataset_id")
+            .annotate(c=Count("id"))
+            .values("c")
+        )
+    )
 
 
 class DatasetListView(APIView):
@@ -152,6 +170,32 @@ class UploadView(APIView):
         return Response(result)
 
 
+class ProteinCheckView(APIView):
+    """Batch lookup: given a list of raw PSI-MI identifiers, return how many exist in the DB."""
+
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        raw_ids = request.data.get("identifiers", [])
+        if not isinstance(raw_ids, list) or not raw_ids:
+            return Response({"existing": 0})
+
+        clean_ids = [
+            (r.split(":", 1)[1].strip() if ":" in r else r.strip()) for r in raw_ids
+        ]
+        t0 = time.monotonic()
+        existing = Identifier.objects.filter(identifier__in=clean_ids).count()
+        elapsed = (time.monotonic() - t0) * 1000
+        logger.debug(
+            "check-proteins: %d queried → %d existing, %d new  (%.1f ms)",
+            len(clean_ids),
+            existing,
+            len(clean_ids) - existing,
+            elapsed,
+        )
+        return Response({"existing": existing})
+
+
 class DatasetPreviewView(APIView):
     """Dry-run parse: returns counts without writing anything to the database."""
 
@@ -164,24 +208,14 @@ class DatasetPreviewView(APIView):
             return Response(
                 {"detail": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
             )
-        dataset_name = request.data.get("dataset_name", "").strip()
-        if not dataset_name:
+        if not request.data.get("dataset_name", "").strip():
             return Response(
                 {"detail": "dataset_name is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        interaction_status = request.data.get("interaction_status", "published")
-        category_id_raw = request.data.get("category_id")
-        category_id = int(category_id_raw) if category_id_raw else None
 
         file_bytes = uploaded_file.read()
-        result = parse_and_ingest(
-            file_bytes,
-            dataset_name=dataset_name,
-            interaction_status=interaction_status,
-            category_id=category_id,
-            dry_run=True,
-        )
+        result = fast_preview(file_bytes)
         return Response(result, status=status.HTTP_200_OK)
 
 
@@ -215,4 +249,100 @@ class DatasetUploadView(APIView):
             category_id=category_id,
             dry_run=False,
         )
+        _refresh_dataset_counts()
+        logger.debug("upload complete — refreshed dataset interaction counts")
         return Response(result, status=status.HTTP_201_CREATED)
+
+
+class DatasetUploadRowsView(APIView):
+    """Batched ingest: accepts pre-parsed TSV lines as JSON for progress-bar imports."""
+
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        lines = request.data.get("lines", [])
+        dataset_name = request.data.get("dataset_name", "").strip()
+        if not dataset_name:
+            return Response(
+                {"detail": "dataset_name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(lines, list) or not lines:
+            return Response(
+                {"detail": "lines must be a non-empty list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        interaction_status = request.data.get("interaction_status", "published")
+        category_id_raw = request.data.get("category_id")
+        category_id = int(category_id_raw) if category_id_raw else None
+        is_last_batch = bool(request.data.get("is_last_batch", False))
+
+        t0 = time.monotonic()
+        result = process_line_batch(
+            lines, dataset_name, interaction_status, category_id
+        )
+        elapsed = (time.monotonic() - t0) * 1000
+
+        logger.debug(
+            "upload-rows: %d lines → %d interactions created, %d skipped, %d errors  (%.0f ms)%s",
+            len(lines),
+            result["interactions_created"],
+            result["interactions_skipped"],
+            len(result["errors"]),
+            elapsed,
+            "  [last batch — refreshing counts]" if is_last_batch else "",
+        )
+        if result["errors"]:
+            logger.warning(
+                "upload-rows first error (row %d): %s",
+                result["errors"][0]["row"],
+                result["errors"][0]["reason"],
+            )
+
+        if is_last_batch:
+            _refresh_dataset_counts()
+
+        return Response(result, status=status.HTTP_201_CREATED)
+
+
+class DatasetDeleteView(APIView):
+    """Delete a dataset and remove any interactions that are no longer linked to any dataset."""
+
+    permission_classes = [IsAdminUser]
+
+    def delete(self, request, pk):
+        from django.db import transaction as db_transaction
+
+        dataset = Dataset.objects.filter(pk=pk).first()
+        if not dataset:
+            raise Http404
+
+        with db_transaction.atomic():
+            # Collect interaction IDs linked only to this dataset before deleting
+            orphan_ids = list(
+                InteractionDataset.objects.filter(dataset_id=pk)
+                .values_list("interaction_id", flat=True)
+                .difference(
+                    InteractionDataset.objects.filter(dataset_id=pk)
+                    .values("interaction_id")
+                    .filter(
+                        interaction_id__in=InteractionDataset.objects.exclude(
+                            dataset_id=pk
+                        ).values("interaction_id")
+                    )
+                )
+            )
+            dataset.delete()  # cascades InteractionDataset rows
+            orphaned_deleted = Interaction.objects.filter(pk__in=orphan_ids).delete()[0]
+            _refresh_dataset_counts()
+
+        logger.debug(
+            "dataset %d deleted — %d orphaned interactions removed",
+            pk,
+            orphaned_deleted,
+        )
+        return Response(
+            {"orphaned_interactions_deleted": orphaned_deleted},
+            status=status.HTTP_200_OK,
+        )

@@ -254,6 +254,87 @@ def _handle_support_info(interaction: Interaction, support_col: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+def process_line_batch(
+    lines: list[str],
+    dataset_name: str,
+    interaction_status: str = "published",
+    category_id: int | None = None,
+) -> dict:
+    """
+    Ingest a pre-parsed batch of raw TSV data lines (no header).
+    Reuses parse_and_ingest by prepending a '#' header so the
+    row-0 skip logic works correctly.
+    Each batch is committed atomically; batches are not atomic to each other.
+    """
+    file_bytes = ("#\n" + "\n".join(lines)).encode("utf-8")
+    return parse_and_ingest(
+        file_bytes,
+        dataset_name=dataset_name,
+        interaction_status=interaction_status,
+        category_id=category_id,
+        dry_run=False,
+    )
+
+
+def fast_preview(file_bytes: bytes) -> dict:
+    """
+    Cheap preview: parse the file without writing anything to the database.
+    Collects all unique protein identifiers, then does two bulk DB queries
+    (existing / new) instead of one query per row.
+
+    Returns the same shape as parse_and_ingest so the frontend type is shared.
+    interactions_skipped is 0 (full dedup requires DB writes; not worth it for preview).
+    """
+    text = file_bytes.decode("utf-8", errors="replace")
+    reader = csv.reader(io.StringIO(text), delimiter="\t")
+
+    seen_pairs: set[tuple[str, str]] = set()
+    all_raw_ids: list[str] = []
+    total_rows = 0
+    errors: list[dict] = []
+
+    for row_num, row in enumerate(reader):
+        if row_num == 0 or (row and row[0].startswith("#")):
+            continue
+        if not row or len(row) < 2:
+            continue
+
+        raw_a = _safe_col(row, 0)
+        raw_b = _safe_col(row, 1)
+        if not raw_a or not raw_b:
+            continue
+
+        total_rows += 1
+        key = (min(raw_a, raw_b), max(raw_a, raw_b))
+        if key not in seen_pairs:
+            seen_pairs.add(key)
+            all_raw_ids.append(raw_a)
+            if raw_a != raw_b:
+                all_raw_ids.append(raw_b)
+
+    unique_ids = {_strip_prefix(r).lower() for r in all_raw_ids}
+
+    existing_lower = set(
+        Identifier.objects.filter(identifier__in=list(unique_ids)).values_list(
+            "identifier", flat=True
+        )
+    )
+    existing_lower = {v.lower() for v in existing_lower}
+
+    proteins_existing = sum(1 for uid in unique_ids if uid in existing_lower)
+    proteins_created = len(unique_ids) - proteins_existing
+
+    return {
+        "dry_run": True,
+        "rows_sampled": None,
+        "proteins_created": proteins_created,
+        "proteins_existing": proteins_existing,
+        "interactions_created": total_rows,
+        "interactions_skipped": 0,
+        "errors": errors,
+    }
+
+
 def parse_and_ingest(
     file_bytes: bytes,
     dataset_name: str,
@@ -266,12 +347,14 @@ def parse_and_ingest(
 
     In dry_run mode the entire operation is wrapped in an atomic block that
     is explicitly rolled back before returning — so counts are accurate but
-    nothing is written to the database.
+    nothing is written to the database. Dry-run is capped at _DRY_RUN_MAX_ROWS
+    data rows to keep preview fast; rows_sampled in the response reflects this.
 
     Returns::
 
         {
             "dry_run": bool,
+            "rows_sampled": int | None,   # None means full file was processed
             "proteins_created": int,
             "proteins_existing": int,
             "interactions_created": int,
@@ -288,9 +371,17 @@ def parse_and_ingest(
     text = file_bytes.decode("utf-8", errors="replace")
     reader = csv.reader(io.StringIO(text), delimiter="\t")
 
-    def _run(savepoint: bool) -> None:
+    def _run() -> None:
         nonlocal proteins_created, proteins_existing, interactions_created
         nonlocal interactions_skipped
+
+        # Create/find the dataset by name once — not per-row via pubmed_id
+        named_dataset = None
+        if dataset_name:
+            named_dataset, _ = Dataset.objects.get_or_create(
+                name=dataset_name,
+                defaults={"interaction_status": interaction_status},
+            )
 
         for row_num, row in enumerate(reader):
             # Skip header row (row 0 or first row where col 0 starts with #)
@@ -306,6 +397,7 @@ def parse_and_ingest(
             if not raw_a or not raw_b:
                 continue
 
+            sid = transaction.savepoint()
             try:
                 # ── Proteins ────────────────────────────────────────────────
                 existing_a = Identifier.objects.filter(
@@ -341,6 +433,7 @@ def parse_and_ingest(
 
                 # ── Dedup ──────────────────────────────────────────────────
                 if not _is_new_interaction(protein_a, protein_b):
+                    transaction.savepoint_commit(sid)
                     interactions_skipped += 1
                     continue
 
@@ -348,7 +441,9 @@ def parse_and_ingest(
                 score_raw = _safe_col(row, 14)
                 score = None
                 if score_raw and score_raw != "-":
-                    score = _strip_prefix(score_raw)
+                    first = score_raw.split("|")[0].strip()
+                    raw_score = _strip_prefix(first)
+                    score = raw_score[:10] if raw_score else None
 
                 # ── Create Interaction ─────────────────────────────────────
                 interaction = Interaction.objects.create(
@@ -359,14 +454,11 @@ def parse_and_ingest(
                 )
                 interactions_created += 1
 
-                # ── Dataset (cols 7+8) ─────────────────────────────────────
-                _handle_dataset(
-                    interaction,
-                    _safe_col(row, 7),
-                    _safe_col(row, 8),
-                    dataset_name,
-                    interaction_status,
-                )
+                # ── Dataset ────────────────────────────────────────────────
+                if named_dataset:
+                    InteractionDataset.objects.get_or_create(
+                        interaction=interaction, dataset=named_dataset
+                    )
 
                 # ── Detection method (col 6) ───────────────────────────────
                 _handle_detection_method(interaction, _safe_col(row, 6))
@@ -386,17 +478,21 @@ def parse_and_ingest(
                         interaction_category_id=category_id,
                     )
 
+                transaction.savepoint_commit(sid)
+
             except Exception as exc:  # noqa: BLE001
+                transaction.savepoint_rollback(sid)
                 if len(errors) < _MAX_ERRORS:
                     errors.append({"row": row_num, "reason": str(exc)})
 
     with transaction.atomic():
-        _run(savepoint=False)
+        _run()
         if dry_run:
             transaction.set_rollback(True)
 
     return {
         "dry_run": dry_run,
+        "rows_sampled": None,
         "proteins_created": proteins_created,
         "proteins_existing": proteins_existing,
         "interactions_created": interactions_created,

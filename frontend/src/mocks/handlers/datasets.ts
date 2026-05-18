@@ -9,6 +9,7 @@ const categoriesFixture: InteractionCategory[] = [
 
 const previewFixture: DatasetPreviewResult = {
   dry_run: true,
+  rows_sampled: null,
   proteins_created: 10,
   proteins_existing: 5,
   interactions_created: 20,
@@ -18,6 +19,7 @@ const previewFixture: DatasetPreviewResult = {
 
 const uploadFixture: DatasetPreviewResult = {
   dry_run: false,
+  rows_sampled: null,
   proteins_created: 10,
   proteins_existing: 5,
   interactions_created: 20,
@@ -29,4 +31,7 @@ export const datasetHandlers = [
   http.get('/api/interactions/categories', () => HttpResponse.json(categoriesFixture)),
   http.post('/api/datasets/preview', () => HttpResponse.json(previewFixture)),
   http.post('/api/datasets/upload', () => HttpResponse.json(uploadFixture, { status: 201 })),
+  http.post('/api/datasets/check-proteins', () => HttpResponse.json({ existing: 5 })),
+  http.post('/api/datasets/upload-rows', () => HttpResponse.json(uploadFixture, { status: 201 })),
+  http.delete('/api/datasets/:id', () => new HttpResponse(null, { status: 204 })),
 ]
