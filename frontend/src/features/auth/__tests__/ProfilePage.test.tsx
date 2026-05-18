@@ -29,17 +29,17 @@ beforeEach(() => {
 })
 
 describe('ProfilePage', () => {
-  it('shows "not logged in" when isLoggedIn is false', () => {
-    useAuthStore.setState({ isLoggedIn: false, isAdmin: false, token: null })
+  it('shows loading state while profile is fetching', () => {
+    useAuthStore.setState({ isLoggedIn: true, isAdmin: false, token: 'mock-token' })
 
     vi.mocked(useProfile).mockReturnValue({
       data: undefined,
-      isLoading: false,
+      isLoading: true,
     } as unknown as ReturnType<typeof useProfile>)
 
     render(<ProfilePage />, { wrapper })
 
-    expect(screen.getByText(/you are not logged in/i)).toBeInTheDocument()
+    expect(screen.getByText(/loading profile/i)).toBeInTheDocument()
   })
 
   it('shows username when profile loads', () => {

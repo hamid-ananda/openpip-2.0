@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useRegister } from '../../api/auth'
+import { useAuthStore } from '../../store/authStore'
 
 const BENEFITS = [
   {
@@ -48,9 +49,12 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export function RegisterPage() {
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const { mutate: register, isPending, isSuccess, error } = useRegister()
   const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '' })
   const [localError, setLocalError] = useState('')
+
+  if (isLoggedIn) return <Navigate to="/" replace />
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, Navigate } from 'react-router-dom'
 import { useLogin } from '../../api/auth'
+import { useAuthStore } from '../../store/authStore'
 
 /* Static network preview for the gradient panel */
 const LOGIN_NODES = [
@@ -64,9 +65,12 @@ function LoginNetworkSVG() {
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const { mutate: login, isPending, error } = useLogin()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+
+  if (isLoggedIn) return <Navigate to="/" replace />
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

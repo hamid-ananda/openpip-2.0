@@ -1,6 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useProfile, useLogout } from '../../api/auth'
-import { useAuthStore } from '../../store/authStore'
 import { Settings, Megaphone, Database, Folder } from 'lucide-react'
 
 const ADMIN_LINKS = [
@@ -11,34 +10,9 @@ const ADMIN_LINKS = [
 ]
 
 export function ProfilePage() {
-  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
-  const isAdmin = useAuthStore((s) => s.isAdmin)
   const navigate = useNavigate()
   const { data: profile, isLoading } = useProfile()
   const { mutate: logout, isPending } = useLogout()
-
-  if (!isLoggedIn) {
-    return (
-      <div
-        style={{
-          minHeight: 'calc(100vh - 56px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg)',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 16, fontSize: 14 }}>
-            You are not logged in.
-          </p>
-          <Link to="/login" className="op-btn primary">
-            Sign in
-          </Link>
-        </div>
-      </div>
-    )
-  }
 
   if (isLoading) {
     return (
@@ -119,7 +93,7 @@ export function ProfilePage() {
         </div>
 
         {/* Admin Settings section */}
-        {isAdmin && (
+        {profile?.is_admin && (
           <div className="op-card" style={{ padding: 28, marginBottom: 20 }}>
             <div
               style={{

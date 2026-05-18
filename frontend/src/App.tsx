@@ -9,6 +9,7 @@ import { AdminAnnouncementPage } from './features/admin/AdminAnnouncementPage'
 import { AdminDataPage } from './features/admin/AdminDataPage'
 import { AdminFilePage } from './features/admin/AdminFilePage'
 import { AdminRoute } from './features/admin/AdminRoute'
+import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { ProfilePage } from './features/auth/ProfilePage'
@@ -41,7 +42,7 @@ const router = createBrowserRouter([
       { path: 'documentation', element: <DocumentationPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
-      { path: 'profile', element: <ProfilePage /> },
+      { path: 'profile', element: <ProtectedRoute><ProfilePage /></ProtectedRoute> },
       {
         path: 'admin/settings',
         element: <AdminRoute><AdminSettingsPage /></AdminRoute>,

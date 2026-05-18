@@ -9,6 +9,9 @@ export const authHandlers = [
     return HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 })
   }),
   http.post('/api/auth/logout', () => HttpResponse.json({ detail: 'Logged out' })),
+  http.post('/api/auth/token/refresh', () =>
+    HttpResponse.json({ access: 'mock-access-token', refresh: 'mock-refresh-token' })
+  ),
 
   http.post('/api/auth/register', async ({ request }) => {
     const body = (await request.json()) as { username: string; email: string; password: string }

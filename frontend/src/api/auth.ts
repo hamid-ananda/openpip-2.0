@@ -7,15 +7,16 @@ export function useLogin() {
   return useMutation({
     mutationFn: (body: { username: string; password: string }) =>
       apiClient.post('/auth/login', body).then((r) => r.data),
-    onSuccess: (data) => login(data.access, data.is_admin),
+    onSuccess: (data) => login(data.access, data.refresh, data.is_admin),
   })
 }
 
 export function useLogout() {
-  const logout = useAuthStore((s) => s.logout)
+  const { logout, refreshToken } = useAuthStore()
   return useMutation({
-    mutationFn: () => apiClient.post('/auth/logout').then((r) => r.data),
-    onSuccess: () => logout(),
+    mutationFn: () =>
+      apiClient.post('/auth/logout', { refresh: refreshToken }).then((r) => r.data),
+    onSettled: () => logout(),
   })
 }
 

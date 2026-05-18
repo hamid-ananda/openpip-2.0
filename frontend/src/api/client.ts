@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '../store/authStore'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
@@ -9,3 +10,57 @@ apiClient.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
+
+// Queue of callbacks waiting for a token refresh to complete
+let isRefreshing = false
+let refreshQueue: ((token: string) => void)[] = []
+
+function drainQueue(newToken: string) {
+  refreshQueue.forEach((cb) => cb(newToken))
+  refreshQueue = []
+}
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config
+
+    if (error.response?.status !== 401 || original._retry) {
+      return Promise.reject(error)
+    }
+
+    const refreshToken = localStorage.getItem('openpip_refresh_token')
+    if (!refreshToken) {
+      useAuthStore.getState().logout()
+      return Promise.reject(error)
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve) => {
+        refreshQueue.push((token) => {
+          original.headers.Authorization = `Bearer ${token}`
+          resolve(apiClient(original))
+        })
+      })
+    }
+
+    original._retry = true
+    isRefreshing = true
+
+    try {
+      const { data } = await axios.post(`${BASE_URL}/auth/token/refresh`, {
+        refresh: refreshToken,
+      })
+      const { access, refresh } = data
+      useAuthStore.getState().setTokens(access, refresh)
+      original.headers.Authorization = `Bearer ${access}`
+      drainQueue(access)
+      return apiClient(original)
+    } catch {
+      useAuthStore.getState().logout()
+      return Promise.reject(error)
+    } finally {
+      isRefreshing = false
+    }
+  }
+)
