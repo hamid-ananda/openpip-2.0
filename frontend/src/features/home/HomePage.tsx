@@ -5,6 +5,7 @@ import { useCounts } from '../../api/counts'
 import { useAnnouncements } from '../../api/announcements'
 import { HeroSection } from './HeroSection'
 import { AnnouncementsList } from './AnnouncementsList'
+import { MiniNetworkGraph } from './MiniNetworkGraph'
 
 const ACTION_CARDS = [
   {
@@ -104,6 +105,16 @@ export function HomePage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Live network preview */}
+      <section style={{ padding: '0 80px 80px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div className="op-card" style={{ padding: 28 }}>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <MiniNetworkGraph />
           </div>
         </div>
       </section>

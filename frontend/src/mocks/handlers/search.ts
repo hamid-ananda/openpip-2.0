@@ -2,6 +2,8 @@ import { http, HttpResponse } from 'msw'
 import { searchFixture, emptySearchFixture, autocompleteFixture } from '../fixtures/search'
 
 export const searchHandlers = [
+  http.get('/api/home/network', () => HttpResponse.json(searchFixture)),
+
   http.get('/api/search', ({ request }) => {
     const url = new URL(request.url)
     const q = url.searchParams.get('q') ?? ''

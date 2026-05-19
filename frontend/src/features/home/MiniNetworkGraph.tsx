@@ -1,89 +1,96 @@
-import { useMemo, useState } from 'react'
-import CytoscapeComponent from 'react-cytoscapejs'
-import cytoscape from 'cytoscape'
-import cola from 'cytoscape-cola'
-import type { ElementDefinition, StylesheetJsonBlock } from 'cytoscape'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '../../api/client'
+import { CytoscapeNetwork } from '../search/network/CytoscapeNetwork'
+import type { SearchResult } from '../../types/search'
 
-cytoscape.use(cola)
-
-interface MiniNetworkGraphProps {
-  proteins: string[]
+function useHomeNetwork(refreshKey: number) {
+  return useQuery<SearchResult>({
+    queryKey: ['home-network', refreshKey],
+    queryFn: () => apiClient.get('/home/network').then((r) => r.data),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  })
 }
 
-function shuffleSlice(proteins: string[], seed: number): string[] {
-  // deterministic-ish shuffle keyed on seed so it changes on Refresh
-  const arr = [...proteins]
-  let s = seed + 1
-  for (let i = arr.length - 1; i > 0; i--) {
-    s = (s * 1664525 + 1013904223) & 0xffffffff
-    const j = Math.abs(s) % (i + 1)
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-  }
-  return arr.slice(0, 8)
-}
+export function MiniNetworkGraph() {
+  const [refreshKey, setRefreshKey] = useState(0)
+  const { data, isLoading } = useHomeNetwork(refreshKey)
 
-function buildElements(proteins: string[]): ElementDefinition[] {
-  const nodes: ElementDefinition[] = proteins.map((name, i) => ({
-    data: { id: `n${i}`, label: name },
-  }))
-  const edges: ElementDefinition[] = proteins.slice(0, -1).map((_, i) => ({
-    data: { id: `e${i}`, source: `n${i}`, target: `n${i + 1}` },
-  }))
-  return [...nodes, ...edges]
-}
-
-const STYLESHEET: StylesheetJsonBlock[] = [
-  {
-    selector: 'node',
-    style: {
-      label: 'data(label)',
-      'background-color': 'var(--color-interactor-node)',
-      color: '#ffffff',
-      'text-outline-width': 1,
-      'font-size': 10,
-      width: 40,
-      height: 40,
-    },
-  },
-  {
-    selector: 'edge',
-    style: { 'line-color': '#cccccc', width: 2 },
-  },
-]
-
-export function MiniNetworkGraph({ proteins }: MiniNetworkGraphProps) {
-  const [seed, setSeed] = useState(0)
-  const elements = useMemo(
-    () => buildElements(shuffleSlice(proteins, seed)),
-    [proteins, seed]
-  )
+  const proteins = data?.all_proteins ?? []
+  const interactions = data?.all_interactions ?? []
+  const queryIds = data?.query_protein_id_array ?? []
+  const queryGene = proteins.find((p) => queryIds.includes(p.protein_id))?.protein_gene_name ?? ''
 
   return (
     <div>
-      <p
-        className="text-xs font-medium uppercase tracking-widest mb-2"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        Example network
-      </p>
-      <div
-        className="relative rounded-xl overflow-hidden"
-        style={{ border: '1px solid var(--border)' }}
-      >
-        <CytoscapeComponent
-          key={seed}
-          elements={elements}
-          stylesheet={STYLESHEET}
-          layout={{ name: 'cola' } as Parameters<typeof CytoscapeComponent>[0]['layout']}
-          style={{ width: '100%', height: 320 }}
-        />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '.08em',
+            }}
+          >
+            Example network
+          </span>
+          {queryGene && (
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>
+              — {queryGene} neighborhood
+            </span>
+          )}
+        </div>
         <button
-          onClick={() => setSeed((s) => s + 1)}
-          className="absolute top-2.5 right-2.5 text-xs px-2.5 py-1 rounded-lg bg-white font-medium"
-          style={{ border: '1px solid var(--border)', color: 'var(--color-main)' }}
+          onClick={() => setRefreshKey((k) => k + 1)}
+          className="op-btn"
+          style={{ fontSize: 12, padding: '4px 12px' }}
+          disabled={isLoading}
         >
-          Refresh
+          {isLoading ? 'Loading…' : 'Refresh'}
         </button>
+      </div>
+
+      <div
+        style={{
+          borderRadius: 10,
+          overflow: 'hidden',
+          border: '1px solid var(--border)',
+          background: 'var(--surface)',
+          height: 320,
+          position: 'relative',
+        }}
+      >
+        {isLoading && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', flexDirection: 'column', gap: 12, zIndex: 10,
+            background: 'var(--surface)',
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              border: '2px solid var(--border)', borderTopColor: 'var(--primary)',
+              animation: 'spin .8s linear infinite',
+            }} />
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading network…</span>
+          </div>
+        )}
+        {!isLoading && proteins.length > 0 && (
+          <CytoscapeNetwork
+            proteins={proteins}
+            interactions={interactions}
+            queryProteinIds={queryIds}
+            layout="cola"
+            height={320}
+          />
+        )}
+        {!isLoading && proteins.length === 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 13 }}>
+            No network data available.
+          </div>
+        )}
       </div>
     </div>
   )
