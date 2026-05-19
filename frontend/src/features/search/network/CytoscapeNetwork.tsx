@@ -57,7 +57,7 @@ export function CytoscapeNetwork({
     validated:  settings?.validatedEdgeColor  ?? '#1155cc',
     verified:   settings?.verifiedEdgeColor   ?? '#cc0000',
     literature: settings?.literatureEdgeColor ?? '#0ea5e9',
-  }), [settings])
+  }), [settings?.publishedEdgeColor, settings?.validatedEdgeColor, settings?.verifiedEdgeColor, settings?.literatureEdgeColor])
 
   const stylesheet = useMemo(
     () => buildStylesheet(
@@ -78,6 +78,14 @@ export function CytoscapeNetwork({
     if (!cy) return
     cy.layout({ name: layout } as LayoutOptions).run()
   }, [layout])
+
+  // Explicitly push new styles when colors change. react-cytoscapejs's prop-diff
+  // approach is unreliable for stylesheet updates on an existing instance.
+  useEffect(() => {
+    const cy = cyRef.current
+    if (!cy || typeof cy.style !== 'function') return
+    cy.style(stylesheet)
+  }, [stylesheet])
 
   // Bind tap and hover event handlers. Re-bind whenever proteins/interactions
   // or the click callbacks change so the closures stay fresh.
