@@ -35,6 +35,11 @@ interface TooltipState {
   label: string
 }
 
+// Stylesheet is static — node colors live in data(nodeColor), edge colors in data(color).
+// Both are baked into element data by buildElements() so they update automatically
+// when the palette changes, with no stylesheet hot-swap needed.
+const STYLESHEET = buildStylesheet()
+
 export function CytoscapeNetwork({
   proteins,
   interactions,
@@ -53,19 +58,20 @@ export function CytoscapeNetwork({
   const { data: settings } = useSettings()
 
   const palette = useMemo(() => ({
-    published:  settings?.publishedEdgeColor  ?? '#38761d',
-    validated:  settings?.validatedEdgeColor  ?? '#1155cc',
-    verified:   settings?.verifiedEdgeColor   ?? '#cc0000',
-    literature: settings?.literatureEdgeColor ?? '#0ea5e9',
-  }), [settings?.publishedEdgeColor, settings?.validatedEdgeColor, settings?.verifiedEdgeColor, settings?.literatureEdgeColor])
-
-  const stylesheet = useMemo(
-    () => buildStylesheet(
-      settings?.queryNodeColor      ?? '#e11d48',
-      settings?.interactorNodeColor ?? '#2563eb',
-    ),
-    [settings?.queryNodeColor, settings?.interactorNodeColor]
-  )
+    queryNode:    settings?.queryNodeColor      ?? '#e11d48',
+    interactorNode: settings?.interactorNodeColor ?? '#2563eb',
+    published:    settings?.publishedEdgeColor  ?? '#38761d',
+    validated:    settings?.validatedEdgeColor  ?? '#1155cc',
+    verified:     settings?.verifiedEdgeColor   ?? '#cc0000',
+    literature:   settings?.literatureEdgeColor ?? '#0ea5e9',
+  }), [
+    settings?.queryNodeColor,
+    settings?.interactorNodeColor,
+    settings?.publishedEdgeColor,
+    settings?.validatedEdgeColor,
+    settings?.verifiedEdgeColor,
+    settings?.literatureEdgeColor,
+  ])
 
   const elements = useMemo(
     () => buildElements(proteins, interactions, queryProteinIds, palette),
@@ -78,14 +84,6 @@ export function CytoscapeNetwork({
     if (!cy) return
     cy.layout({ name: layout } as LayoutOptions).run()
   }, [layout])
-
-  // Explicitly push new styles when colors change.
-  // cy.style(arr) is the GETTER — the correct setter is cy.style().fromJson(arr).update()
-  useEffect(() => {
-    const cy = cyRef.current
-    if (!cy || typeof cy.style !== 'function') return
-    cy.style().fromJson(stylesheet).update()
-  }, [stylesheet])
 
   // Bind tap and hover event handlers. Re-bind whenever proteins/interactions
   // or the click callbacks change so the closures stay fresh.
@@ -145,18 +143,17 @@ export function CytoscapeNetwork({
   }, [interactions, palette])
 
   const legendItems = [
-    { label: 'Query node',  color: settings?.queryNodeColor ?? '#e11d48',      shape: 'circle' as const },
-    { label: 'Interactor',  color: settings?.interactorNodeColor ?? '#2563eb', shape: 'circle' as const },
+    { label: 'Query node',  color: palette.queryNode,      shape: 'circle' as const },
+    { label: 'Interactor',  color: palette.interactorNode, shape: 'circle' as const },
     ...edgeLegendItems,
   ]
 
   return (
     <div style={{ position: 'relative', height }}>
-      {/* key includes colors so remount happens when settings change, guaranteeing fresh styles */}
       <CytoscapeComponent
-        key={`${layout}|${settings?.queryNodeColor ?? ''}|${settings?.interactorNodeColor ?? ''}|${settings?.publishedEdgeColor ?? ''}|${settings?.validatedEdgeColor ?? ''}|${settings?.verifiedEdgeColor ?? ''}|${settings?.literatureEdgeColor ?? ''}`}
+        key={layout}
         elements={elements}
-        stylesheet={stylesheet}
+        stylesheet={STYLESHEET}
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}
         style={{ width: '100%', height }}
         cy={(cy) => {

@@ -185,19 +185,14 @@ describe('buildStylesheet', () => {
     expect(selectors).toContain('node')
   })
 
-  it('includes node[?isQuery] selector', () => {
-    expect(selectors).toContain('node[?isQuery]')
-  })
-
   it('includes an edge selector', () => {
     expect(selectors).toContain('edge')
   })
 
-  it('uses supplied query node color', () => {
-    const custom = buildStylesheet('#ff0000', '#00ff00')
-    const queryRule = custom.find(
-      (b) => (b as { selector: string }).selector === 'node[?isQuery]'
+  it('node background-color reads from data(nodeColor)', () => {
+    const nodeRule = sheet.find(
+      (b) => (b as { selector: string }).selector === 'node'
     ) as { style: { 'background-color': string } }
-    expect(queryRule.style['background-color']).toBe('#ff0000')
+    expect(nodeRule.style['background-color']).toBe('data(nodeColor)')
   })
 })

@@ -1,23 +1,30 @@
 import type { ElementDefinition } from 'cytoscape'
 import type { Protein, Interaction } from '../../../types/api'
 
-export interface EdgeColorPalette {
+export interface NodeEdgePalette {
+  queryNode: string
+  interactorNode: string
   published: string   // order 1
   validated: string   // order 2
   verified: string    // order 3
   literature: string  // order 4
 }
 
-const DEFAULT_PALETTE: EdgeColorPalette = {
+const DEFAULT_PALETTE: NodeEdgePalette = {
+  queryNode: '#e11d48',
+  interactorNode: '#2563eb',
   published: '#38761d',
   validated: '#1155cc',
   verified: '#cc0000',
   literature: '#ff9900',
 }
 
+// Keep the old type alias for callers that only need edge colors
+export type EdgeColorPalette = Pick<NodeEdgePalette, 'published' | 'validated' | 'verified' | 'literature'>
+
 const FALLBACK_COLOR = '#cccccc'
 
-export function getEdgeColorByOrder(order: number, palette: EdgeColorPalette = DEFAULT_PALETTE): string {
+export function getEdgeColorByOrder(order: number, palette: NodeEdgePalette = DEFAULT_PALETTE): string {
   switch (order) {
     case 1: return palette.published
     case 2: return palette.validated
@@ -31,7 +38,7 @@ export function buildElements(
   proteins: Protein[],
   interactions: Interaction[],
   queryProteinIds: number[],
-  palette: EdgeColorPalette = DEFAULT_PALETTE
+  palette: NodeEdgePalette = DEFAULT_PALETTE
 ): ElementDefinition[] {
   const querySet = new Set(queryProteinIds)
 
@@ -40,6 +47,12 @@ export function buildElements(
       id: `p${protein.protein_id}`,
       label: protein.protein_gene_name,
       isQuery: querySet.has(protein.protein_id),
+      // Bake node color into element data — same pattern as edge colors.
+      // This guarantees the color updates when settings change without
+      // relying on stylesheet hot-swap.
+      nodeColor: querySet.has(protein.protein_id)
+        ? palette.queryNode
+        : palette.interactorNode,
     },
   }))
 
