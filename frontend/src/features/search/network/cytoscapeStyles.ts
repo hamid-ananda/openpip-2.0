@@ -3,8 +3,8 @@ import type { StylesheetJsonBlock } from 'cytoscape'
 // Cytoscape renders to Canvas — CSS variables are NOT resolved.
 // All colors must be concrete hex/rgb values.
 export function buildStylesheet(
-  queryNodeColor = '#3c78d8',
-  interactorNodeColor = '#6aa84f',
+  queryNodeColor = '#e11d48',
+  interactorNodeColor = '#2563eb',
 ): StylesheetJsonBlock[] {
   return [
     {

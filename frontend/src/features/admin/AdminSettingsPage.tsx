@@ -539,9 +539,25 @@ function LogoUploadSection({ currentLogoUrl }: { currentLogoUrl?: string | null 
 // ─────────────────────────────────────────────────────────
 // Main form
 // ─────────────────────────────────────────────────────────
+function seedDefaults(s: AdminSettings): AdminSettings {
+  // Null color fields mean "never saved" — seed with display defaults so
+  // the first Save writes real values instead of null back to the DB.
+  return {
+    ...s,
+    queryNodeColor:      s.queryNodeColor      ?? DEFAULT_COLORS.queryNodeColor!,
+    interactorNodeColor: s.interactorNodeColor ?? DEFAULT_COLORS.interactorNodeColor!,
+    publishedEdgeColor:  s.publishedEdgeColor  ?? DEFAULT_COLORS.publishedEdgeColor!,
+    validatedEdgeColor:  s.validatedEdgeColor  ?? DEFAULT_COLORS.validatedEdgeColor!,
+    verifiedEdgeColor:   s.verifiedEdgeColor   ?? DEFAULT_COLORS.verifiedEdgeColor!,
+    literatureEdgeColor: s.literatureEdgeColor ?? DEFAULT_COLORS.literatureEdgeColor!,
+    mainColorScheme:     s.mainColorScheme     ?? DEFAULT_COLORS.mainColorScheme!,
+    headerColorScheme:   s.headerColorScheme   ?? DEFAULT_COLORS.headerColorScheme!,
+  }
+}
+
 function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
   const { mutate: update, isPending, isSuccess } = useUpdateSettings()
-  const [form, setForm] = useState<AdminSettings>(initialSettings)
+  const [form, setForm] = useState<AdminSettings>(() => seedDefaults(initialSettings))
   const [activeTab, setActiveTab] = useState<TabId>('general')
 
   const set = useCallback(<K extends keyof AdminSettings>(field: K, value: AdminSettings[K]) => {

@@ -56,13 +56,13 @@ export function CytoscapeNetwork({
     published:  settings?.publishedEdgeColor  ?? '#38761d',
     validated:  settings?.validatedEdgeColor  ?? '#1155cc',
     verified:   settings?.verifiedEdgeColor   ?? '#cc0000',
-    literature: settings?.literatureEdgeColor ?? '#ff9900',
+    literature: settings?.literatureEdgeColor ?? '#0ea5e9',
   }), [settings])
 
   const stylesheet = useMemo(
     () => buildStylesheet(
-      settings?.queryNodeColor      ?? '#3c78d8',
-      settings?.interactorNodeColor ?? '#6aa84f',
+      settings?.queryNodeColor      ?? '#e11d48',
+      settings?.interactorNodeColor ?? '#2563eb',
     ),
     [settings?.queryNodeColor, settings?.interactorNodeColor]
   )
@@ -137,8 +137,8 @@ export function CytoscapeNetwork({
   }, [interactions, palette])
 
   const legendItems = [
-    { label: 'Query node',  color: settings?.queryNodeColor ?? '#3c78d8',      shape: 'circle' as const },
-    { label: 'Interactor',  color: settings?.interactorNodeColor ?? '#6aa84f', shape: 'circle' as const },
+    { label: 'Query node',  color: settings?.queryNodeColor ?? '#e11d48',      shape: 'circle' as const },
+    { label: 'Interactor',  color: settings?.interactorNodeColor ?? '#2563eb', shape: 'circle' as const },
     ...edgeLegendItems,
   ]
 
