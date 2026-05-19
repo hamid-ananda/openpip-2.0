@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useSearch } from '../../api/search'
 import { useSearchStore } from './searchStore'
 import { filterProteinsAndInteractions } from './filterInteractions'
@@ -8,83 +8,112 @@ import { ResultTablePanel } from './tables/ResultTablePanel'
 import { EnrichmentPanel } from './enrichment/EnrichmentPanel'
 import { OverlaySystem } from './modals/OverlaySystem'
 import { SearchSidebar } from './SearchSidebar'
-import type { Protein } from '../../types/api'
+import type { Protein, Interaction } from '../../types/api'
 
 const MIN_NETWORK_H = 150
-const MAX_NETWORK_H = window.innerHeight - 56 - 120 // leave room for at least one table row
+const MAX_NETWORK_H = window.innerHeight - 56 - 120
 
-function NodeInfoPanel({ protein, onClose }: { protein: Protein; onClose: () => void }) {
+// ─── Node info popup — matches legacy protein popup ────────────────────────
+
+const SECTION = { fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 6, marginTop: 14 }
+const EXT_LINK = { fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }
+
+interface NodeInfoPanelProps {
+  protein: Protein
+  networkInteractions: Interaction[]
+  searchTerm: string
+  onClose: () => void
+  onRemove: (id: number) => void
+}
+
+function NodeInfoPanel({ protein, networkInteractions, searchTerm, onClose, onRemove }: NodeInfoPanelProps) {
   const navigate = useNavigate()
-  const isQuery = protein.protein_gene_name || protein.protein_uniprot_id
+  const gene = protein.protein_gene_name || protein.protein_uniprot_id || '—'
+
+  const interactionsInNetwork = networkInteractions.filter(
+    (ix) => ix.interactor_A.protein_id === protein.protein_id || ix.interactor_B.protein_id === protein.protein_id
+  ).length
+
+  const ncbiId = protein.protein_entrez_id
+  const ensemblId = protein.protein_ensembl_id
+  const uniprotId = protein.protein_uniprot_id
+
   return (
     <div style={{
       position: 'absolute', top: 12, left: 12, zIndex: 20,
       background: 'var(--surface)', border: '1px solid var(--border)',
-      borderRadius: 10, padding: '16px 18px', width: 240,
-      boxShadow: '0 4px 16px rgba(0,0,0,.12)',
+      borderRadius: 10, padding: '16px 18px', width: 272,
+      boxShadow: '0 6px 24px rgba(0,0,0,.14)',
+      maxHeight: 'calc(100% - 24px)', overflowY: 'auto',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
-            {protein.protein_gene_name || protein.protein_uniprot_id || '—'}
-          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{gene}</div>
           {protein.protein_protein_name && (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-              {protein.protein_protein_name.length > 40
-                ? protein.protein_protein_name.slice(0, 40) + '…'
-                : protein.protein_protein_name}
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
+              {protein.protein_protein_name}
             </div>
           )}
         </div>
-        <button
-          onClick={onClose}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: '0 0 0 8px', lineHeight: 1 }}
-          aria-label="Close"
-        >×</button>
+        <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 18, lineHeight: 1, padding: '0 0 0 8px' }}>×</button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14, fontSize: 12 }}>
-        {protein.protein_uniprot_id && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--text-muted)' }}>UniProt</span>
-            <a href={`https://www.uniprot.org/uniprot/${protein.protein_uniprot_id}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontFamily: 'var(--mono)' }}>
-              {protein.protein_uniprot_id}
-            </a>
-          </div>
-        )}
-        {protein.protein_ensembl_id && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Ensembl</span>
-            <span style={{ color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11 }}>{protein.protein_ensembl_id}</span>
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--text-muted)' }}>Interactions</span>
-          <span style={{ color: 'var(--text)', fontWeight: 600 }}>{protein.number_of_interactions_in_database}</span>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {isQuery && (
-          <Link
-            to={`/protein/${encodeURIComponent(protein.protein_gene_name || protein.protein_uniprot_id)}`}
-            className="op-btn primary"
-            style={{ fontSize: 12, padding: '7px 12px', textAlign: 'center', textDecoration: 'none' }}
-          >
-            View full details →
-          </Link>
-        )}
+      {/* Actions */}
+      <div style={SECTION}>Actions</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <button
           className="op-btn"
-          style={{ fontSize: 12, padding: '7px 12px' }}
-          onClick={() => {
-            onClose()
-            navigate(`/search/${encodeURIComponent(protein.protein_gene_name || protein.protein_uniprot_id || '')}`)
-          }}
+          style={{ fontSize: 12, padding: '6px 12px', textAlign: 'left' }}
+          onClick={() => { onClose(); navigate(`/search/${encodeURIComponent(gene)}`) }}
         >
-          Search interactions →
+          Search {searchTerm || 'openPIP'} for {gene}
+        </button>
+        <button
+          className="op-btn"
+          style={{ fontSize: 12, padding: '6px 12px', textAlign: 'left', color: 'var(--warn)' }}
+          onClick={() => { onRemove(protein.protein_id); onClose() }}
+        >
+          Remove {gene} From Network
         </button>
       </div>
+
+      {/* Links */}
+      <div style={SECTION}>Links</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
+        {ncbiId && (
+          <a href={`https://www.ncbi.nlm.nih.gov/gene/${ncbiId}`} target="_blank" rel="noreferrer" style={EXT_LINK}>NCBI Gene</a>
+        )}
+        {uniprotId && (
+          <a href={`https://www.proteinatlas.org/${uniprotId}`} target="_blank" rel="noreferrer" style={EXT_LINK}>Human Protein Atlas</a>
+        )}
+        {ensemblId && (
+          <a href={`https://www.ensembl.org/id/${ensemblId}`} target="_blank" rel="noreferrer" style={EXT_LINK}>Ensembl</a>
+        )}
+        {gene !== '—' && (
+          <a href={`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${gene}`} target="_blank" rel="noreferrer" style={EXT_LINK}>GeneCards</a>
+        )}
+        {uniprotId && (
+          <a href={`https://www.uniprot.org/uniprot/${uniprotId}`} target="_blank" rel="noreferrer" style={EXT_LINK}>UniProt</a>
+        )}
+      </div>
+
+      {/* Interaction counts */}
+      <div style={SECTION}>Number of Interactions</div>
+      <div style={{ fontSize: 13, color: 'var(--text)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div>Interactions in Network: <strong>{interactionsInNetwork}</strong></div>
+        <div>Interactions in Database: <strong>{protein.number_of_interactions_in_database}</strong></div>
+      </div>
+
+      {/* Description */}
+      {protein.protein_description && (
+        <>
+          <div style={SECTION}>Description</div>
+          <p style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>
+            {protein.protein_description}
+          </p>
+        </>
+      )}
     </div>
   )
 }
@@ -93,7 +122,14 @@ export function SearchResultsPage() {
   const { term = '' } = useParams<{ term: string }>()
   const [networkHeight, setNetworkHeight] = useState(500)
   const [selectedProtein, setSelectedProtein] = useState<Protein | null>(null)
+  // Removed nodes are scoped to the current search term — automatically clears on new search
+  const [removed, setRemoved] = useState<{ term: string; ids: number[] }>({ term: '', ids: [] })
+  const removedProteinIds = removed.term === term ? removed.ids : []
   const handleNodeClick = useCallback((p: Protein) => setSelectedProtein(p), [])
+  const handleRemoveNode = useCallback((id: number) => {
+    setRemoved((prev) => ({ term, ids: [...(prev.term === term ? prev.ids : []), id] }))
+    setSelectedProtein(null)
+  }, [term])
 
   function startDrag(e: React.MouseEvent) {
     e.preventDefault()
@@ -131,12 +167,15 @@ export function SearchResultsPage() {
     if (data) setSearchData(data)
   }, [data, setSearchData])
 
-  const { proteins, interactions } = filterProteinsAndInteractions(
+const { proteins: filteredProteins, interactions } = filterProteinsAndInteractions(
     allProteins,
     allInteractions,
     { scoreFilter, categoryFilter, annotationFilter, filterMode, tissueExpressionActive, tissueSpecificityActive },
     queryProteinIds
   )
+  const proteins = removedProteinIds.length
+    ? filteredProteins.filter((p) => !removedProteinIds.includes(p.protein_id))
+    : filteredProteins
 
   const geneNames = proteins.map((p) => p.protein_gene_name)
 
@@ -224,7 +263,13 @@ export function SearchResultsPage() {
             onNodeClick={handleNodeClick}
           />
           {selectedProtein && (
-            <NodeInfoPanel protein={selectedProtein} onClose={() => setSelectedProtein(null)} />
+            <NodeInfoPanel
+              protein={selectedProtein}
+              networkInteractions={interactions}
+              searchTerm={term}
+              onClose={() => setSelectedProtein(null)}
+              onRemove={handleRemoveNode}
+            />
           )}
         </div>
 
