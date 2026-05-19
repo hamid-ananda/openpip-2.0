@@ -3,13 +3,16 @@ import { create } from 'zustand'
 const ACCESS_KEY = 'openpip_access_token'
 const REFRESH_KEY = 'openpip_refresh_token'
 
-function decodeIsAdmin(token: string): boolean {
+function decodePayload(token: string): Record<string, unknown> {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    return !!payload.is_admin
+    return JSON.parse(atob(token.split('.')[1]))
   } catch {
-    return false
+    return {}
   }
+}
+
+function decodeIsAdmin(token: string): boolean {
+  return !!decodePayload(token).is_admin
 }
 
 interface AuthState {
@@ -37,7 +40,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   setTokens: (access, refresh) => {
     localStorage.setItem(ACCESS_KEY, access)
     localStorage.setItem(REFRESH_KEY, refresh)
-    set({ token: access, refreshToken: refresh, isAdmin: decodeIsAdmin(access) })
+    const payload = decodePayload(access)
+    // Only update isAdmin if the claim is present in the token; preserve existing value otherwise
+    set((s) => ({
+      token: access,
+      refreshToken: refresh,
+      isAdmin: 'is_admin' in payload ? !!payload.is_admin : s.isAdmin,
+    }))
   },
   logout: () => {
     localStorage.removeItem(ACCESS_KEY)

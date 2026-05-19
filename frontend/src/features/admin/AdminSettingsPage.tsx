@@ -556,7 +556,7 @@ function seedDefaults(s: AdminSettings): AdminSettings {
 }
 
 function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
-  const { mutate: update, isPending, isSuccess } = useUpdateSettings()
+  const { mutate: update, isPending, isSuccess, isError } = useUpdateSettings()
   const [form, setForm] = useState<AdminSettings>(() => seedDefaults(initialSettings))
   const [activeTab, setActiveTab] = useState<TabId>('general')
 
@@ -894,6 +894,11 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
         {isSuccess && (
           <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 500 }}>
             ✓ Settings saved
+          </span>
+        )}
+        {isError && (
+          <span style={{ fontSize: 13, color: 'var(--danger)', fontWeight: 500 }}>
+            ✗ Save failed — check that you are logged in as an admin
           </span>
         )}
       </div>

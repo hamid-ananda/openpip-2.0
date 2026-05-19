@@ -4,6 +4,8 @@ from .views import (
     InteractionCategoryListView,
     SearchView,
     SearchInteractorsView,
+    SavedNetworkListView,
+    SavedNetworkDetailView,
 )
 
 urlpatterns = [
@@ -11,4 +13,6 @@ urlpatterns = [
     path("home/network", HomeNetworkView.as_view()),
     path("search", SearchView.as_view()),
     path("search/interactors", SearchInteractorsView.as_view()),
+    path("networks", SavedNetworkListView.as_view()),
+    path("networks/<int:pk>", SavedNetworkDetailView.as_view()),
 ]

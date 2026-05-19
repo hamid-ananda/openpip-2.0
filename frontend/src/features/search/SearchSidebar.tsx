@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSearchStore } from './searchStore'
 import { useAuthStore } from '../../store/authStore'
+import { useSaveNetwork } from '../../api/networks'
 import {
   formatSIF,
   formatInteractionsCSV,
@@ -48,6 +49,7 @@ const FILTER_MODE_OPTIONS: { label: string; value: 'None' | 'query_query' | 'que
 
 interface SearchSidebarProps {
   term: string
+  visibleInteractionIds: number[]
 }
 
 const sectionLabelStyle: CSSProperties = {
@@ -102,7 +104,7 @@ function SidebarAccordion({ label, children, defaultOpen = true }: { label: stri
   )
 }
 
-export function SearchSidebar({ term }: SearchSidebarProps) {
+export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProps) {
   const navigate = useNavigate()
   const [localQuery, setLocalQuery] = useState(term)
 
@@ -121,6 +123,42 @@ export function SearchSidebar({ term }: SearchSidebarProps) {
   const setModal = useSearchStore((s) => s.setModal)
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+
+  const { mutateAsync: saveNetwork, isPending: isSaving } = useSaveNetwork()
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [saveName, setSaveName] = useState(term)
+  const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
+  async function handleSaveNetwork() {
+    setSaveError('')
+    if (!saveName.trim()) {
+      setSaveError('Name is required')
+      return
+    }
+    try {
+      const activeCategories = Object.entries(categoryFilter)
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+        .join(',')
+      await saveNetwork({
+        name: saveName.trim(),
+        query: term,
+        score_parameter: scoreFilter.toFixed(2),
+        category_array: activeCategories,
+        tissue_expression_array: '',
+        interaction_ids: visibleInteractionIds,
+      })
+      setSaveSuccess(true)
+      setTimeout(() => {
+        setSaveOpen(false)
+        setSaveName(term)
+        setSaveSuccess(false)
+      }, 1500)
+    } catch {
+      setSaveError('Failed to save. Try again.')
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -412,6 +450,57 @@ export function SearchSidebar({ term }: SearchSidebarProps) {
               ))
             )}
           </SidebarAccordion>
+
+          {isLoggedIn && (
+            <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)', marginTop: 4 }}>
+              {!saveOpen ? (
+                <button
+                  type="button"
+                  onClick={() => { setSaveOpen(true); setSaveName(term) }}
+                  className="op-btn"
+                  style={{ width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }}
+                >
+                  Save Network
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <input
+                    className="op-input"
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    placeholder="Network name"
+                    style={{ fontSize: 12 }}
+                    autoFocus
+                  />
+                  {saveError && (
+                    <div style={{ fontSize: 11, color: 'var(--warn)' }}>{saveError}</div>
+                  )}
+                  {saveSuccess && (
+                    <div style={{ fontSize: 11, color: 'var(--success, #22c55e)' }}>Saved!</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => { setSaveOpen(false); setSaveError(''); setSaveSuccess(false) }}
+                      className="op-btn"
+                      style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '6px' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveNetwork}
+                      disabled={isSaving || visibleInteractionIds.length === 0}
+                      className="op-btn primary"
+                      style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '6px' }}
+                    >
+                      {isSaving ? '…' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

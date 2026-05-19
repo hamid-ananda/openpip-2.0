@@ -79,7 +79,7 @@ describe('getEdgeColorByOrder', () => {
   })
 
   it('respects a custom palette', () => {
-    const palette = { published: '#aaa', validated: '#bbb', verified: '#ccc', literature: '#ddd' }
+    const palette = { queryNode: '#000', interactorNode: '#000', published: '#aaa', validated: '#bbb', verified: '#ccc', literature: '#ddd' }
     expect(getEdgeColorByOrder(1, palette)).toBe('#aaa')
     expect(getEdgeColorByOrder(4, palette)).toBe('#ddd')
   })

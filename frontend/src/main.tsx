@@ -16,6 +16,12 @@ async function prepare() {
     const { worker } = await import('./mocks/browser')
     return worker.start({ onUnhandledRequest: 'bypass' })
   }
+  // MSW is disabled — unregister any previously registered service worker so
+  // it doesn't keep intercepting API calls with stale mock responses.
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(regs.map((r) => r.unregister()))
+  }
 }
 
 prepare().then(() => {

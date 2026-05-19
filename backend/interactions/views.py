@@ -1,12 +1,16 @@
 import random
 
+from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 
 from proteins.models import Protein
-from .models import InteractionCategory
-from .search_service import execute_search
+from core.models import UserInteractionNetwork
+from .models import InteractionCategory, InteractionNetwork, InteractionInteractionNetworks
+from .search_service import execute_search, build_result_from_interaction_ids
+from .serializers import SaveNetworkInputSerializer, SavedNetworkListSerializer
 
 
 class InteractionCategoryListView(APIView):
@@ -71,3 +75,91 @@ class HomeNetworkView(APIView):
         gene = random.choice(candidates)
         result = execute_search(q=gene, filter_parameter="None")
         return Response(result)
+
+
+class SavedNetworkListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        network_ids = UserInteractionNetwork.objects.filter(
+            user=request.user
+        ).values_list("interaction_network_id", flat=True)
+        networks = InteractionNetwork.objects.filter(
+            id__in=network_ids
+        ).order_by("-id")
+        serializer = SavedNetworkListSerializer(networks, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = SaveNetworkInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        network = InteractionNetwork.objects.create(
+            name=data["name"],
+            query=data["query"],
+            interactor_query_string=data["query"],
+            score_parameter=data["score_parameter"],
+            category_array=data["category_array"],
+            tissue_expression_array=data.get("tissue_expression_array", ""),
+        )
+        InteractionInteractionNetworks.objects.bulk_create(
+            [
+                InteractionInteractionNetworks(
+                    interaction_network=network,
+                    interaction_id=iid,
+                )
+                for iid in data["interaction_ids"]
+            ]
+        )
+        UserInteractionNetwork.objects.create(
+            user=request.user,
+            interaction_network=network,
+        )
+        return Response(
+            {
+                "id": network.id,
+                "name": network.name,
+                "interaction_count": len(data["interaction_ids"]),
+            },
+            status=201,
+        )
+
+
+class SavedNetworkDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def _get_owned_network(self, request, pk: int) -> InteractionNetwork:
+        try:
+            network = InteractionNetwork.objects.get(pk=pk)
+        except InteractionNetwork.DoesNotExist:
+            raise Http404
+        if not UserInteractionNetwork.objects.filter(
+            user=request.user, interaction_network=network
+        ).exists():
+            raise PermissionDenied
+        return network
+
+    def get(self, request, pk: int):
+        network = self._get_owned_network(request, pk)
+        interaction_ids = list(
+            network.network_interactions.values_list("interaction_id", flat=True)
+        )
+        result = build_result_from_interaction_ids(
+            interaction_ids, network.query or ""
+        )
+        return Response(
+            {
+                "id": network.id,
+                "name": network.name,
+                "query": network.query,
+                "score_parameter": network.score_parameter,
+                "category_array": network.category_array,
+                **result,
+            }
+        )
+
+    def delete(self, request, pk: int):
+        network = self._get_owned_network(request, pk)
+        network.delete()
+        return Response(status=204)

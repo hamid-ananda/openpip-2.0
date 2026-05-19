@@ -192,6 +192,8 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
     ? filteredProteins.filter((p) => !removedProteinIds.includes(p.protein_id))
     : filteredProteins
 
+  const visibleInteractionIds = interactions.map((ix) => ix.interaction_id)
+
   const geneNames = proteins.map((p) => p.protein_gene_name)
 
   const renderMain = () => {
@@ -327,7 +329,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 56px)' }}>
       {/* Sidebar — left */}
-      <SearchSidebar key={term} term={term} />
+      <SearchSidebar key={term} term={term} visibleInteractionIds={visibleInteractionIds} />
 
       {/* Main — scrolls vertically */}
       <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>

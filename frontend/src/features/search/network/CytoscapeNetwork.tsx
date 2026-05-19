@@ -148,10 +148,17 @@ export function CytoscapeNetwork({
     ...edgeLegendItems,
   ]
 
+  // Include palette values in the key so any color change forces a fresh
+  // Cytoscape mount. react-cytoscapejs patches kept-element data on prop
+  // changes, but Cytoscape doesn't always re-evaluate canvas styles for
+  // data() references when data is mutated via .json() — remounting is
+  // the only reliable path.
+  const graphKey = `${layout}-${Object.values(palette).join('-')}`
+
   return (
     <div style={{ position: 'relative', height }}>
       <CytoscapeComponent
-        key={layout}
+        key={graphKey}
         elements={elements}
         stylesheet={STYLESHEET}
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}

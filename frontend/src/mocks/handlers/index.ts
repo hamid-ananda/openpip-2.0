@@ -7,6 +7,7 @@ import { downloadHandlers } from './downloads'
 import { contactHandlers } from './contact'
 import { datasetHandlers } from './datasets'
 import { proteinHandlers } from './proteins'
+import { networksHandlers } from './networks'
 
 export const handlers = [
   ...settingsHandlers,
@@ -18,4 +19,5 @@ export const handlers = [
   ...contactHandlers,
   ...datasetHandlers,
   ...proteinHandlers,
+  ...networksHandlers,
 ]

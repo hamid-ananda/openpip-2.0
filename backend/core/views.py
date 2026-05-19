@@ -5,7 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.views import TokenRefreshView
+from .tokens import CustomRefreshToken
 
 from .models import User
 
@@ -23,7 +25,7 @@ class LoginView(APIView):
             return Response(
                 {"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
             )
-        refresh = RefreshToken.for_user(user)
+        refresh = CustomRefreshToken.for_user(user)
         return Response(
             {
                 "access": str(refresh.access_token),
@@ -40,7 +42,7 @@ class LogoutView(APIView):
         refresh_token = request.data.get("refresh")
         if refresh_token:
             try:
-                token = RefreshToken(refresh_token)
+                token = CustomRefreshToken(refresh_token)
                 token.blacklist()
             except Exception:
                 pass
@@ -92,3 +94,11 @@ class ContactView(APIView):
         subject = request.data.get("subject", "")
         logger.info("Contact form: from=%s <%s> subject=%s", name, email, subject)
         return Response({"detail": "Message sent"})
+
+
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    token_class = CustomRefreshToken
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer

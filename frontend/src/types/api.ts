@@ -1,3 +1,11 @@
+export interface SavedNetwork {
+  id: number
+  name: string
+  query: string
+  interaction_count: number
+  created_at: string | null
+}
+
 export interface AdminSettings {
   title: string
   shortTitle: string

@@ -304,3 +304,124 @@ def execute_search(q: str, filter_parameter: str = "None") -> dict:
         "found_protein_summary": "<br>".join(found_terms),
         "unfound_protein_summary": "<br>".join(unfound_terms),
     }
+
+
+def build_result_from_interaction_ids(interaction_ids: list, query: str) -> dict:
+    """
+    Reconstruct a SearchResult-shaped dict from a stored list of interaction IDs.
+    Used when loading a saved network — returns the same shape as execute_search().
+    """
+    if not interaction_ids:
+        return {
+            "all_proteins": [],
+            "all_interactions": [],
+            "domains": "",
+            "complexes": "",
+            "query_protein_id_array": [],
+            "search_term": query,
+            "found_protein_summary": query,
+            "unfound_protein_summary": "",
+        }
+
+    interactions_list = list(Interaction.objects.filter(id__in=interaction_ids))
+
+    protein_id_set: set = set()
+    for ix in interactions_list:
+        protein_id_set.add(ix.interactor_A_id)
+        protein_id_set.add(ix.interactor_B_id)
+    protein_ids = list(protein_id_set)
+
+    terms = {t.strip().upper() for t in query.split(",") if t.strip()}
+    protein_map = {p.id: p for p in Protein.objects.filter(id__in=protein_ids)}
+    query_protein_id_set = {
+        pid
+        for pid, p in protein_map.items()
+        if p.gene_name and p.gene_name.upper() in terms
+    }
+    query_protein_ids = list(query_protein_id_set)
+
+    ann_protein_links = AnnotationProtein.objects.filter(
+        protein_id__in=protein_ids
+    ).select_related("annotation")
+    annotations_by_protein: dict = {}
+    for ap in ann_protein_links:
+        ann = ap.annotation
+        if ann.type_name:
+            annotations_by_protein.setdefault(ap.protein_id, {})[
+                ann.type_name
+            ] = ann.annotation or ""
+
+    non_query_proteins, query_proteins = [], []
+    for pid, p in protein_map.items():
+        obj = _build_protein_dict(p, annotations_by_protein)
+        if pid in query_protein_id_set:
+            query_proteins.append(obj)
+        else:
+            non_query_proteins.append(obj)
+    all_proteins = non_query_proteins + query_proteins
+
+    datasets_by_interaction: dict = {}
+    for id_obj in InteractionDataset.objects.filter(
+        interaction_id__in=interaction_ids
+    ).select_related("dataset"):
+        datasets_by_interaction.setdefault(id_obj.interaction_id, []).append(
+            id_obj.dataset
+        )
+
+    categories_by_interaction: dict = {}
+    for ic in InteractionInteractionCategory.objects.filter(
+        interaction_id__in=interaction_ids
+    ).select_related("interaction_category"):
+        categories_by_interaction.setdefault(ic.interaction_id, []).append(
+            ic.interaction_category
+        )
+
+    annotations_by_interaction: dict = {}
+    for ann in Annotation.objects.filter(identifier__in=interaction_ids):
+        annotations_by_interaction.setdefault(ann.identifier, []).append(ann)
+
+    multi_query_edges, query_edges, interactor_edges = [], [], []
+    for ix in interactions_list:
+        a_protein = protein_map.get(ix.interactor_A_id)
+        b_protein = protein_map.get(ix.interactor_B_id)
+        if a_protein is None or b_protein is None:
+            continue
+
+        a_is_query = ix.interactor_A_id in query_protein_id_set
+        b_is_query = ix.interactor_B_id in query_protein_id_set
+
+        if a_is_query and b_is_query:
+            edge_type, a_side, b_side = "multi", a_protein, b_protein
+        elif a_is_query:
+            edge_type, a_side, b_side = "query", a_protein, b_protein
+        elif b_is_query:
+            edge_type, a_side, b_side = "query", b_protein, a_protein
+        else:
+            edge_type, a_side, b_side = "interactor", a_protein, b_protein
+
+        edge = _build_interaction_dict(
+            ix,
+            a_side,
+            b_side,
+            datasets_by_interaction,
+            categories_by_interaction,
+            annotations_by_interaction,
+        )
+
+        if edge_type == "multi":
+            multi_query_edges.append(edge)
+        elif edge_type == "query":
+            query_edges.append(edge)
+        else:
+            interactor_edges.append(edge)
+
+    return {
+        "all_proteins": all_proteins,
+        "all_interactions": multi_query_edges + query_edges + interactor_edges,
+        "domains": "",
+        "complexes": "",
+        "query_protein_id_array": query_protein_ids,
+        "search_term": query,
+        "found_protein_summary": query,
+        "unfound_protein_summary": "",
+    }
