@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { getEdgeColorByOrder, buildElements } from '../cytoscapeElements'
-import { NETWORK_STYLESHEET } from '../cytoscapeStyles'
+import { buildStylesheet } from '../cytoscapeStyles'
 import type { Protein, Interaction } from '../../../../types/api'
 
 // Minimal Protein fixture
@@ -173,28 +173,31 @@ describe('buildElements — unknown order fallback', () => {
   })
 })
 
-describe('NETWORK_STYLESHEET', () => {
+describe('buildStylesheet', () => {
+  const sheet = buildStylesheet()
+  const selectors = sheet.map((block) => (block as { selector: string }).selector)
+
   it('has at least 4 selectors', () => {
-    expect(NETWORK_STYLESHEET.length).toBeGreaterThanOrEqual(4)
+    expect(sheet.length).toBeGreaterThanOrEqual(4)
   })
 
   it('includes a node selector', () => {
-    const selectors = NETWORK_STYLESHEET.map((block) => (block as { selector: string }).selector)
     expect(selectors).toContain('node')
   })
 
   it('includes node[?isQuery] selector', () => {
-    const selectors = NETWORK_STYLESHEET.map((block) => (block as { selector: string }).selector)
     expect(selectors).toContain('node[?isQuery]')
   })
 
-  it('includes node[!isQuery] selector', () => {
-    const selectors = NETWORK_STYLESHEET.map((block) => (block as { selector: string }).selector)
-    expect(selectors).toContain('node[!isQuery]')
+  it('includes an edge selector', () => {
+    expect(selectors).toContain('edge')
   })
 
-  it('includes an edge selector', () => {
-    const selectors = NETWORK_STYLESHEET.map((block) => (block as { selector: string }).selector)
-    expect(selectors).toContain('edge')
+  it('uses supplied query node color', () => {
+    const custom = buildStylesheet('#ff0000', '#00ff00')
+    const queryRule = custom.find(
+      (b) => (b as { selector: string }).selector === 'node[?isQuery]'
+    ) as { style: { 'background-color': string } }
+    expect(queryRule.style['background-color']).toBe('#ff0000')
   })
 })

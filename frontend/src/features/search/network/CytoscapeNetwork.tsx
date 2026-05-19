@@ -5,7 +5,7 @@ import type { LayoutOptions } from 'cytoscape'
 import cola from 'cytoscape-cola'
 import type { Protein, Interaction } from '../../../types/api'
 import { buildElements, getEdgeColorByOrder } from './cytoscapeElements'
-import { NETWORK_STYLESHEET } from './cytoscapeStyles'
+import { buildStylesheet } from './cytoscapeStyles'
 import { useSettings } from '../../../api/settings'
 
 // Register cytoscape-cola extension once at module level.
@@ -58,6 +58,14 @@ export function CytoscapeNetwork({
     verified:   settings?.verifiedEdgeColor   ?? '#cc0000',
     literature: settings?.literatureEdgeColor ?? '#ff9900',
   }), [settings])
+
+  const stylesheet = useMemo(
+    () => buildStylesheet(
+      settings?.queryNodeColor      ?? '#3c78d8',
+      settings?.interactorNodeColor ?? '#6aa84f',
+    ),
+    [settings?.queryNodeColor, settings?.interactorNodeColor]
+  )
 
   const elements = useMemo(
     () => buildElements(proteins, interactions, queryProteinIds, palette),
@@ -129,8 +137,8 @@ export function CytoscapeNetwork({
   }, [interactions, palette])
 
   const legendItems = [
-    { label: 'Query node',  color: 'var(--color-query-node)',      shape: 'circle' as const },
-    { label: 'Interactor',  color: 'var(--color-interactor-node)', shape: 'circle' as const },
+    { label: 'Query node',  color: settings?.queryNodeColor ?? '#3c78d8',      shape: 'circle' as const },
+    { label: 'Interactor',  color: settings?.interactorNodeColor ?? '#6aa84f', shape: 'circle' as const },
     ...edgeLegendItems,
   ]
 
@@ -141,7 +149,7 @@ export function CytoscapeNetwork({
       <CytoscapeComponent
         key={layout}
         elements={elements}
-        stylesheet={NETWORK_STYLESHEET}
+        stylesheet={stylesheet}
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}
         style={{ width: '100%', height }}
         cy={(cy) => {
