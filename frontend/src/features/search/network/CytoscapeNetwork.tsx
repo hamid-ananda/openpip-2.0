@@ -7,6 +7,7 @@ import type { Protein, Interaction } from '../../../types/api'
 import { buildElements, getEdgeColorByOrder } from './cytoscapeElements'
 import { buildStylesheet } from './cytoscapeStyles'
 import { useSettings } from '../../../api/settings'
+import { useSearchStore } from '../searchStore'
 
 // Register cytoscape-cola extension once at module level.
 // Wrapped in try/catch to silently ignore double-registration errors
@@ -165,6 +166,7 @@ export function CytoscapeNetwork({
         style={{ width: '100%', height }}
         cy={(cy) => {
           cyRef.current = cy
+          useSearchStore.getState().setNetworkCy(cy)
         }}
       />
 

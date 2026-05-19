@@ -6,6 +6,10 @@ type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
 type ModalName = 'download' | 'downloadAuth' | 'cyRest' | 'loading' | 'directDownload'
 
 interface SearchState {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  networkCy: any | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setNetworkCy: (cy: any) => void
   allProteins: Protein[]
   allInteractions: Interaction[]
   queryProteinIds: number[]
@@ -33,6 +37,7 @@ interface SearchState {
 }
 
 const initialState = {
+  networkCy: null as null,
   allProteins: [] as Protein[],
   allInteractions: [] as Interaction[],
   queryProteinIds: [] as number[],
@@ -57,6 +62,7 @@ const initialState = {
 
 export const useSearchStore = create<SearchState>()((set) => ({
   ...initialState,
+  setNetworkCy: (cy) => set({ networkCy: cy }),
   setSearchData: (result) =>
     set((s) => {
       const categoryFilter = { ...s.categoryFilter }

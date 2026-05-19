@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatSIF, formatInteractionsCSV, formatInteractorsCSV, formatFASTA, buildFilename } from './download'
+import { formatSIF, formatInteractionsCSV, formatInteractorsCSV, formatFASTA, formatPSIMI, buildFilename } from './download'
 import type { Protein, Interaction } from '../types/api'
 
 const p1: Protein = {
@@ -65,6 +65,56 @@ describe('formatFASTA', () => {
   it('produces correct FASTA format', () => {
     const result = formatFASTA([p1])
     expect(result).toBe('>BAD|Q92934\nMSEQ\n')
+  })
+
+  it('includes all proteins passed in — both query and interactors', () => {
+    const result = formatFASTA([p1, p2])
+    expect(result).toContain('>BAD|Q92934')
+    expect(result).toContain('>BCL2L1|Q07817')
+  })
+
+  it('skips proteins with no sequence', () => {
+    const noSeq: Protein = { ...p1, protein_sequence: '' }
+    const result = formatFASTA([noSeq, p2])
+    expect(result).not.toContain('BAD')
+    expect(result).toContain('>BCL2L1|Q07817')
+  })
+})
+
+describe('formatPSIMI', () => {
+  it('puts uniprotkb-prefixed IDs in col 0 and 1', () => {
+    const result = formatPSIMI([interaction], [p1, p2])
+    const cols = result.split('\n')[0].split('\t')
+    expect(cols[0]).toBe('uniprotkb:Q92934')
+    expect(cols[1]).toBe('uniprotkb:Q07817')
+  })
+
+  it('puts gene names with uniprotkb prefix in col 4 and 5', () => {
+    const result = formatPSIMI([interaction], [p1, p2])
+    const cols = result.split('\n')[0].split('\t')
+    expect(cols[4]).toBe('uniprotkb:BAD(gene name)')
+    expect(cols[5]).toBe('uniprotkb:BCL2L1(gene name)')
+  })
+
+  it('puts score in col 14', () => {
+    const result = formatPSIMI([interaction], [p1, p2])
+    const cols = result.split('\n')[0].split('\t')
+    expect(cols[14]).toBe('0.82')
+  })
+
+  it('produces exactly 42 columns', () => {
+    const result = formatPSIMI([interaction], [p1, p2])
+    const cols = result.split('\n')[0].split('\t')
+    expect(cols).toHaveLength(42)
+  })
+
+  it('fills unused columns with dashes', () => {
+    const result = formatPSIMI([interaction], [p1, p2])
+    const cols = result.split('\n')[0].split('\t')
+    expect(cols[2]).toBe('-')
+    expect(cols[3]).toBe('-')
+    expect(cols[6]).toBe('-')
+    expect(cols[41]).toBe('-')
   })
 })
 

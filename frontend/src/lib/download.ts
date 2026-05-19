@@ -47,6 +47,7 @@ export function formatInteractorsCSV(proteins: Protein[]): string {
 
 export function formatFASTA(proteins: Protein[]): string {
   return proteins
+    .filter((p) => p.protein_sequence)
     .map((p) => `>${p.protein_gene_name}|${p.protein_uniprot_id}\n${p.protein_sequence}\n`)
     .join('')
 }
@@ -81,6 +82,20 @@ export function downloadFile(filename: string, content: string): void {
   const a = document.createElement('a')
   a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content)
   a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function downloadImageFile(cy: any, format: 'png' | 'jpg'): void {
+  const dataUri: string =
+    format === 'png'
+      ? cy.png({ output: 'base64uri', scale: 2, bg: '#ffffff' })
+      : cy.jpg({ output: 'base64uri', scale: 2, quality: 0.92, bg: '#ffffff' })
+  const a = document.createElement('a')
+  a.href = dataUri
+  a.download = buildFilename(format.toUpperCase(), format)
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)

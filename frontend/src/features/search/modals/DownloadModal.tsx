@@ -9,16 +9,19 @@ import {
   formatPSIMI,
   buildFilename,
   downloadFile,
+  downloadImageFile,
 } from '../../../lib/download'
 
-type Format = 'sif' | 'interactions_csv' | 'interactors_csv' | 'fasta' | 'psimi'
+type Format = 'sif' | 'interactions_csv' | 'interactors_csv' | 'fasta' | 'psimi' | 'png' | 'jpg'
 
 const FORMAT_LABELS: Record<Format, string> = {
   sif: 'SIF',
   interactions_csv: 'Interactions CSV',
   interactors_csv: 'Interactors CSV',
   fasta: 'FASTA',
-  psimi: 'PSI-MI',
+  psimi: 'PSI-MI TAB',
+  png: 'Network Image (PNG)',
+  jpg: 'Network Image (JPG)',
 }
 
 const FORMAT_EXT: Record<Format, string> = {
@@ -27,13 +30,20 @@ const FORMAT_EXT: Record<Format, string> = {
   interactors_csv: 'csv',
   fasta: 'fasta',
   psimi: 'txt',
+  png: 'png',
+  jpg: 'jpg',
 }
 
 export function DownloadModal({ onClose }: { onClose: () => void }) {
-  const { allProteins, allInteractions } = useSearchStore()
+  const { allProteins, allInteractions, networkCy } = useSearchStore()
   const [fmt, setFmt] = useState<Format>('sif')
 
   const handleDownload = () => {
+    if (fmt === 'png' || fmt === 'jpg') {
+      if (networkCy) downloadImageFile(networkCy, fmt)
+      onClose()
+      return
+    }
     let content = ''
     if (fmt === 'sif') content = formatSIF(allInteractions, allProteins)
     else if (fmt === 'interactions_csv') content = formatInteractionsCSV(allInteractions, allProteins)

@@ -1,6 +1,8 @@
 import pytest
-from admin_panel.models import AdminSettings, Announcement
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
+
+from admin_panel.models import AdminSettings, Announcement
 
 
 @pytest.mark.django_db
@@ -237,3 +239,97 @@ def test_get_counts(api_client):
     data = response.json()
     assert data["proteins"] == 2
     assert data["interactions"] == 1
+
+
+@pytest.mark.django_db
+def test_get_counts_includes_datasets_key(api_client):
+    from datasets.models import Dataset
+
+    Dataset.objects.create(name="HuRI", pubmed_id="12345")
+    response = api_client.get("/api/counts")
+    assert response.status_code == 200
+    data = response.json()
+    assert "datasets" in data
+    assert data["datasets"] == 1
+
+
+@pytest.mark.django_db
+def test_get_settings_returns_empty_dict_when_unseeded(api_client):
+    response = api_client.get("/api/settings")
+    assert response.status_code == 200
+    assert response.json() == {}
+
+
+@pytest.mark.django_db
+def test_patch_settings_unauthenticated_returns_401(api_client):
+    AdminSettings.objects.create(pk=1, title="T")
+    response = api_client.patch("/api/settings", {"title": "X"}, format="json")
+    assert response.status_code in (401, 403)
+
+
+# ── Logo upload ────────────────────────────────────────────────────────────
+
+
+def _png_file(name="logo.png"):
+    # Minimal 1×1 PNG bytes
+    data = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+        b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00"
+        b"\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18"
+        b"\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+    return SimpleUploadedFile(name, data, content_type="image/png")
+
+
+@pytest.mark.django_db
+def test_logo_upload_valid_png(auth_client):
+    AdminSettings.objects.create(pk=1, title="T")
+    response = auth_client.post(
+        "/api/settings/logo", {"logo": _png_file()}, format="multipart"
+    )
+    assert response.status_code == 200
+    assert response.json().get("logoUrl") is not None
+
+
+@pytest.mark.django_db
+def test_logo_upload_invalid_type_returns_400(auth_client):
+    AdminSettings.objects.create(pk=1, title="T")
+    bad_file = SimpleUploadedFile("doc.txt", b"hello", content_type="text/plain")
+    response = auth_client.post(
+        "/api/settings/logo", {"logo": bad_file}, format="multipart"
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_logo_upload_requires_admin(user_auth_client):
+    AdminSettings.objects.create(pk=1, title="T")
+    response = user_auth_client.post(
+        "/api/settings/logo", {"logo": _png_file()}, format="multipart"
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_logo_upload_no_file_returns_400(auth_client):
+    AdminSettings.objects.create(pk=1, title="T")
+    response = auth_client.post("/api/settings/logo", {}, format="multipart")
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_logo_delete_removes_logo(auth_client):
+    settings = AdminSettings.objects.create(pk=1, title="T")
+    # upload first
+    auth_client.post("/api/settings/logo", {"logo": _png_file()}, format="multipart")
+    response = auth_client.delete("/api/settings/logo")
+    assert response.status_code == 200
+    settings.refresh_from_db()
+    assert not settings.logo
+
+
+@pytest.mark.django_db
+def test_logo_delete_requires_admin(user_auth_client):
+    AdminSettings.objects.create(pk=1, title="T")
+    response = user_auth_client.delete("/api/settings/logo")
+    assert response.status_code == 403

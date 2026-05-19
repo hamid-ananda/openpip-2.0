@@ -149,3 +149,119 @@ def test_categories_endpoint_is_public(api_client):
     response = api_client.get("/api/interactions/categories")
     assert response.status_code == 200
     assert len(response.json()) == 1
+
+
+# ── Filter mode tests ────────────────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_search_filter_query_query_only_returns_query_query_edges(api_client):
+    """filter=query_query: only interactions between the queried proteins."""
+    q1 = _make_protein_with_identifier("BAD")
+    q2 = _make_protein_with_identifier("BCL2L1")
+    p_other = ProteinFactory(gene_name="OUTSIDER")
+    # interaction between the two query proteins — should appear
+    ix_qq = InteractionFactory(interactor_A=q1, interactor_B=q2, removed="0")
+    # interaction between query and outsider — should NOT appear
+    InteractionFactory(interactor_A=q1, interactor_B=p_other, removed="0")
+
+    response = api_client.get("/api/search?q=BAD,BCL2L1&filter=query_query")
+    assert response.status_code == 200
+    data = response.json()
+    ids = {ix["interaction_id"] for ix in data["all_interactions"]}
+    assert ids == {ix_qq.id}
+
+
+@pytest.mark.django_db
+def test_search_filter_query_interactor_only_returns_edges_touching_query(api_client):
+    """filter=query_interactor: only edges where at least one endpoint is a query protein."""
+    q = _make_protein_with_identifier("BAD")
+    p_a = ProteinFactory(gene_name="INTERACTOR_A")
+    p_b = ProteinFactory(gene_name="INTERACTOR_B")
+    # query ↔ interactor_A — should appear
+    ix_qa = InteractionFactory(interactor_A=q, interactor_B=p_a, removed="0")
+    # interactor_A ↔ interactor_B — should NOT appear (neither is query)
+    InteractionFactory(interactor_A=p_a, interactor_B=p_b, removed="0")
+
+    response = api_client.get("/api/search?q=BAD&filter=query_interactor")
+    assert response.status_code == 200
+    data = response.json()
+    ids = {ix["interaction_id"] for ix in data["all_interactions"]}
+    assert ids == {ix_qa.id}
+
+
+@pytest.mark.django_db
+def test_search_unrecognised_gene_returns_empty_structure(api_client):
+    response = api_client.get("/api/search?q=DOESNOTEXIST999")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["all_proteins"] == []
+    assert data["all_interactions"] == []
+    assert data["query_protein_id_array"] == []
+    assert "DOESNOTEXIST999" in data["unfound_protein_summary"]
+
+
+@pytest.mark.django_db
+def test_search_multi_gene_returns_all_query_proteins(api_client):
+    _make_protein_with_identifier("BAD")
+    _make_protein_with_identifier("BCL2L1")
+    _make_protein_with_identifier("BMF")
+
+    response = api_client.get("/api/search?q=BAD,BCL2L1,BMF")
+    assert response.status_code == 200
+    data = response.json()
+    gene_names = {p["protein_gene_name"] for p in data["all_proteins"]}
+    assert {"BAD", "BCL2L1", "BMF"}.issubset(gene_names)
+    assert len(data["query_protein_id_array"]) == 3
+
+
+# ── Edge ordering ─────────────────────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_search_multi_query_edges_before_query_edges_before_interactor_edges(
+    api_client,
+):
+    """
+    Output ordering: multi-query edges → query edges → interactor-only edges.
+    Cytoscape renders last elements on top; query proteins must be last in nodes.
+    """
+    q1 = _make_protein_with_identifier("BAD")
+    q2 = _make_protein_with_identifier("BCL2L1")
+    p_other = ProteinFactory(gene_name="BYSTANDER")
+    # multi-query edge (both endpoints are query proteins)
+    ix_multi = InteractionFactory(interactor_A=q1, interactor_B=q2, removed="0")
+    # query edge (one endpoint is query)
+    ix_query = InteractionFactory(interactor_A=q1, interactor_B=p_other, removed="0")
+
+    response = api_client.get("/api/search?q=BAD,BCL2L1")
+    data = response.json()
+    ids = [ix["interaction_id"] for ix in data["all_interactions"]]
+    assert ids.index(ix_multi.id) < ids.index(ix_query.id)
+
+
+# ── HomeNetworkView ──────────────────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_home_network_returns_expected_shape(api_client):
+    p = _make_protein_with_identifier("BRCA1")
+    p.number_of_interactions_in_database = 5
+    p.save()
+
+    response = api_client.get("/api/home/network")
+    assert response.status_code == 200
+    data = response.json()
+    assert "all_proteins" in data
+    assert "all_interactions" in data
+    assert "query_protein_id_array" in data
+
+
+@pytest.mark.django_db
+def test_home_network_empty_db_returns_empty_result(api_client):
+    """No proteins → returns all-empty structure, not a 500."""
+    response = api_client.get("/api/home/network")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["all_proteins"] == []
+    assert data["all_interactions"] == []
