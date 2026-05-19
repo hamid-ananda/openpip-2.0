@@ -80,21 +80,36 @@ function NodeInfoPanel({ protein, networkInteractions, searchTerm, onClose, onRe
 
       {/* Links */}
       <div style={SECTION}>Links</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
         {ncbiId && (
-          <a href={`https://www.ncbi.nlm.nih.gov/gene/${ncbiId}`} target="_blank" rel="noreferrer" style={EXT_LINK}>NCBI Gene</a>
+          <a href={`https://www.ncbi.nlm.nih.gov/gene/${ncbiId}`} target="_blank" rel="noreferrer" style={{ ...EXT_LINK, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <img src="https://www.ncbi.nlm.nih.gov/favicon.ico" width={14} height={14} alt="" style={{ borderRadius: 2, flexShrink: 0 }} />
+            NCBI Gene
+          </a>
         )}
         {uniprotId && (
-          <a href={`https://www.proteinatlas.org/${uniprotId}`} target="_blank" rel="noreferrer" style={EXT_LINK}>Human Protein Atlas</a>
+          <a href={`https://www.proteinatlas.org/${uniprotId}`} target="_blank" rel="noreferrer" style={{ ...EXT_LINK, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <img src="https://www.proteinatlas.org/favicon.ico" width={14} height={14} alt="" style={{ borderRadius: 2, flexShrink: 0 }} />
+            Human Protein Atlas
+          </a>
         )}
         {ensemblId && (
-          <a href={`https://www.ensembl.org/id/${ensemblId}`} target="_blank" rel="noreferrer" style={EXT_LINK}>Ensembl</a>
+          <a href={`https://www.ensembl.org/id/${ensemblId}`} target="_blank" rel="noreferrer" style={{ ...EXT_LINK, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <img src="https://www.ensembl.org/favicon.ico" width={14} height={14} alt="" style={{ borderRadius: 2, flexShrink: 0 }} />
+            Ensembl
+          </a>
         )}
         {gene !== '—' && (
-          <a href={`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${gene}`} target="_blank" rel="noreferrer" style={EXT_LINK}>GeneCards</a>
+          <a href={`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${gene}`} target="_blank" rel="noreferrer" style={{ ...EXT_LINK, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <img src="https://www.genecards.org/favicon.ico" width={14} height={14} alt="" style={{ borderRadius: 2, flexShrink: 0 }} />
+            GeneCards
+          </a>
         )}
         {uniprotId && (
-          <a href={`https://www.uniprot.org/uniprot/${uniprotId}`} target="_blank" rel="noreferrer" style={EXT_LINK}>UniProt</a>
+          <a href={`https://www.uniprot.org/uniprot/${uniprotId}`} target="_blank" rel="noreferrer" style={{ ...EXT_LINK, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <img src="https://www.uniprot.org/favicon.ico" width={14} height={14} alt="" style={{ borderRadius: 2, flexShrink: 0 }} />
+            UniProt
+          </a>
         )}
       </div>
 
