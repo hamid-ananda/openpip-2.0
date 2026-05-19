@@ -79,12 +79,12 @@ export function CytoscapeNetwork({
     cy.layout({ name: layout } as LayoutOptions).run()
   }, [layout])
 
-  // Explicitly push new styles when colors change. react-cytoscapejs's prop-diff
-  // approach is unreliable for stylesheet updates on an existing instance.
+  // Explicitly push new styles when colors change.
+  // cy.style(arr) is the GETTER — the correct setter is cy.style().fromJson(arr).update()
   useEffect(() => {
     const cy = cyRef.current
     if (!cy || typeof cy.style !== 'function') return
-    cy.style(stylesheet)
+    cy.style().fromJson(stylesheet).update()
   }, [stylesheet])
 
   // Bind tap and hover event handlers. Re-bind whenever proteins/interactions
@@ -152,10 +152,9 @@ export function CytoscapeNetwork({
 
   return (
     <div style={{ position: 'relative', height }}>
-      {/* key={layout} forces a full remount when layout changes to avoid
-          stale internal Cytoscape layout state */}
+      {/* key includes colors so remount happens when settings change, guaranteeing fresh styles */}
       <CytoscapeComponent
-        key={layout}
+        key={`${layout}|${settings?.queryNodeColor ?? ''}|${settings?.interactorNodeColor ?? ''}|${settings?.publishedEdgeColor ?? ''}|${settings?.validatedEdgeColor ?? ''}|${settings?.verifiedEdgeColor ?? ''}|${settings?.literatureEdgeColor ?? ''}`}
         elements={elements}
         stylesheet={stylesheet}
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}
