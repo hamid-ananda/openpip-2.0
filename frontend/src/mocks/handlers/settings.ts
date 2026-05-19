@@ -2,7 +2,8 @@ import { http, HttpResponse } from 'msw'
 import { settingsFixture } from '../fixtures/settings'
 import type { AdminSettings } from '../../types/api'
 
-// Mutable state so PATCH updates are reflected in subsequent GET calls
+// Stateful so PATCH updates are reflected in GET within the same test run.
+// In the browser, browser.ts uses passthrough() for all requests instead.
 let currentSettings: AdminSettings = { ...settingsFixture }
 
 export const settingsHandlers = [
@@ -12,4 +13,6 @@ export const settingsHandlers = [
     currentSettings = { ...currentSettings, ...(body as object) }
     return HttpResponse.json(currentSettings)
   }),
+  http.post('/api/settings/logo', () => HttpResponse.json(currentSettings)),
+  http.delete('/api/settings/logo', () => HttpResponse.json(currentSettings)),
 ]
