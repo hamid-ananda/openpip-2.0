@@ -41,6 +41,7 @@ export function HomePage() {
         shortTitle={settings?.shortTitle ?? ''}
         proteins={counts?.proteins ?? 0}
         interactions={counts?.interactions ?? 0}
+        datasets={counts?.datasets ?? 0}
       />
 
       {/* Three ways to start */}

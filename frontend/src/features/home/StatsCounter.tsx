@@ -3,6 +3,7 @@ import { useCountUp } from '../../lib/useCountUp'
 interface StatsCounterProps {
   proteins: number
   interactions: number
+  datasets: number
   variant?: 'default' | 'hero'
 }
 
@@ -20,15 +21,16 @@ function Stat({ n, label }: { n: string; label: string }) {
   )
 }
 
-export function StatsCounter({ proteins, interactions }: StatsCounterProps) {
+export function StatsCounter({ proteins, interactions, datasets }: StatsCounterProps) {
   const animatedProteins = useCountUp(proteins)
   const animatedInteractions = useCountUp(interactions)
+  const animatedDatasets = useCountUp(datasets)
 
   return (
     <div style={{ display: 'flex', gap: 40 }}>
       <Stat n={animatedProteins.toLocaleString()} label="Proteins indexed" />
       <Stat n={animatedInteractions.toLocaleString()} label="Verified interactions" />
-      <Stat n="6" label="Source datasets" />
+      <Stat n={animatedDatasets.toLocaleString()} label="Source datasets" />
     </div>
   )
 }

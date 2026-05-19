@@ -6,6 +6,7 @@ from rest_framework import status
 
 from proteins.models import Protein
 from interactions.models import Interaction
+from datasets.models import Dataset
 from .models import AdminSettings, Announcement
 from .serializers import AdminSettingsSerializer, AnnouncementSerializer
 
@@ -125,5 +126,6 @@ class CountsView(APIView):
             {
                 "proteins": Protein.objects.count(),
                 "interactions": Interaction.objects.filter(removed="0").count(),
+                "datasets": Dataset.objects.count(),
             }
         )

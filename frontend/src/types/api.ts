@@ -37,6 +37,7 @@ export interface Announcement {
 export interface Counts {
   proteins: number
   interactions: number
+  datasets: number
 }
 
 export interface DatasetRef {

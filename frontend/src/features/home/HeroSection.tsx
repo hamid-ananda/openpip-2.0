@@ -6,6 +6,7 @@ interface HeroSectionProps {
   shortTitle: string
   proteins: number
   interactions: number
+  datasets: number
 }
 
 /* Static BAD interactome visualization — decorative, no data dependency */
@@ -132,7 +133,7 @@ function InteractomePreview() {
   )
 }
 
-export function HeroSection({ shortTitle, proteins, interactions }: HeroSectionProps) {
+export function HeroSection({ shortTitle, proteins, interactions, datasets }: HeroSectionProps) {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
 
@@ -213,7 +214,7 @@ export function HeroSection({ shortTitle, proteins, interactions }: HeroSectionP
             </button>
           </form>
 
-          <StatsCounter proteins={proteins} interactions={interactions} />
+          <StatsCounter proteins={proteins} interactions={interactions} datasets={datasets} />
         </div>
 
         {/* Right: live network preview */}
