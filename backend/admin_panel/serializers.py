@@ -41,7 +41,10 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
         source="query_node_color", allow_null=True, allow_blank=True, required=False
     )
     interactorNodeColor = serializers.CharField(
-        source="interactor_node_color", allow_null=True, allow_blank=True, required=False
+        source="interactor_node_color",
+        allow_null=True,
+        allow_blank=True,
+        required=False,
     )
     publishedEdgeColor = serializers.CharField(
         source="published_edge_color", allow_null=True, allow_blank=True, required=False
@@ -53,7 +56,10 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
         source="verified_edge_color", allow_null=True, allow_blank=True, required=False
     )
     literatureEdgeColor = serializers.CharField(
-        source="literature_edge_color", allow_null=True, allow_blank=True, required=False
+        source="literature_edge_color",
+        allow_null=True,
+        allow_blank=True,
+        required=False,
     )
     logoUrl = serializers.SerializerMethodField()
     navStyle = serializers.CharField(

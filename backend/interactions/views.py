@@ -8,7 +8,11 @@ from rest_framework.exceptions import PermissionDenied
 
 from proteins.models import Protein
 from core.models import UserInteractionNetwork
-from .models import InteractionCategory, InteractionNetwork, InteractionInteractionNetworks
+from .models import (
+    InteractionCategory,
+    InteractionNetwork,
+    InteractionInteractionNetworks,
+)
 from .search_service import execute_search, build_result_from_interaction_ids
 from .serializers import SaveNetworkInputSerializer, SavedNetworkListSerializer
 
@@ -84,9 +88,7 @@ class SavedNetworkListView(APIView):
         network_ids = UserInteractionNetwork.objects.filter(
             user=request.user
         ).values_list("interaction_network_id", flat=True)
-        networks = InteractionNetwork.objects.filter(
-            id__in=network_ids
-        ).order_by("-id")
+        networks = InteractionNetwork.objects.filter(id__in=network_ids).order_by("-id")
         serializer = SavedNetworkListSerializer(networks, many=True)
         return Response(serializer.data)
 
@@ -145,9 +147,7 @@ class SavedNetworkDetailView(APIView):
         interaction_ids = list(
             network.network_interactions.values_list("interaction_id", flat=True)
         )
-        result = build_result_from_interaction_ids(
-            interaction_ids, network.query or ""
-        )
+        result = build_result_from_interaction_ids(interaction_ids, network.query or "")
         return Response(
             {
                 "id": network.id,

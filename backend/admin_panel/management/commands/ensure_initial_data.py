@@ -9,7 +9,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if AdminSettings.objects.exists():
-            self.stdout.write("AdminSettings already populated — skipping fixture load.")
+            self.stdout.write(
+                "AdminSettings already populated — skipping fixture load."
+            )
             return
         self.stdout.write("No settings found — loading initial_data.json ...")
         call_command("loaddata", "admin_panel/fixtures/initial_data.json", verbosity=0)

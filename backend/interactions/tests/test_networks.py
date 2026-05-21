@@ -21,6 +21,7 @@ def _make_protein(gene_name: str):
 
 # ── Save (POST /networks) ─────────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_save_network_creates_db_rows(user_auth_client, regular_user):
     p1 = _make_protein("TP53")
@@ -85,12 +86,15 @@ def test_save_network_rejects_empty_interaction_ids(user_auth_client):
 
 # ── List (GET /networks) ──────────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_list_networks_returns_only_own(user_auth_client, regular_user, admin_user):
     my_net = InteractionNetwork.objects.create(name="My Net", query="TP53")
     UserInteractionNetwork.objects.create(user=regular_user, interaction_network=my_net)
     other_net = InteractionNetwork.objects.create(name="Other Net", query="BRCA1")
-    UserInteractionNetwork.objects.create(user=admin_user, interaction_network=other_net)
+    UserInteractionNetwork.objects.create(
+        user=admin_user, interaction_network=other_net
+    )
 
     resp = user_auth_client.get("/api/networks")
     assert resp.status_code == 200
@@ -109,6 +113,7 @@ def test_list_networks_requires_auth(api_client):
 
 # ── Load (GET /networks/<pk>) ─────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_load_network_returns_result_shape(user_auth_client, regular_user):
     p1 = _make_protein("TP53")
@@ -119,7 +124,9 @@ def test_load_network_returns_result_shape(user_auth_client, regular_user):
     InteractionInteractionNetworks.objects.create(
         interaction_network=network, interaction=ix
     )
-    UserInteractionNetwork.objects.create(user=regular_user, interaction_network=network)
+    UserInteractionNetwork.objects.create(
+        user=regular_user, interaction_network=network
+    )
 
     resp = user_auth_client.get(f"/api/networks/{network.id}")
     assert resp.status_code == 200
@@ -150,6 +157,7 @@ def test_load_network_404_for_missing(user_auth_client):
 
 # ── Delete (DELETE /networks/<pk>) ───────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_delete_network_removes_all_rows(user_auth_client, regular_user):
     p1 = _make_protein("TP53")
@@ -159,7 +167,9 @@ def test_delete_network_removes_all_rows(user_auth_client, regular_user):
     InteractionInteractionNetworks.objects.create(
         interaction_network=network, interaction=ix
     )
-    UserInteractionNetwork.objects.create(user=regular_user, interaction_network=network)
+    UserInteractionNetwork.objects.create(
+        user=regular_user, interaction_network=network
+    )
 
     resp = user_auth_client.delete(f"/api/networks/{network.id}")
     assert resp.status_code == 204

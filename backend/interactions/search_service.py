@@ -347,9 +347,9 @@ def build_result_from_interaction_ids(interaction_ids: list, query: str) -> dict
     for ap in ann_protein_links:
         ann = ap.annotation
         if ann.type_name:
-            annotations_by_protein.setdefault(ap.protein_id, {})[
-                ann.type_name
-            ] = ann.annotation or ""
+            annotations_by_protein.setdefault(ap.protein_id, {})[ann.type_name] = (
+                ann.annotation or ""
+            )
 
     non_query_proteins, query_proteins = [], []
     for pid, p in protein_map.items():
