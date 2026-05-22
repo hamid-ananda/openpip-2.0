@@ -383,8 +383,9 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
 
           {/* Tissue expression */}
           <div>
-            <label style={sectionLabelStyle}>Tissue expression</label>
+            <label htmlFor="tissue-filter" style={sectionLabelStyle}>Tissue expression</label>
             <select
+              id="tissue-filter"
               className="op-input"
               value={tissueFilter}
               onChange={(e) => setTissueFilter(e.target.value)}
