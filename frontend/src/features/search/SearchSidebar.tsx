@@ -433,7 +433,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: 'var(--primary)' }}
+                      style={{ fontSize: 12, color: 'var(--accent)' }}
                     >
                       {link.label}
                     </a>
@@ -442,7 +442,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                       key={link.id}
                       type="button"
                       onClick={() => link.onClick?.()}
-                      style={{ fontSize: 12, color: 'var(--primary)', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                      style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
                     >
                       {link.label}
                     </button>

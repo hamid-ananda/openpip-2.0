@@ -30,10 +30,12 @@ migration/legacy-schema/dev10.0_huri.sql
 *.sql.gz
 *.dump
 
-# Claude Code — personal/local only
-.claude/settings.local.json
-CLAUDE.local.md
-.claude/.credentials.json
+# Claude Code — excluded from repo
+.claude/
+CLAUDE.md
+**/CLAUDE.md
+docs/superpowers/
+graphify-out/
 
 # Other AI assistants
 .cursor/

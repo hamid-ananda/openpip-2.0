@@ -7,12 +7,10 @@ interface SearchDropdownProps {
 
 export function SearchDropdown({ currentTerm }: SearchDropdownProps) {
   const [open, setOpen] = useState(false)
-  // term is initialized from the prop; callers should remount via key when currentTerm changes
   const [term, setTerm] = useState(currentTerm)
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Close on click outside
   useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
@@ -24,7 +22,6 @@ export function SearchDropdown({ currentTerm }: SearchDropdownProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
-  // Close on Escape
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key === 'Escape') setOpen(false)
   }
@@ -43,32 +40,34 @@ export function SearchDropdown({ currentTerm }: SearchDropdownProps) {
   }
 
   return (
-    <div ref={containerRef} className="relative inline-block" onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="border border-gray-300 rounded px-3 py-1 text-sm hover:bg-gray-50"
-      >
+    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="op-btn" style={{ fontSize: 13 }}>
         Search
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded shadow-lg p-3 w-72">
+        <div style={{
+          position: 'absolute',
+          zIndex: 50,
+          marginTop: 4,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          boxShadow: 'var(--shadow-md)',
+          padding: 14,
+          width: 272,
+        }}>
           <input
             autoFocus
             type="text"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             onKeyDown={handleInputKeyDown}
-            placeholder="Search proteins…"
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-2"
+            placeholder="Gene symbol or UniProt ID"
+            className="op-input"
+            style={{ fontSize: 13, marginBottom: 8, fontFamily: 'var(--mono)' }}
           />
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="px-3 py-1 rounded text-sm"
-            style={{ background: 'var(--color-button)', color: '#fff' }}
-          >
+          <button type="button" onClick={handleSubmit} className="op-btn primary" style={{ fontSize: 13 }}>
             Search
           </button>
         </div>

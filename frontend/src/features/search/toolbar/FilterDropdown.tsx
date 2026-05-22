@@ -3,12 +3,47 @@ import Slider from 'rc-slider'
 import 'rc-slider/assets/index.css'
 import { useSearchStore } from '../searchStore'
 
-const FILTER_MODE_OPTIONS: { label: string; value: 'None' | 'query_query' | 'query_interactor' }[] =
-  [
-    { label: 'None', value: 'None' },
-    { label: 'Query-Query', value: 'query_query' },
-    { label: 'Query-Interactor', value: 'query_interactor' },
-  ]
+const FILTER_MODE_OPTIONS: { label: string; value: 'None' | 'query_query' | 'query_interactor' }[] = [
+  { label: 'None', value: 'None' },
+  { label: 'Query-Query', value: 'query_query' },
+  { label: 'Query-Interactor', value: 'query_interactor' },
+]
+
+const PANEL: React.CSSProperties = {
+  position: 'absolute',
+  zIndex: 50,
+  marginTop: 4,
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 6,
+  boxShadow: 'var(--shadow-md)',
+  padding: 14,
+  width: 272,
+}
+
+const SECTION: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: 'var(--text-soft)',
+  textTransform: 'uppercase',
+  letterSpacing: '.07em',
+  marginBottom: 8,
+}
+
+const LABEL: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  fontSize: 13,
+  color: 'var(--text)',
+  cursor: 'pointer',
+  marginBottom: 5,
+}
+
+const DIVIDER: React.CSSProperties = {
+  borderTop: '1px solid var(--border)',
+  margin: '10px 0',
+}
 
 export function FilterDropdown() {
   const [open, setOpen] = useState(false)
@@ -21,7 +56,6 @@ export function FilterDropdown() {
   const setScoreFilter = useSearchStore((s) => s.setScoreFilter)
   const setFilterMode = useSearchStore((s) => s.setFilterMode)
 
-  // Close on click outside
   useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
@@ -38,36 +72,34 @@ export function FilterDropdown() {
   }
 
   return (
-    <div ref={containerRef} className="relative inline-block" onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="border border-gray-300 rounded px-3 py-1 text-sm hover:bg-gray-50"
-      >
+    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="op-btn" style={{ fontSize: 13 }}>
         Filter
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded shadow-lg p-3 w-72">
+        <div style={PANEL}>
           {/* Category checkboxes */}
-          <div className="mb-3">
+          <div style={SECTION}>Interaction sources</div>
+          <div style={{ marginBottom: 10 }}>
             {Object.entries(categoryFilter).map(([name, checked]) => (
-              <label key={name} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+              <label key={name} style={LABEL}>
                 <input
                   type="checkbox"
                   checked={checked}
                   onChange={(e) => setCategoryFilter(name, e.target.checked)}
+                  style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
                 {name}
               </label>
             ))}
           </div>
 
-          <hr className="border-gray-200 mb-3" />
+          <div style={DIVIDER} />
 
           {/* Score filter */}
-          <div className="mb-3">
-            <div className="text-sm mb-2">Min Score: {scoreFilter.toFixed(2)}</div>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ ...SECTION, marginBottom: 10 }}>Min score: {scoreFilter.toFixed(2)}</div>
             <Slider
               min={0}
               max={1}
@@ -77,20 +109,21 @@ export function FilterDropdown() {
             />
           </div>
 
-          <hr className="border-gray-200 mb-3" />
+          <div style={DIVIDER} />
 
           {/* Filter mode */}
           <div>
-            <div className="text-sm font-medium mb-1">Filter Mode:</div>
-            <div className="flex gap-3">
+            <div style={SECTION}>Filter mode</div>
+            <div style={{ display: 'flex', gap: 16 }}>
               {FILTER_MODE_OPTIONS.map(({ label, value }) => (
-                <label key={value} className="flex items-center gap-1 text-sm cursor-pointer">
+                <label key={value} style={{ ...LABEL, marginBottom: 0 }}>
                   <input
                     type="radio"
                     name="filterMode"
                     value={value}
                     checked={filterMode === value}
                     onChange={() => setFilterMode(value)}
+                    style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                   />
                   {label}
                 </label>

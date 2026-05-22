@@ -5,18 +5,17 @@ export function DownloadAuthModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
   return (
     <Modal title="Login Required" onClose={onClose}>
-      <p className="text-gray-600 mb-4">You must be logged in to download interaction data.</p>
-      <div className="flex gap-3 justify-end">
-        <button onClick={onClose} className="px-4 py-2 border rounded text-sm">
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+        You must be logged in to download interaction data.
+      </p>
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} className="op-btn" style={{ fontSize: 13 }}>
           Cancel
         </button>
         <button
-          onClick={() => {
-            onClose()
-            navigate('/login')
-          }}
-          className="px-4 py-2 rounded text-sm text-white"
-          style={{ background: 'var(--color-button)' }}
+          onClick={() => { onClose(); navigate('/login') }}
+          className="op-btn primary"
+          style={{ fontSize: 13 }}
         >
           Log In
         </button>

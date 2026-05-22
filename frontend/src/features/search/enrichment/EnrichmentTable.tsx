@@ -12,7 +12,7 @@ const TH: React.CSSProperties = {
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '.07em',
-  color: 'var(--text-soft)',
+  color: 'var(--text-muted)',
   background: 'var(--surface-2)',
   borderBottom: '1px solid var(--border)',
   whiteSpace: 'nowrap',
@@ -65,8 +65,8 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
   }
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+    <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
+      <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
         <thead>
           <tr>
             <th style={TH}>Term ID</th>
@@ -74,7 +74,7 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
             <th style={TH}>p-value</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody style={{ background: 'var(--bg)' }}>
           {rows.map((term) => (
             <tr
               key={term.term_id}
@@ -87,7 +87,7 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
                   href={termUrl(term.term_id, source)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: 'var(--primary)' }}
+                  style={{ color: 'var(--accent)' }}
                 >
                   {term.term_id}
                 </a>

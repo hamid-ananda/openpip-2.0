@@ -157,13 +157,13 @@ export function CytoscapeNetwork({
   const graphKey = `${layout}-${Object.values(palette).join('-')}`
 
   return (
-    <div style={{ position: 'relative', height }}>
+    <div style={{ position: 'relative', height, background: 'var(--bg)' }}>
       <CytoscapeComponent
         key={graphKey}
         elements={elements}
         stylesheet={STYLESHEET}
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}
-        style={{ width: '100%', height }}
+        style={{ width: '100%', height, background: 'var(--bg)' }}
         cy={(cy) => {
           if (cyRef.current === cy) return
           cyRef.current = cy

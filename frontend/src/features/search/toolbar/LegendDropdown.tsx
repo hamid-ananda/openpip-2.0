@@ -1,18 +1,17 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 
 const EDGE_LEGEND: { color: string; label: string }[] = [
-  { color: '#0000ff', label: 'Published' },
-  { color: '#00aa00', label: 'Validated' },
-  { color: '#aa00aa', label: 'Verified' },
-  { color: '#ff0000', label: 'Literature' },
-  { color: '#ff55dd', label: 'Mixed' },
+  { color: 'var(--hi-union)',   label: 'Published' },
+  { color: 'var(--huri-lit)',   label: 'Validated' },
+  { color: 'var(--danger)',     label: 'Verified' },
+  { color: 'var(--literature)', label: 'Literature' },
+  { color: 'var(--accent)',     label: 'Mixed' },
 ]
 
 export function LegendDropdown() {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Close on click outside
   useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
@@ -28,62 +27,59 @@ export function LegendDropdown() {
     if (e.key === 'Escape') setOpen(false)
   }
 
+  const sectionLabel: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--text-soft)',
+    textTransform: 'uppercase',
+    letterSpacing: '.07em',
+    marginBottom: 8,
+  }
+
+  const legendRow: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 13,
+    color: 'var(--text)',
+    marginBottom: 5,
+  }
+
   return (
-    <div ref={containerRef} className="relative inline-block" onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="border border-gray-300 rounded px-3 py-1 text-sm hover:bg-gray-50"
-      >
+    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="op-btn" style={{ fontSize: 13 }}>
         Legend
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded shadow-lg p-3 w-52">
-          <div className="text-sm font-medium mb-2">Edge Colors</div>
+        <div style={{
+          position: 'absolute',
+          zIndex: 50,
+          marginTop: 4,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          boxShadow: 'var(--shadow-md)',
+          padding: 14,
+          width: 208,
+        }}>
+          <div style={sectionLabel}>Edge colors</div>
           {EDGE_LEGEND.map(({ color, label }) => (
-            <div key={label} className="flex items-center gap-2 text-sm mb-1">
-              <span
-                style={{
-                  background: color,
-                  width: 12,
-                  height: 12,
-                  display: 'inline-block',
-                  borderRadius: '50%',
-                  flexShrink: 0,
-                }}
-              />
+            <div key={label} style={legendRow}>
+              <span style={{ background: color, width: 24, height: 3, borderRadius: 2, display: 'inline-block', flexShrink: 0 }} />
               {label}
             </div>
           ))}
 
-          <hr className="border-gray-200 my-2" />
+          <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0' }} />
 
-          <div className="text-sm font-medium mb-2">Node Colors</div>
-          <div className="flex items-center gap-2 text-sm mb-1">
-            <span
-              style={{
-                background: 'var(--color-query-node)',
-                width: 12,
-                height: 12,
-                display: 'inline-block',
-                borderRadius: '50%',
-                flexShrink: 0,
-              }}
-            />
+          <div style={sectionLabel}>Node colors</div>
+          <div style={legendRow}>
+            <span style={{ background: 'var(--color-query-node)', width: 10, height: 10, display: 'inline-block', borderRadius: '50%', flexShrink: 0 }} />
             Query protein
           </div>
-          <div className="flex items-center gap-2 text-sm mb-1">
-            <span
-              style={{
-                background: 'var(--color-interactor-node)',
-                width: 12,
-                height: 12,
-                display: 'inline-block',
-                borderRadius: '50%',
-                flexShrink: 0,
-              }}
-            />
+          <div style={legendRow}>
+            <span style={{ background: 'var(--color-interactor-node)', width: 10, height: 10, display: 'inline-block', borderRadius: '50%', flexShrink: 0 }} />
             Interactor protein
           </div>
         </div>

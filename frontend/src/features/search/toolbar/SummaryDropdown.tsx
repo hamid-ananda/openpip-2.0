@@ -10,7 +10,6 @@ export function SummaryDropdown() {
   const allProteins = useSearchStore((s) => s.allProteins)
   const allInteractions = useSearchStore((s) => s.allInteractions)
 
-  // Close on click outside
   useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
@@ -26,37 +25,45 @@ export function SummaryDropdown() {
     if (e.key === 'Escape') setOpen(false)
   }
 
+  const row: React.CSSProperties = { fontSize: 13, color: 'var(--text)', marginBottom: 6 }
+  const label: React.CSSProperties = { fontWeight: 600 }
+
   return (
-    <div ref={containerRef} className="relative inline-block" onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="border border-gray-300 rounded px-3 py-1 text-sm hover:bg-gray-50"
-      >
+    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="op-btn" style={{ fontSize: 13 }}>
         Summary
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded shadow-lg p-3 w-72">
-          <div className="text-sm font-medium mb-2">Summary</div>
+        <div style={{
+          position: 'absolute',
+          zIndex: 50,
+          marginTop: 4,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          boxShadow: 'var(--shadow-md)',
+          padding: 14,
+          width: 272,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>
+            Summary
+          </div>
 
-          <div className="text-sm mb-1">
-            <span className="font-medium">Found: </span>
+          <div style={row}>
+            <span style={label}>Found: </span>
             <span dangerouslySetInnerHTML={{ __html: foundSummary }} />
           </div>
-
-          <div className="text-sm mb-1">
-            <span className="font-medium">Not found: </span>
+          <div style={row}>
+            <span style={label}>Not found: </span>
             {unfoundSummary || '—'}
           </div>
-
-          <div className="text-sm mb-1">
-            <span className="font-medium">Total proteins: </span>
+          <div style={row}>
+            <span style={label}>Total proteins: </span>
             {allProteins.length}
           </div>
-
-          <div className="text-sm">
-            <span className="font-medium">Total interactions: </span>
+          <div style={{ ...row, marginBottom: 0 }}>
+            <span style={label}>Total interactions: </span>
             {allInteractions.length}
           </div>
         </div>

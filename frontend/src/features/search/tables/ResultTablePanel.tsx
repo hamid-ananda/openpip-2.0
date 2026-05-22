@@ -6,6 +6,24 @@ import { InteractorsTable } from './InteractorsTable'
 
 type Tab = 'interactions' | 'interactors'
 
+const TAB_BTN = (isActive: boolean): React.CSSProperties => ({
+  padding: '10px 20px',
+  fontSize: 13,
+  backgroundColor: isActive ? 'var(--primary-soft)' : 'transparent',
+  border: 'none',
+  borderBottom: isActive ? '2px solid var(--primary-deep)' : '2px solid transparent',
+  marginBottom: -1,
+  color: isActive ? 'var(--primary-deep)' : 'var(--text)',
+  cursor: 'pointer',
+  fontWeight: isActive ? 600 : 400,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 7,
+  transition: 'color .15s',
+  outline: 'none',
+  flexShrink: 0,
+})
+
 export function ResultTablePanel() {
   const {
     allProteins,
@@ -35,33 +53,41 @@ export function ResultTablePanel() {
 
   return (
     <div>
-      {/* Tab bar */}
-      <div className="flex border-b border-gray-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm ${
-              activeTab === tab.id
-                ? 'border-b-2 font-medium'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            style={
-              activeTab === tab.id
-                ? { borderColor: 'var(--color-main)', color: 'var(--color-main)' }
-                : undefined
-            }
-          >
-            {tab.label}
-            <span className="ml-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-              {tab.count}
-            </span>
-          </button>
-        ))}
+      {/* Tab bar — sits on its own surface so it reads clearly against the page */}
+      <div style={{
+        display: 'flex',
+        borderTop: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--surface)',
+        paddingLeft: 8,
+      }}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              style={TAB_BTN(isActive)}
+            >
+              {tab.label}
+              <span style={{
+                fontSize: 11,
+                fontWeight: 600,
+                backgroundColor: isActive ? 'var(--primary-soft)' : 'var(--surface-2)',
+                color: isActive ? 'var(--primary-deep)' : 'var(--text-muted)',
+                borderRadius: 10,
+                padding: '1px 7px',
+              }}>
+                {tab.count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Tab content */}
-      <div className="mt-4">
+      {/* Table content */}
+      <div style={{ background: 'var(--bg)', padding: '0' }}>
         {activeTab === 'interactions' ? (
           <InteractionsTable interactions={interactions} proteins={proteins} />
         ) : (

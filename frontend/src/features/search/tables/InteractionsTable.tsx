@@ -15,26 +15,35 @@ interface InteractionsTableProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Published: 'bg-blue-100 text-blue-800',
-  Validated: 'bg-green-100 text-green-800',
-  Verified: 'bg-purple-100 text-purple-800',
-  Literature: 'bg-red-100 text-red-800',
-  Mixed: 'bg-pink-100 text-pink-800',
+  Published: 'var(--hi-union)',
+  Validated: 'var(--huri-lit)',
+  Verified: 'var(--danger)',
+  Literature: 'var(--literature)',
+  Mixed: 'var(--accent)',
 }
 
 function CategoryBadge({ status }: { status: string }) {
-  const colorClass = CATEGORY_COLORS[status] ?? 'bg-gray-100 text-gray-800'
+  const color = CATEGORY_COLORS[status] ?? 'var(--text-muted)'
   return (
-    <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${colorClass}`}>
+    <span style={{
+      display: 'inline-block',
+      borderRadius: 4,
+      padding: '1px 7px',
+      fontSize: 11,
+      fontWeight: 600,
+      background: 'var(--surface-2)',
+      color,
+      border: '1px solid var(--border)',
+    }}>
       {status}
     </span>
   )
 }
 
 function SortIcon({ isSorted }: { isSorted: false | 'asc' | 'desc' }) {
-  if (isSorted === 'asc') return <span className="ml-1">↑</span>
-  if (isSorted === 'desc') return <span className="ml-1">↓</span>
-  return <span className="ml-1 text-gray-300">⇅</span>
+  if (isSorted === 'asc') return <span style={{ marginLeft: 4 }}>↑</span>
+  if (isSorted === 'desc') return <span style={{ marginLeft: 4 }}>↓</span>
+  return <span style={{ marginLeft: 4, color: 'var(--border-strong)' }}>⇅</span>
 }
 
 const columns: ColumnDef<Interaction>[] = [
@@ -54,7 +63,9 @@ const columns: ColumnDef<Interaction>[] = [
     cell: ({ getValue }) => {
       const val = getValue<number | null>()
       return (
-        <span className="block text-right">{val?.toFixed(2) ?? '—'}</span>
+        <span style={{ display: 'block', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12 }}>
+          {val?.toFixed(2) ?? '—'}
+        </span>
       )
     },
   },
@@ -70,6 +81,20 @@ const columns: ColumnDef<Interaction>[] = [
     header: 'Datasets',
   },
 ]
+
+const TH_BASE: React.CSSProperties = {
+  padding: '10px 16px',
+  textAlign: 'left',
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '.07em',
+  color: 'var(--text-muted)',
+  userSelect: 'none',
+  background: 'var(--surface-2)',
+  borderBottom: '1px solid var(--border)',
+  whiteSpace: 'nowrap',
+}
 
 export function InteractionsTable({ interactions }: InteractionsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -91,19 +116,19 @@ export function InteractionsTable({ interactions }: InteractionsTableProps) {
   const currentPage = pageIndex + 1
 
   return (
-    <div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+    <div style={{ background: 'var(--bg)' }}>
+      <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
+        <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
+          <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
-                    className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 select-none ${
-                      header.column.getCanSort() ? 'cursor-pointer hover:bg-gray-100' : ''
-                    }`}
+                    style={{ ...TH_BASE, cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                    onMouseEnter={(e) => { if (header.column.getCanSort()) e.currentTarget.style.background = 'var(--border)' }}
+                    onMouseLeave={(e) => { if (header.column.getCanSort()) e.currentTarget.style.background = 'var(--surface-2)' }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     <SortIcon isSorted={header.column.getIsSorted()} />
@@ -112,18 +137,26 @@ export function InteractionsTable({ interactions }: InteractionsTableProps) {
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-gray-100 bg-white">
+          <tbody style={{ background: 'var(--bg)' }}>
             {table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-6 text-center text-gray-400">
+                <td
+                  colSpan={columns.length}
+                  style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}
+                >
                   No interactions to display.
                 </td>
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50">
+                <tr
+                  key={row.id}
+                  style={{ borderBottom: '1px solid var(--border)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-2 text-gray-800">
+                    <td key={cell.id} style={{ padding: '8px 16px', color: 'var(--text)' }}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -135,26 +168,27 @@ export function InteractionsTable({ interactions }: InteractionsTableProps) {
       </div>
 
       {pageCount > 1 && (
-        <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)' }}>
           <span>
-            {totalRows} interaction{totalRows !== 1 ? 's' : ''} — showing page {currentPage} of{' '}
-            {pageCount} ({pageSize} per page)
+            {totalRows} interaction{totalRows !== 1 ? 's' : ''} — page {currentPage} of {pageCount} ({pageSize} per page)
           </span>
-          <div className="flex gap-2">
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+              className="op-btn"
+              style={{ fontSize: 12, padding: '5px 12px' }}
             >
               Previous
             </button>
-            <span className="px-2 py-1">
-              Page {currentPage} of {pageCount}
+            <span style={{ padding: '0 4px', color: 'var(--text-muted)', fontSize: 12 }}>
+              {currentPage} / {pageCount}
             </span>
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-100"
+              className="op-btn"
+              style={{ fontSize: 12, padding: '5px 12px' }}
             >
               Next
             </button>

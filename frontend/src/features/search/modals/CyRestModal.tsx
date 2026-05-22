@@ -27,24 +27,26 @@ export function CyRestModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Open in Cytoscape" onClose={onClose}>
-      <p className="text-gray-600 mb-2">
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
         The network can be imported into Cytoscape Desktop via its REST API (CyREST).
       </p>
-      <p className="text-gray-600 mb-4">
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
         Make sure Cytoscape is running on your computer, then click &quot;Import&quot;.
       </p>
-      {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-      <div className="flex gap-3 justify-end">
-        <button onClick={onClose} className="px-4 py-2 border rounded text-sm">
+      {error && (
+        <p style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 16 }}>{error}</p>
+      )}
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} className="op-btn" style={{ fontSize: 13 }}>
           Cancel
         </button>
         <button
           onClick={handleImport}
           disabled={loading}
-          className="px-4 py-2 rounded text-sm text-white disabled:opacity-50"
-          style={{ background: 'var(--color-button)' }}
+          className="op-btn primary"
+          style={{ fontSize: 13 }}
         >
-          {loading ? 'Importing...' : 'Import'}
+          {loading ? 'Importing…' : 'Import'}
         </button>
       </div>
     </Modal>

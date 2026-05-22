@@ -7,7 +7,14 @@ import { ExternalLinksDropdown } from './ExternalLinksDropdown'
 
 export function NetworkToolbar() {
   return (
-    <div className="flex flex-wrap gap-2 py-2 relative">
+    <div style={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 6,
+      padding: '8px 12px',
+      background: 'var(--surface)',
+      borderBottom: '1px solid var(--border)',
+    }}>
       <FilterDropdown />
       <LayoutDropdown />
       <DownloadDropdown />

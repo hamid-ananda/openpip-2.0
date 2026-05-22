@@ -16,7 +16,7 @@ const MAX_NETWORK_H = window.innerHeight - 56 - 120
 // ─── Node info popup — matches legacy protein popup ────────────────────────
 
 const SECTION = { fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 6, marginTop: 14 }
-const EXT_LINK = { fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }
+const EXT_LINK = { fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }
 
 interface NodeInfoPanelProps {
   protein: Protein
@@ -332,7 +332,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
       <SearchSidebar key={term} term={term} visibleInteractionIds={visibleInteractionIds} />
 
       {/* Main — scrolls vertically */}
-      <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
+      <main style={{ flex: 1, overflowY: 'auto', minWidth: 0, background: 'var(--bg)' }}>
         {renderMain()}
       </main>
     </div>

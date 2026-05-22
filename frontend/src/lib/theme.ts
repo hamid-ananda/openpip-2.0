@@ -10,11 +10,11 @@ function hexToRgb(hex: string): [number, number, number] | null {
   return [r, g, b]
 }
 
-function mixWithWhite(hex: string, amount: number): string {
+function mixWith(hex: string, target: number, amount: number): string {
   const rgb = hexToRgb(hex)
   if (!rgb) return hex
   const [r, g, b] = rgb
-  const mix = (c: number) => Math.round(c * amount + 255 * (1 - amount))
+  const mix = (c: number) => Math.round(c * amount + target * (1 - amount))
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
 }
 
@@ -26,18 +26,27 @@ function darken(hex: string, factor: number): string {
   return `rgb(${d(r)}, ${d(g)}, ${d(b)})`
 }
 
+function lighten(hex: string, factor: number): string {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return hex
+  const [r, g, b] = rgb
+  const l = (c: number) => Math.round(c + (255 - c) * factor)
+  return `rgb(${l(r)}, ${l(g)}, ${l(b)})`
+}
+
 export function injectCSSVars(settings: AdminSettings): void {
   const root = document.documentElement
+  const isDark = root.dataset.theme === 'dark'
 
   const primary  = settings.mainColorScheme  || '#2563eb'
   const primary2 = settings.mainColorScheme2 || '#0ea5e9'
   const angle    = settings.gradientAngle    ?? 135
   const style    = settings.navStyle         || 'solid'
 
-  // Primary brand color + derived shades
+  // Primary brand color + derived shades — dark mode needs lighter/darker inverted values
   root.style.setProperty('--primary',      primary)
-  root.style.setProperty('--primary-soft', mixWithWhite(primary, 0.14))
-  root.style.setProperty('--primary-deep', darken(primary, 0.25))
+  root.style.setProperty('--primary-soft', isDark ? mixWith(primary, 0, 0.14)   : mixWith(primary, 255, 0.14))
+  root.style.setProperty('--primary-deep', isDark ? lighten(primary, 0.50)      : darken(primary, 0.25))
 
   // Header background — solid, gradient, or light (white)
   let navBg: string

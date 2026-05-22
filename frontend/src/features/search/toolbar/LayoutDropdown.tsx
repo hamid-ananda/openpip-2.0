@@ -18,7 +18,6 @@ export function LayoutDropdown() {
   const selectedLayout = useSearchStore((s) => s.selectedLayout)
   const setLayout = useSearchStore((s) => s.setLayout)
 
-  // Close on click outside
   useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
@@ -40,26 +39,35 @@ export function LayoutDropdown() {
   }
 
   return (
-    <div ref={containerRef} className="relative inline-block" onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="border border-gray-300 rounded px-3 py-1 text-sm hover:bg-gray-50"
-      >
+    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="op-btn" style={{ fontSize: 13 }}>
         Layout
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded shadow-lg p-3 w-56">
-          <div className="text-sm font-medium mb-2">Layout</div>
+        <div style={{
+          position: 'absolute',
+          zIndex: 50,
+          marginTop: 4,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          boxShadow: 'var(--shadow-md)',
+          padding: 14,
+          width: 224,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>
+            Layout
+          </div>
           {LAYOUT_OPTIONS.map(({ value, label }) => (
-            <label key={value} className="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+            <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text)', cursor: 'pointer', marginBottom: 5 }}>
               <input
                 type="radio"
                 name="layoutOption"
                 value={value}
                 checked={selectedLayout === value}
                 onChange={() => handleSelect(value)}
+                style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
               />
               {label}
             </label>
