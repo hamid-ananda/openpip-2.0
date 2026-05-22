@@ -98,7 +98,7 @@ def _build_interaction_dict(
     # Interaction annotation_array: {type_name: [json_string, ...]} — list per type
     annotation_array = {}
     experiment_array = []
-    for ann in annotations_by_interaction.get(ix.id, []):
+    for ann in annotations_by_interaction.get(str(ix.id), []):
         if ann.type_name == "experiment":
             experiment_array.append(ann.annotation or "")
         elif ann.type_name:
