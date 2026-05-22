@@ -4,7 +4,6 @@ import { useDarkMode } from '../store/darkModeStore'
 
 interface NavbarProps {
   isLoggedIn: boolean
-  isAdmin?: boolean
 }
 
 const publicLinks = [
@@ -14,13 +13,6 @@ const publicLinks = [
   { to: '/about', label: 'About', end: false },
   { to: '/faq', label: 'FAQ', end: false },
   { to: '/contact', label: 'Contact', end: false },
-]
-
-const adminLinks = [
-  { to: '/admin/announcement', label: 'Announcements', end: false },
-  { to: '/admin/data', label: 'Data', end: false },
-  { to: '/admin/files', label: 'Files', end: false },
-  { to: '/admin/settings', label: 'Settings', end: false },
 ]
 
 const linkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
@@ -36,7 +28,7 @@ const linkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => 
   display: 'inline-block',
 })
 
-export function Navbar({ isLoggedIn, isAdmin = false }: NavbarProps) {
+export function Navbar({ isLoggedIn }: NavbarProps) {
   const logout = useLogout()
   const { dark, toggle } = useDarkMode()
 
@@ -56,11 +48,6 @@ export function Navbar({ isLoggedIn, isAdmin = false }: NavbarProps) {
         }}
       >
         {publicLinks.map((link) => (
-          <NavLink key={link.to} to={link.to} style={linkStyle} end={link.end}>
-            {link.label}
-          </NavLink>
-        ))}
-        {isAdmin && adminLinks.map((link) => (
           <NavLink key={link.to} to={link.to} style={linkStyle} end={link.end}>
             {link.label}
           </NavLink>
