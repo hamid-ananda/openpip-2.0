@@ -28,4 +28,18 @@ describe('Navbar', () => {
     expect(screen.getByRole('link', { name: /profile/i })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /login/i })).not.toBeInTheDocument()
   })
+
+  it('shows admin nav links when isAdmin is true', () => {
+    wrap(<Navbar isLoggedIn={true} isAdmin={true} />)
+    expect(screen.getByRole('link', { name: /announcements/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /data/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /files/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
+  })
+
+  it('hides admin nav links when isAdmin is false', () => {
+    wrap(<Navbar isLoggedIn={true} isAdmin={false} />)
+    expect(screen.queryByRole('link', { name: /announcements/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /settings/i })).not.toBeInTheDocument()
+  })
 })
