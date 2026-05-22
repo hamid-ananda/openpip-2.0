@@ -6,6 +6,8 @@ import tempfile
 import time
 import zipfile
 
+from celery.result import AsyncResult
+
 from django.db.models import Count, OuterRef, Subquery
 from django.http import FileResponse, Http404, StreamingHttpResponse
 from rest_framework import status
@@ -19,6 +21,7 @@ from proteins.models import Identifier
 from .models import Dataset
 from .serializers import DatasetSerializer
 from .upload_parser import parse_and_ingest, fast_preview, process_line_batch
+from .tasks import import_dataset_task
 
 logger = logging.getLogger(__name__)
 
@@ -345,4 +348,67 @@ class DatasetDeleteView(APIView):
         return Response(
             {"orphaned_interactions_deleted": orphaned_deleted},
             status=status.HTTP_200_OK,
+        )
+
+
+class AsyncImportView(APIView):
+    permission_classes = [IsAdminUser]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        file_obj = request.FILES.get("file")
+        if not file_obj:
+            return Response(
+                {"detail": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        dataset_name = request.data.get("dataset_name", "").strip()
+        if not dataset_name:
+            return Response(
+                {"detail": "dataset_name required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        interaction_status = request.data.get("interaction_status", "published")
+        category_id_raw = request.data.get("category_id")
+        category_id = int(category_id_raw) if category_id_raw else None
+
+        text = file_obj.read().decode("utf-8", errors="replace")
+        lines = [
+            line
+            for line in text.splitlines()
+            if line.strip() and not line.startswith("#")
+        ]
+
+        task = import_dataset_task.delay(
+            lines, dataset_name, interaction_status, category_id
+        )
+        return Response({"task_id": task.id}, status=status.HTTP_202_ACCEPTED)
+
+
+class AsyncImportStatusView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, task_id: str):
+        result = AsyncResult(task_id)
+        state = result.state
+
+        if state == "SUCCESS":
+            data = result.result or {}
+        elif state == "FAILURE":
+            data = {"error": str(result.info)}
+        elif state in ("PROGRESS", "STARTED"):
+            data = result.info or {}
+        else:
+            data = {}
+
+        return Response(
+            {
+                "task_id": task_id,
+                "status": state,
+                "progress": data.get("progress", 0),
+                "proteins_created": data.get("proteins_created", 0),
+                "interactions_created": data.get("interactions_created", 0),
+                "interactions_skipped": data.get("interactions_skipped", 0),
+                "errors": data.get("errors", []),
+            }
         )

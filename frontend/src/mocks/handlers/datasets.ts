@@ -34,4 +34,18 @@ export const datasetHandlers = [
   http.post('/api/datasets/check-proteins', () => HttpResponse.json({ existing: 5 })),
   http.post('/api/datasets/upload-rows', () => HttpResponse.json(uploadFixture, { status: 201 })),
   http.delete('/api/datasets/:id', () => new HttpResponse(null, { status: 204 })),
+  http.post('/api/datasets/import-async', () =>
+    HttpResponse.json({ task_id: 'test-task-123' }, { status: 202 })
+  ),
+  http.get('/api/datasets/import-async/:taskId', () =>
+    HttpResponse.json({
+      task_id: 'test-task-123',
+      status: 'SUCCESS',
+      progress: 100,
+      proteins_created: 10,
+      interactions_created: 20,
+      interactions_skipped: 2,
+      errors: [],
+    })
+  ),
 ]

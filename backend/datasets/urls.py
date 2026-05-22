@@ -9,6 +9,8 @@ from .views import (
     DatasetDeleteView,
     ProteinCheckView,
     UploadView,
+    AsyncImportView,
+    AsyncImportStatusView,
 )
 from .file_views import (
     FileListView,
@@ -31,4 +33,6 @@ urlpatterns = [
     path("files/<int:pk>", FileDetailView.as_view()),
     path("files/<int:pk>/download", FileDownloadView.as_view()),
     path("files/public", PublicFileListView.as_view()),
+    path("datasets/import-async", AsyncImportView.as_view()),
+    path("datasets/import-async/<str:task_id>", AsyncImportStatusView.as_view()),
 ]

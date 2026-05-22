@@ -577,8 +577,6 @@ function Step3({ state, onBack, onNext }: Step3Props) {
 // Step 4 — final upload
 // ─────────────────────────────────────────────────────────
 
-const IMPORT_BATCH = 300
-
 interface ImportTotals {
   proteins_created: number
   interactions_created: number
@@ -586,42 +584,32 @@ interface ImportTotals {
   errors: { row: number; reason: string }[]
 }
 
-async function runBatchedImport(
+interface AsyncImportStatus {
+  task_id: string
+  status: string
+  progress: number
+  proteins_created: number
+  interactions_created: number
+  interactions_skipped: number
+  errors: { row: number; reason: string }[]
+}
+
+async function startAsyncImport(
   file: File,
   meta: { dataset_name: string; interaction_status: string; category_id: string },
-  onProgress: (p: number, totals: ImportTotals) => void,
-  onDone: (totals: ImportTotals) => void,
-  onError: (msg: string) => void,
-) {
-  try {
-    const text = await file.text()
-    const dataLines = text.split('\n').filter((l) => l.trim() && !l.startsWith('#'))
-    const batches: string[][] = []
-    for (let i = 0; i < dataLines.length; i += IMPORT_BATCH)
-      batches.push(dataLines.slice(i, i + IMPORT_BATCH))
-    if (batches.length === 0) { onDone({ proteins_created: 0, interactions_created: 0, interactions_skipped: 0, errors: [] }); return }
+): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('dataset_name', meta.dataset_name)
+  form.append('interaction_status', meta.interaction_status)
+  if (meta.category_id) form.append('category_id', meta.category_id)
+  const res = await apiClient.post<{ task_id: string }>('/datasets/import-async', form)
+  return res.data.task_id
+}
 
-    const totals: ImportTotals = { proteins_created: 0, interactions_created: 0, interactions_skipped: 0, errors: [] }
-
-    for (let i = 0; i < batches.length; i++) {
-      const res = await apiClient.post<DatasetPreviewResult>('/datasets/upload-rows', {
-        lines: batches[i],
-        dataset_name: meta.dataset_name,
-        interaction_status: meta.interaction_status,
-        category_id: meta.category_id || null,
-        is_last_batch: i === batches.length - 1,
-      })
-      totals.proteins_created += res.data.proteins_created
-      totals.interactions_created += res.data.interactions_created
-      totals.interactions_skipped += res.data.interactions_skipped
-      if (res.data.errors?.length) totals.errors.push(...res.data.errors)
-      onProgress(Math.round(((i + 1) / batches.length) * 100), { ...totals })
-    }
-
-    onDone({ ...totals })
-  } catch (e: unknown) {
-    onError(e instanceof Error ? e.message : 'Unknown error')
-  }
+async function pollImportStatus(taskId: string): Promise<AsyncImportStatus> {
+  const res = await apiClient.get<AsyncImportStatus>(`/datasets/import-async/${taskId}`)
+  return res.data
 }
 
 interface Step4Props {
@@ -632,6 +620,7 @@ interface Step4Props {
 function Step4({ state, onReset }: Step4Props) {
   const queryClient = useQueryClient()
   const hasRun = useRef(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [progress, setProgress] = useState(0)
   const [totals, setTotals] = useState<ImportTotals>({ proteins_created: 0, interactions_created: 0, interactions_skipped: 0, errors: [] })
   const [done, setDone] = useState(false)
@@ -641,18 +630,38 @@ function Step4({ state, onReset }: Step4Props) {
     if (hasRun.current) return
     hasRun.current = true
     if (!state.file) return
-    runBatchedImport(
+
+    startAsyncImport(
       state.file,
       { dataset_name: state.datasetName, interaction_status: state.interactionStatus, category_id: state.categoryId },
-      (p, t) => { setProgress(p); setTotals(t) },
-      (t) => {
-        setTotals(t)
-        setDone(true)
-        queryClient.invalidateQueries({ queryKey: ['datasets'] })
-        queryClient.invalidateQueries({ queryKey: ['counts'] })
-      },
-      setError,
-    )
+    ).then((taskId) => {
+      pollRef.current = setInterval(async () => {
+        try {
+          const s = await pollImportStatus(taskId)
+          setProgress(s.progress)
+          setTotals({
+            proteins_created: s.proteins_created,
+            interactions_created: s.interactions_created,
+            interactions_skipped: s.interactions_skipped,
+            errors: s.errors,
+          })
+          if (s.status === 'SUCCESS') {
+            clearInterval(pollRef.current!)
+            setDone(true)
+            queryClient.invalidateQueries({ queryKey: ['datasets'] })
+            queryClient.invalidateQueries({ queryKey: ['counts'] })
+          } else if (s.status === 'FAILURE') {
+            clearInterval(pollRef.current!)
+            setError('Import failed on the server.')
+          }
+        } catch (e) {
+          clearInterval(pollRef.current!)
+          setError(e instanceof Error ? e.message : 'Unknown error')
+        }
+      }, 1000)
+    }).catch((e) => setError(e instanceof Error ? e.message : 'Unknown error'))
+
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPending = !done && !error
