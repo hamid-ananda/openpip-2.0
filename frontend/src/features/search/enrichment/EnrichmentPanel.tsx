@@ -1,52 +1,53 @@
 import { useState } from 'react'
-import { GOEnrichmentTable } from './GOEnrichmentTable'
-import { PathwayEnrichmentTable } from './PathwayEnrichmentTable'
-import { ComplexEnrichmentTable } from './ComplexEnrichmentTable'
+import { EnrichmentTable } from './EnrichmentTable'
+import type { EnrichmentSource } from '../../../api/enrichment'
 
 interface EnrichmentPanelProps {
   geneNames: string[]
 }
 
-type Tab = 'go' | 'pathways' | 'complexes'
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'go', label: 'Gene Ontology' },
-  { id: 'pathways', label: 'Pathways' },
-  { id: 'complexes', label: 'Protein Complexes' },
+const TABS: { id: EnrichmentSource; label: string }[] = [
+  { id: 'GO:MF', label: 'Molecular Function' },
+  { id: 'GO:BP', label: 'Biological Process' },
+  { id: 'GO:CC', label: 'Cellular Component' },
+  { id: 'REAC', label: 'Reactome' },
+  { id: 'CORUM', label: 'CORUM' },
+  { id: 'KEGG', label: 'KEGG' },
 ]
 
 export function EnrichmentPanel({ geneNames }: EnrichmentPanelProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('go')
+  const [activeTab, setActiveTab] = useState<EnrichmentSource>('GO:MF')
 
   return (
-    <div>
-      {/* Tab bar */}
-      <div className="flex border-b border-gray-200">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm ${
-              activeTab === tab.id
-                ? 'border-b-2 font-medium'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            style={
-              activeTab === tab.id
-                ? { borderColor: 'var(--color-main)', color: 'var(--color-main)' }
-                : undefined
-            }
-          >
-            {tab.label}
-          </button>
-        ))}
+    <div style={{ background: 'var(--bg)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '8px 14px',
+                fontSize: 12,
+                background: 'none',
+                border: 'none',
+                borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                marginBottom: -1,
+                color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                fontWeight: isActive ? 500 : 400,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Tab content — only mount active tab (lazy) */}
-      <div className="mt-4">
-        {activeTab === 'go' && <GOEnrichmentTable geneNames={geneNames} />}
-        {activeTab === 'pathways' && <PathwayEnrichmentTable geneNames={geneNames} />}
-        {activeTab === 'complexes' && <ComplexEnrichmentTable geneNames={geneNames} />}
+      <div style={{ padding: '16px 0' }}>
+        <EnrichmentTable geneNames={geneNames} source={activeTab} />
       </div>
     </div>
   )
