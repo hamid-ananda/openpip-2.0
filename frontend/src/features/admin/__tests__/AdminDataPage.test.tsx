@@ -195,4 +195,44 @@ describe('AdminDataPage', () => {
       { timeout: 3000 },
     )
   })
+
+  it('shows error message when task status is FAILURE', async () => {
+    // Override the status handler to return FAILURE
+    const { server } = await import('../../../mocks/server')
+    const { http, HttpResponse } = await import('msw')
+    server.use(
+      http.get('/api/datasets/import-async/:taskId', () =>
+        HttpResponse.json({
+          task_id: 'test-task-123',
+          status: 'FAILURE',
+          progress: 0,
+          proteins_created: 0,
+          interactions_created: 0,
+          interactions_skipped: 0,
+          errors: [],
+        })
+      )
+    )
+
+    await goToStep3()
+    fireEvent.click(screen.getByRole('button', { name: /import →/i }))
+
+    await waitFor(
+      () => expect(screen.getAllByText(/import failed/i).length).toBeGreaterThan(0),
+      { timeout: 3000 },
+    )
+  })
+
+  it('stops polling when component unmounts', async () => {
+    const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval')
+
+    await goToStep3()
+    fireEvent.click(screen.getByRole('button', { name: /import →/i }))
+    // Unmount immediately
+    const { unmount } = render(<AdminDataPage />, { wrapper })
+    unmount()
+
+    expect(clearIntervalSpy).toHaveBeenCalled()
+    clearIntervalSpy.mockRestore()
+  })
 })
