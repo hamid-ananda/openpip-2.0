@@ -165,6 +165,7 @@ export function CytoscapeNetwork({
         layout={{ name: layout } as Parameters<typeof CytoscapeComponent>[0]['layout']}
         style={{ width: '100%', height }}
         cy={(cy) => {
+          if (cyRef.current === cy) return
           cyRef.current = cy
           useSearchStore.getState().setNetworkCy(cy)
         }}
@@ -217,8 +218,8 @@ export function CytoscapeNetwork({
             position: 'fixed',
             left: tooltip.x + 10,
             top: tooltip.y - 30,
-            background: '#333',
-            color: '#fff',
+            background: 'var(--text)',
+            color: 'var(--bg)',
             padding: '2px 6px',
             borderRadius: 3,
             fontSize: 12,

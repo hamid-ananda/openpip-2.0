@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react'
+import { buildLinks } from './externalLinks'
 import { useNavigate } from 'react-router-dom'
 import { useSearchStore } from './searchStore'
 import { useAuthStore } from '../../store/authStore'
@@ -113,6 +114,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   const filterMode = useSearchStore((s) => s.filterMode)
   const selectedLayout = useSearchStore((s) => s.selectedLayout)
   const allProteins = useSearchStore((s) => s.allProteins)
+  const queryProteinIds = useSearchStore((s) => s.queryProteinIds)
   const allInteractions = useSearchStore((s) => s.allInteractions)
   const foundSummary = useSearchStore((s) => s.foundSummary)
   const unfoundSummary = useSearchStore((s) => s.unfoundSummary)
@@ -171,7 +173,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   }
 
   const hasCategories = Object.keys(categoryFilter).length > 0
-  const topProteins = allProteins.slice(0, 5)
+
   const lockIcon = !isLoggedIn ? ' 🔒' : ''
 
   const downloadActions: { label: string; onClick: () => void }[] = isLoggedIn
@@ -411,7 +413,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                   cursor: 'pointer',
                   borderRadius: 4,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-raised)')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
               >
                 {label}
@@ -420,34 +422,33 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
           </SidebarAccordion>
 
           <SidebarAccordion label="External links" defaultOpen={false}>
-            {topProteins.length === 0 ? (
+            {allProteins.length === 0 ? (
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No proteins loaded.</div>
             ) : (
-              topProteins.map((protein) => (
-                <div key={protein.protein_id} style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--mono)', marginBottom: 3 }}>
-                    {protein.protein_gene_name}
-                  </div>
-                  <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {buildLinks(allProteins, queryProteinIds).map((link) =>
+                  link.href ? (
                     <a
-                      href={`https://string-db.org/network/${protein.protein_ensembl_id}`}
+                      key={link.id}
+                      href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ fontSize: 12, color: 'var(--primary)' }}
                     >
-                      STRING
+                      {link.label}
                     </a>
-                    <a
-                      href={`https://www.uniprot.org/uniprot/${protein.protein_uniprot_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: 'var(--primary)' }}
+                  ) : (
+                    <button
+                      key={link.id}
+                      type="button"
+                      onClick={() => link.onClick?.()}
+                      style={{ fontSize: 12, color: 'var(--primary)', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
                     >
-                      UniProt
-                    </a>
-                  </div>
-                </div>
-              ))
+                      {link.label}
+                    </button>
+                  )
+                )}
+              </div>
             )}
           </SidebarAccordion>
 

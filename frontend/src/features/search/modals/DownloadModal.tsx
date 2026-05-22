@@ -35,7 +35,7 @@ const FORMAT_EXT: Record<Format, string> = {
 }
 
 export function DownloadModal({ onClose }: { onClose: () => void }) {
-  const { allProteins, allInteractions, networkCy } = useSearchStore()
+  const { allProteins, allInteractions, networkCy, queryProteinIds } = useSearchStore()
   const [fmt, setFmt] = useState<Format>('sif')
 
   const handleDownload = () => {
@@ -46,7 +46,8 @@ export function DownloadModal({ onClose }: { onClose: () => void }) {
     }
     let content = ''
     if (fmt === 'sif') content = formatSIF(allInteractions, allProteins)
-    else if (fmt === 'interactions_csv') content = formatInteractionsCSV(allInteractions, allProteins)
+    else if (fmt === 'interactions_csv')
+      content = formatInteractionsCSV(allInteractions, allProteins, new Set(queryProteinIds))
     else if (fmt === 'interactors_csv') content = formatInteractorsCSV(allProteins)
     else if (fmt === 'fasta') content = formatFASTA(allProteins)
     else if (fmt === 'psimi') content = formatPSIMI(allInteractions, allProteins)
@@ -56,23 +57,26 @@ export function DownloadModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Download Data" onClose={onClose}>
-      <div className="space-y-2 mb-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {(Object.keys(FORMAT_LABELS) as Format[]).map((f) => (
-          <label key={f} className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="format" value={f} checked={fmt === f} onChange={() => setFmt(f)} />
-            <span className="text-sm">{FORMAT_LABELS[f]}</span>
+          <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}>
+            <input
+              type="radio"
+              name="format"
+              value={f}
+              checked={fmt === f}
+              onChange={() => setFmt(f)}
+              style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            {FORMAT_LABELS[f]}
           </label>
         ))}
       </div>
-      <div className="flex justify-end gap-3">
-        <button onClick={onClose} className="px-4 py-2 border rounded text-sm">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+        <button onClick={onClose} className="op-btn" style={{ fontSize: 13 }}>
           Cancel
         </button>
-        <button
-          onClick={handleDownload}
-          className="px-4 py-2 rounded text-sm text-white"
-          style={{ background: 'var(--color-button)' }}
-        >
+        <button onClick={handleDownload} className="op-btn primary" style={{ fontSize: 13 }}>
           Download
         </button>
       </div>

@@ -1,10 +1,12 @@
 # Export Format Comparison: Legacy vs. openPIP 2.0
 
-**Date:** 2026-05-19  
+**Date:** 2026-05-19 (corrected 2026-05-21)  
 **Status:** For review by Dr. Helmy before deciding whether to match legacy exactly or keep 2.0 improvements  
 **Files compared:**
-- Legacy: `~/openPIP/src/AppBundle/Controller/DataDownloadController.php`
+- Legacy: `~/openPIP/src/AppBundle/Controller/DownloadController.php` (`interaction_csvAction`, `interactor_csvAction`)
 - 2.0: `frontend/src/lib/download.ts`
+
+> **Correction (2026-05-21):** The original version of this doc compared against `DataDownloadController.php`, which is dead code never reached by production routes. The active production controller is `DownloadController.php`. The format tables below have been updated to reflect the real production output.
 
 ---
 
@@ -24,60 +26,70 @@ The 2.0 approach is simpler and faster (no extra round-trip). The formats produc
 
 ### 1. Interaction CSV
 
-**Legacy** (`/download/interaction_csv/{search_term}`)
+**Legacy** (`/download/interaction_csv/` — `interaction_csvAction` in `DownloadController.php`)
 
 ```
-ID(s) interactor A,ID(s) interactor B,Alias(es) interactor A,Alias(es) interactor B\r\n
-{protein_name},{protein_name},{gene_name},{gene_name}\r\n
+Unique identifier for interactor A,Unique identifier for interactor B,Alternative identifier for interactor A,Alternative identifier for interactor B,Aliases for A,Aliases for B,Query Status Interactor A,Query Status Interactor B,First author,Identifier of the publication,Confidence score,Interaction Status\n
 ```
 
-Example row for BRCA1 ↔ BARD1:
+Example row for BRCA1 ↔ BARD1 (BRCA1 is the query protein):
 ```
-Breast cancer type 1 susceptibility protein,BRCA1-associated RING domain protein 1,BRCA1,BARD1\r\n
+P38398,Q99728,ENSG00000012048,ENSG00000069956,BRCA1,BARD1,query,non_query,HuRI(2014),22366785,0.95,Published\r\n
 ```
 
-`protein_name` is the full human-readable protein description — not a database identifier. The column label `ID(s) interactor A` is therefore misleading; it contains a name, not an ID.
+Columns:
+- Col 0–1: UniProt IDs (labeled "Unique identifier")
+- Col 2–3: Ensembl IDs (labeled "Alternative identifier")
+- Col 4–5: gene names (labeled "Aliases")
+- Col 6–7: `query` or `non_query` for each interactor
+- Col 8: all dataset authors joined with `;` (format: `Author(Year);Author2(Year2)`)
+- Col 9: all dataset publication IDs joined with `;`
+- Col 10: confidence score (`-` if absent)
+- Col 11: interaction status
 
-**2.0** (`formatInteractionsCSV`)
+**2.0** (`formatInteractionsCSV`) — after 2026-05-21 fix
 
 ```
-UniProt A,UniProt B,Gene A,Gene B,Ensembl A,Ensembl B,Score,Category,Dataset
-P38398,Q99728,BRCA1,BARD1,ENSG00000012048,ENSG00000069956,0.95,Published,HuRI
+UniProt A,UniProt B,Gene A,Gene B,Ensembl A,Ensembl B,Query Status A,Query Status B,Score,Category,Dataset
+P38398,Q99728,BRCA1,BARD1,ENSG00000012048,ENSG00000069956,query,non_query,0.95,Published,HuRI(2014)
 ```
 
 **Differences**
 
 | Aspect | Legacy | 2.0 |
 |---|---|---|
-| Identifier columns | `protein_name` (human description) | UniProt accession (stable database ID) |
-| Gene name columns | `gene_name` | `gene_name` — same |
-| Score | Not present | ✅ Present |
-| Category | Not present | ✅ Present |
-| Dataset | Not present | ✅ Present |
-| Ensembl ID | Not present | ✅ Present |
-| Line endings | `\r\n` | `\n` |
-| Header text | `ID(s) interactor A,...` | `UniProt A,...` |
+| UniProt accession | ✅ Present (col 0–1) | ✅ Present |
+| Ensembl ID | ✅ Present (col 2–3, "Alternative identifier") | ✅ Present |
+| Gene name | ✅ Present (col 4–5, "Aliases") | ✅ Present |
+| Query Status A/B | ✅ Present (`query` / `non_query`) | ✅ Present (added 2026-05-21) |
+| Dataset authors | ✅ All joined with `;` | ✅ All joined with `;` (fixed 2026-05-21) |
+| Publication IDs | ✅ Present (col 9) | ❌ Not present |
+| Score | ✅ Present | ✅ Present |
+| Category | ✅ Present ("Interaction Status") | ✅ Present |
+| Column order | UniProt, Ensembl, Gene, QueryStatus, Dataset, Score, Category | UniProt, Gene, Ensembl, QueryStatus, Score, Category, Dataset |
+| Line endings | `\r\n` (data rows) | `\n` |
+| Header text | Verbose PSI-MITAB-style labels | Short descriptive labels |
 
-**Recommendation:** Keep 2.0 format. Using `protein_name` as an "ID" is incorrect — it is not a stable identifier and is useless for programmatic lookup. UniProt accession is the right identifier. The additional columns (Score, Category, Dataset) add value without harm.
+**Remaining gap:** The 2.0 format does not include the publication ID (PubMed ID) column. This is a minor omission — downstream tools rarely use this from a CSV. Confirm with Dr. Helmy whether to add it.
+
+**Recommendation:** Keep 2.0 format. Column names are cleaner, column order is more intuitive, and the semantic content is equivalent except for the publication ID column.
 
 ---
 
 ### 2. Interactor CSV
 
-**Legacy** (`/download/interactor_csv/{search_term}`)
+**Legacy** (`/download/interactor_csv/` — `interactor_csvAction` in `DownloadController.php`)
 
-For `filter=None` (all interactors):
 ```
-BRCA1, TP53, BARD1, ATM, CHEK2, 
+Gene Name,UniProt ID,Ensembl ID,Entrez ID,Description,Query Status,Tissue Expression,Subcellular Location\n
+BRCA1,P38398,ENSG00000012048,672,"Breast cancer type 1 susceptibility protein",query\n
 ```
-A single comma-space-separated string, no newline at end, no header. Not a valid CSV.
 
-For `filter=query_query`:
-```
-BRCA1
-BRCA2
-```
-Newline-separated gene names, no header.
+Columns:
+- Gene Name, UniProt ID, Ensembl ID, Entrez ID — identifiers
+- Description — protein description (double-quoted to escape commas)
+- Query Status — `query` or `non_query`
+- Tissue Expression, Subcellular Location — in header only; **not actually populated in the data rows** (legacy bug/omission)
 
 **2.0** (`formatInteractorsCSV`)
 
@@ -93,15 +105,17 @@ One protein per row with all identifiers.
 
 | Aspect | Legacy | 2.0 |
 |---|---|---|
-| Format | Comma list (not a CSV) | Proper CSV table |
-| Header | None | ✅ Present |
-| UniProt ID | Not present | ✅ Present |
-| Ensembl ID | Not present | ✅ Present |
-| Entrez ID | Not present | ✅ Present |
-| Interaction count | Not present | ✅ Present |
-| Machine-readable | No | ✅ Yes |
+| Header | ✅ Present | ✅ Present |
+| UniProt ID | ✅ Present | ✅ Present |
+| Ensembl ID | ✅ Present | ✅ Present |
+| Entrez ID | ✅ Present | ✅ Present |
+| Description | ✅ Present | ❌ Not present |
+| Query Status | ✅ Present | ❌ Not present |
+| Number of interactions | ❌ Not present | ✅ Present |
+| Tissue Expression / Subcellular Location | In header, not in rows (bug) | Not present |
+| Machine-readable | ✅ Yes (proper CSV) | ✅ Yes |
 
-**Recommendation:** Keep 2.0 format. The legacy "interactor CSV" is not a valid CSV — it is a comma-separated gene list with no structure. Any downstream tool (R, Python, Excel) expecting a CSV would fail to parse it. The 2.0 format is a proper CSV with all identifiers researchers need.
+**Recommendation:** Keep 2.0 format. The Description and Query Status columns are additive (not data loss) and can be added later if Dr. Helmy requests parity. The "Number of Interactions" column in 2.0 replaces them with arguably more useful data. The Tissue Expression / Subcellular Location columns in legacy are phantom headers with no data.
 
 ---
 

@@ -17,6 +17,7 @@ export function DownloadDropdown() {
 
   const allProteins = useSearchStore((s) => s.allProteins)
   const allInteractions = useSearchStore((s) => s.allInteractions)
+  const queryProteinIds = useSearchStore((s) => s.queryProteinIds)
   const setModal = useSearchStore((s) => s.setModal)
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
@@ -59,7 +60,7 @@ export function DownloadDropdown() {
           label: 'Interactions CSV',
           onClick: () =>
             handleDownload(
-              formatInteractionsCSV(allInteractions, allProteins),
+              formatInteractionsCSV(allInteractions, allProteins, new Set(queryProteinIds)),
               'Interactions',
               'csv'
             ),
@@ -96,24 +97,39 @@ export function DownloadDropdown() {
       ]
 
   return (
-    <div ref={containerRef} className="relative inline-block" onKeyDown={handleKeyDown}>
+    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="border border-gray-300 rounded px-3 py-1 text-sm hover:bg-gray-50"
+        className="op-btn"
+        style={{ fontSize: 13 }}
       >
         Download
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded shadow-lg p-3 w-52">
-          <div className="text-sm font-medium mb-2">Download</div>
+        <div style={{
+          position: 'absolute',
+          zIndex: 50,
+          marginTop: 4,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          boxShadow: 'var(--shadow-md)',
+          padding: '8px 0',
+          width: 208,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '.07em', padding: '4px 12px 8px' }}>
+            Download
+          </div>
           {actions.map(({ label, onClick }) => (
             <button
               key={label}
               type="button"
               onClick={onClick}
-              className="block w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50"
+              style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: 13, padding: '6px 12px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
             >
               {label}
             </button>

@@ -15,13 +15,20 @@ export function formatSIF(interactions: Interaction[], proteins: Protein[]): str
     .join('\n') + '\n'
 }
 
-export function formatInteractionsCSV(interactions: Interaction[], proteins: Protein[]): string {
+export function formatInteractionsCSV(
+  interactions: Interaction[],
+  proteins: Protein[],
+  queryProteinIds: Set<number> = new Set()
+): string {
   const pm = getProteinMap(proteins)
-  const header = 'UniProt A,UniProt B,Gene A,Gene B,Ensembl A,Ensembl B,Score,Category,Dataset'
+  const header =
+    'UniProt A,UniProt B,Gene A,Gene B,Ensembl A,Ensembl B,Query Status A,Query Status B,Score,Category,Dataset'
   const rows = interactions.map((i) => {
     const pA = pm.get(i.interactor_A.protein_id)
     const pB = pm.get(i.interactor_B.protein_id)
-    const dataset = i.dataset_array[0]?.dataset_author ?? ''
+    const dataset = i.dataset_array.map((d) => d.dataset_author).join(';')
+    const queryStatusA = queryProteinIds.has(i.interactor_A.protein_id) ? 'query' : 'non_query'
+    const queryStatusB = queryProteinIds.has(i.interactor_B.protein_id) ? 'query' : 'non_query'
     return [
       i.interactor_A.protein_uniprot_id,
       i.interactor_B.protein_uniprot_id,
@@ -29,6 +36,8 @@ export function formatInteractionsCSV(interactions: Interaction[], proteins: Pro
       pB?.protein_gene_name ?? i.interactor_B.protein_gene_name,
       pA?.protein_ensembl_id ?? i.interactor_A.protein_ensembl_id,
       pB?.protein_ensembl_id ?? i.interactor_B.protein_ensembl_id,
+      queryStatusA,
+      queryStatusB,
       i.score ?? '',
       i.interaction_category_array.highest_category_status,
       dataset,

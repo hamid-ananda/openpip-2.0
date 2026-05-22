@@ -37,13 +37,35 @@ describe('formatInteractionsCSV', () => {
   it('has header row with correct columns', () => {
     const result = formatInteractionsCSV([interaction], [p1, p2])
     const lines = result.split('\n')
-    expect(lines[0]).toBe('UniProt A,UniProt B,Gene A,Gene B,Ensembl A,Ensembl B,Score,Category,Dataset')
+    expect(lines[0]).toBe(
+      'UniProt A,UniProt B,Gene A,Gene B,Ensembl A,Ensembl B,Query Status A,Query Status B,Score,Category,Dataset'
+    )
   })
 
   it('has data row with correct values', () => {
     const result = formatInteractionsCSV([interaction], [p1, p2])
     const lines = result.split('\n')
-    expect(lines[1]).toBe('Q92934,Q07817,BAD,BCL2L1,ENSG1,ENSG2,0.82,Published,Rolland et al.(2014)')
+    expect(lines[1]).toBe('Q92934,Q07817,BAD,BCL2L1,ENSG1,ENSG2,non_query,non_query,0.82,Published,Rolland et al.(2014)')
+  })
+
+  it('marks interactor A as query when its id is in queryProteinIds', () => {
+    const result = formatInteractionsCSV([interaction], [p1, p2], new Set([1]))
+    const cols = result.split('\n')[1].split(',')
+    expect(cols[6]).toBe('query')
+    expect(cols[7]).toBe('non_query')
+  })
+
+  it('joins multiple datasets with semicolon', () => {
+    const multiDataset: typeof interaction = {
+      ...interaction,
+      dataset_array: [
+        { id: 1, dataset_reference: '12345', dataset_author: 'Rolland et al.(2014)', year: '2014', description: 'HuRI', interaction_status: 'Published', name: 'HuRI' },
+        { id: 2, dataset_reference: '67890', dataset_author: 'Luck et al.(2020)', year: '2020', description: 'HuRI2', interaction_status: 'Published', name: 'HuRI2' },
+      ],
+    }
+    const result = formatInteractionsCSV([multiDataset], [p1, p2])
+    const cols = result.split('\n')[1].split(',')
+    expect(cols[10]).toBe('Rolland et al.(2014);Luck et al.(2020)')
   })
 })
 
