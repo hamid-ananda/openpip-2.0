@@ -381,6 +381,24 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             ))}
           </SidebarAccordion>
 
+          {/* Tissue expression */}
+          <div>
+            <label style={sectionLabelStyle}>Tissue expression</label>
+            <select
+              className="op-input"
+              value={tissueFilter}
+              onChange={(e) => setTissueFilter(e.target.value)}
+              style={{ fontSize: 13 }}
+            >
+              <option value="">All tissues</option>
+              {TISSUES.map((t) => (
+                <option key={t} value={t}>
+                  {t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <SidebarAccordion label="Summary">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
               <div>
@@ -512,23 +530,6 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
         </div>
       )}
 
-      {/* Tissue expression */}
-      <div>
-        <label style={sectionLabelStyle}>Tissue expression</label>
-        <select
-          className="op-input"
-          value={tissueFilter}
-          onChange={(e) => setTissueFilter(e.target.value)}
-          style={{ fontSize: 13 }}
-        >
-          <option value="">All tissues</option>
-          {TISSUES.map((t) => (
-            <option key={t} value={t}>
-              {t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-            </option>
-          ))}
-        </select>
-      </div>
     </aside>
   )
 }
