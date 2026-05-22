@@ -1,0 +1,72 @@
+import type { Protein } from '../../../types/api'
+
+interface SubcellularLocationTableProps {
+  proteins: Protein[]
+}
+
+const TH: React.CSSProperties = {
+  padding: '10px 16px',
+  textAlign: 'left',
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '.07em',
+  color: 'var(--text-muted)',
+  background: 'var(--surface-2)',
+  borderBottom: '1px solid var(--border)',
+  whiteSpace: 'nowrap',
+}
+
+export function SubcellularLocationTable({ proteins }: SubcellularLocationTableProps) {
+  // Group proteins by location (skip empty-string values)
+  const byLocation: Record<string, string[]> = {}
+  for (const p of proteins) {
+    const loc = p.subcellular_location_expression_array as Record<string, string>
+    for (const [location, level] of Object.entries(loc)) {
+      if (level) {
+        byLocation[location] ??= []
+        byLocation[location].push(p.protein_gene_name)
+      }
+    }
+  }
+
+  const locations = Object.keys(byLocation).sort()
+
+  if (locations.length === 0) {
+    return (
+      <p style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
+        No subcellular location data available for these proteins.
+      </p>
+    )
+  }
+
+  return (
+    <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
+      <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
+        <thead>
+          <tr>
+            <th style={TH}>Location</th>
+            <th style={TH}>Proteins</th>
+          </tr>
+        </thead>
+        <tbody style={{ background: 'var(--bg)' }}>
+          {locations.map((location) => (
+            <tr
+              key={location}
+              style={{ borderBottom: '1px solid var(--border)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+            >
+              <td style={{ padding: '8px 16px', color: 'var(--text)', textTransform: 'capitalize' }}>
+                {location.replace(/_/g, ' ')}
+              </td>
+              <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
+                {byLocation[location].join(' | ')}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}

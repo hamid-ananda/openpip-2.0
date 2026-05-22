@@ -153,6 +153,55 @@ def test_search_protein_annotations_in_protein_dict():
     assert "subcellular_location" in proteins[0]["annotation_array"]
 
 
+@pytest.mark.django_db
+def test_search_protein_subcellular_location_expression_array_populated():
+    """subcellular_location_expression_array is parsed from the JSON annotation."""
+    p = _protein_with_identifier("BAD")
+    ann = Annotation.objects.create(
+        annotation='{"cytosol":"approved","nucleus":"enhanced","plasma_membrane":""}',
+        identifier=p.ensembl_id,
+        type_name="subcellular_location",
+    )
+    AnnotationProtein.objects.create(annotation=ann, protein=p)
+
+    result = execute_search("BAD")
+    protein = result["all_proteins"][0]
+    sloc = protein["subcellular_location_expression_array"]
+    assert isinstance(sloc, dict)
+    assert sloc.get("cytosol") == "approved"
+    assert sloc.get("nucleus") == "enhanced"
+
+
+@pytest.mark.django_db
+def test_search_protein_tissue_expression_array_populated():
+    """tissue_expression_array is parsed from the JSON annotation."""
+    p = _protein_with_identifier("BAD")
+    ann = Annotation.objects.create(
+        annotation='{"liver":"10.18","lung":"9.04","whole_blood":"8.23"}',
+        identifier=p.ensembl_id,
+        type_name="tissue_expression",
+    )
+    AnnotationProtein.objects.create(annotation=ann, protein=p)
+
+    result = execute_search("BAD")
+    protein = result["all_proteins"][0]
+    tissue = protein["tissue_expression_array"]
+    assert isinstance(tissue, dict)
+    assert tissue.get("liver") == "10.18"
+    assert tissue.get("lung") == "9.04"
+
+
+@pytest.mark.django_db
+def test_search_protein_arrays_empty_when_no_annotation():
+    """Proteins without subcellular/tissue annotations return empty dicts, not errors."""
+    _protein_with_identifier("BAD")
+
+    result = execute_search("BAD")
+    protein = result["all_proteins"][0]
+    assert protein["subcellular_location_expression_array"] == {}
+    assert protein["tissue_expression_array"] == {}
+
+
 # ── build_result_from_interaction_ids ─────────────────────────────────────────
 
 

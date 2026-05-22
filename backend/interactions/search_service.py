@@ -8,6 +8,7 @@ Filter modes (filter_parameter):
   'query_query'     — only query proteins; only interactions between query proteins
 """
 
+import json
 from typing import Optional
 
 from django.db.models import Q
@@ -33,9 +34,15 @@ def _safe_float(value) -> Optional[float]:
         return None
 
 
+def _parse_json_annotation(raw: str) -> dict:
+    try:
+        return json.loads(raw) if raw else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
 def _build_protein_dict(protein: Protein, annotations_by_protein: dict) -> dict:
-    # Legacy behavior: all annotation types (including tissue_expression,
-    # subcellular_location) go into annotation_array. Separate fields return {}.
+    ann = annotations_by_protein.get(protein.id, {})
     return {
         "protein_id": protein.id,
         "protein_uniprot_id": protein.uniprot_id or "",
@@ -47,9 +54,13 @@ def _build_protein_dict(protein: Protein, annotations_by_protein: dict) -> dict:
         "protein_sequence": protein.sequence or "",
         "number_of_interactions_in_database": protein.number_of_interactions_in_database
         or 0,
-        "annotation_array": annotations_by_protein.get(protein.id, {}),
-        "tissue_expression_array": {},
-        "subcellular_location_expression_array": {},
+        "annotation_array": ann,
+        "tissue_expression_array": _parse_json_annotation(
+            ann.get("tissue_expression", "")
+        ),
+        "subcellular_location_expression_array": _parse_json_annotation(
+            ann.get("subcellular_location", "")
+        ),
     }
 
 
