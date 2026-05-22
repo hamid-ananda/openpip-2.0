@@ -20,8 +20,8 @@ interface SearchState {
   categoryFilter: Record<string, boolean>
   annotationFilter: Record<string, boolean>
   filterMode: 'None' | 'query_query' | 'query_interactor'
-  tissueExpressionActive: boolean
-  tissueSpecificityActive: boolean
+  tissueFilter: string
+  setTissueFilter: (t: string) => void
   selectedLayout: LayoutName
   activeModal: ModalName | null
   activeTableTab: string
@@ -53,8 +53,7 @@ const initialState = {
   } as Record<string, boolean>,
   annotationFilter: {} as Record<string, boolean>,
   filterMode: 'None' as const,
-  tissueExpressionActive: false,
-  tissueSpecificityActive: false,
+  tissueFilter: '',
   selectedLayout: 'cola' as LayoutName,
   activeModal: null as ModalName | null,
   activeTableTab: 'interactions',
@@ -86,6 +85,7 @@ export const useSearchStore = create<SearchState>()((set) => ({
   setAnnotationFilter: (name, val) =>
     set((s) => ({ annotationFilter: { ...s.annotationFilter, [name]: val } })),
   setFilterMode: (mode) => set({ filterMode: mode }),
+  setTissueFilter: (t) => set({ tissueFilter: t }),
   setLayout: (name) => set({ selectedLayout: name }),
   setModal: (name) => set({ activeModal: name }),
   setTableTab: (name) => set({ activeTableTab: name }),

@@ -33,8 +33,7 @@ export function ResultTablePanel() {
     categoryFilter,
     annotationFilter,
     filterMode,
-    tissueExpressionActive,
-    tissueSpecificityActive,
+    tissueFilter,
   } = useSearchStore()
 
   const [activeTab, setActiveTab] = useState<Tab>('interactions')
@@ -42,7 +41,7 @@ export function ResultTablePanel() {
   const { proteins, interactions } = filterProteinsAndInteractions(
     allProteins,
     allInteractions,
-    { scoreFilter, categoryFilter, annotationFilter, filterMode, tissueExpressionActive, tissueSpecificityActive },
+    { scoreFilter, categoryFilter, annotationFilter, filterMode, tissueFilter },
     queryProteinIds
   )
 

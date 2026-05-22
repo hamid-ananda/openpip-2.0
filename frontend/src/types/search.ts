@@ -26,6 +26,5 @@ export interface FilterState {
   categoryFilter: Record<string, boolean>
   annotationFilter: Record<string, boolean>
   filterMode: 'None' | 'query_query' | 'query_interactor'
-  tissueExpressionActive: boolean
-  tissueSpecificityActive: boolean
+  tissueFilter: string
 }

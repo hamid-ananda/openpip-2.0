@@ -30,8 +30,7 @@ const defaultFilters: FilterState = {
   categoryFilter: { Published: true, Validated: true, Verified: true, Literature: true },
   annotationFilter: {},
   filterMode: 'None',
-  tissueExpressionActive: false,
-  tissueSpecificityActive: false,
+  tissueFilter: '',
 }
 
 const proteins = [makeProtein(1, 'BAD'), makeProtein(2, 'BCL2L1'), makeProtein(3, 'BAK1')]
@@ -72,6 +71,36 @@ describe('filterProteinsAndInteractions', () => {
   it('filterMode query_interactor keeps interactions with at least one query protein', () => {
     const result = filterProteinsAndInteractions(proteins, interactions,
       { ...defaultFilters, filterMode: 'query_interactor' }, [1, 2])
+    expect(result.interactions).toHaveLength(3)
+  })
+
+  it('tissueFilter hides proteins below the 5.0 expression threshold', () => {
+    const p1 = { ...makeProtein(1, 'BAD'),    tissue_expression_array: { liver: '8.5' } }
+    const p2 = { ...makeProtein(2, 'BCL2L1'), tissue_expression_array: { liver: '3.0' } } // below threshold
+    const p3 = { ...makeProtein(3, 'BAK1'),   tissue_expression_array: { liver: '6.2' } }
+    const ixs = [
+      makeInteraction(1, 1, 2, 0.8, 'Published'), // p2 filtered → removed
+      makeInteraction(2, 1, 3, 0.7, 'Published'), // both pass → kept
+    ]
+    const result = filterProteinsAndInteractions([p1, p2, p3], ixs,
+      { ...defaultFilters, tissueFilter: 'liver' }, [1])
+    expect(result.interactions).toHaveLength(1)
+    expect(result.interactions[0].interaction_id).toBe(2)
+    expect(result.proteins.map(p => p.protein_id)).not.toContain(2)
+  })
+
+  it('tissueFilter strips \\r from stored values before comparing', () => {
+    const p1 = { ...makeProtein(1, 'BAD'),    tissue_expression_array: { liver: '7.1\r' } }
+    const p2 = { ...makeProtein(2, 'BCL2L1'), tissue_expression_array: { liver: '6.0\r' } }
+    const ixs = [makeInteraction(1, 1, 2, 0.8, 'Published')]
+    const result = filterProteinsAndInteractions([p1, p2], ixs,
+      { ...defaultFilters, tissueFilter: 'liver' }, [1])
+    expect(result.interactions).toHaveLength(1)
+  })
+
+  it('tissueFilter empty string returns all proteins', () => {
+    const result = filterProteinsAndInteractions(proteins, interactions,
+      { ...defaultFilters, tissueFilter: '' }, [1, 2])
     expect(result.interactions).toHaveLength(3)
   })
 

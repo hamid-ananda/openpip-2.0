@@ -23,13 +23,18 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const EXAMPLE_GENES = ['BAD', 'TP53', 'BRCA1', 'AKT1']
 
+// Keys match tissue_expression_array field names in the search result
 const TISSUES = [
-  'Adipose Subcutaneous', 'Adrenal Gland', 'Artery Aorta',
-  'Brain Basal Ganglia', 'Brain Cerebellum', 'Brain Cortex',
-  'Breast Mammary Tissue', 'Colon Sigmoid', 'Heart Left Ventricle',
-  'Kidney Cortex', 'Liver', 'Lung', 'Muscle Skeletal', 'Ovary',
-  'Pancreas', 'Prostate', 'Skin Sun Exposed', 'Spleen', 'Stomach',
-  'Testis', 'Thyroid', 'Uterus', 'Whole Blood',
+  'adipose_subcutaneous', 'adipose_visceral_omentum', 'adrenal_gland',
+  'artery_aorta', 'artery_coronary', 'artery_tibial',
+  'brain_0', 'brain_1', 'brain_2',
+  'breast_mammary_tissue', 'colon_sigmoid', 'colon_transverse',
+  'esophagus_gastroesophageal_junction', 'esophagus_mucosa', 'esophagus_muscularis',
+  'heart_atrial_appendage', 'heart_left_ventricle', 'kidney_cortex',
+  'liver', 'lung', 'minor_salivary_gland', 'muscle_skeletal', 'nerve_tibial',
+  'ovary', 'pancreas', 'pituitary', 'prostate', 'skin',
+  'small_intestine_terminal_ileum', 'spleen', 'stomach', 'testis',
+  'thyroid', 'uterus', 'vagina', 'whole_blood',
 ]
 
 type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
@@ -120,7 +125,9 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   const unfoundSummary = useSearchStore((s) => s.unfoundSummary)
   const setScoreFilter = useSearchStore((s) => s.setScoreFilter)
   const setCategoryFilter = useSearchStore((s) => s.setCategoryFilter)
+  const tissueFilter = useSearchStore((s) => s.tissueFilter)
   const setFilterMode = useSearchStore((s) => s.setFilterMode)
+  const setTissueFilter = useSearchStore((s) => s.setTissueFilter)
   const setLayout = useSearchStore((s) => s.setLayout)
   const setModal = useSearchStore((s) => s.setModal)
 
@@ -510,14 +517,15 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
         <label style={sectionLabelStyle}>Tissue expression</label>
         <select
           className="op-input"
-          defaultValue=""
-          disabled
-          title="Tissue filtering coming in Phase 2"
-          style={{ fontSize: 13, opacity: 0.5, cursor: "not-allowed" }}
+          value={tissueFilter}
+          onChange={(e) => setTissueFilter(e.target.value)}
+          style={{ fontSize: 13 }}
         >
           <option value="">All tissues</option>
           {TISSUES.map((t) => (
-            <option key={t}>{t}</option>
+            <option key={t} value={t}>
+              {t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+            </option>
           ))}
         </select>
       </div>

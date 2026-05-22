@@ -174,8 +174,7 @@ export function SearchResultsPage() {
     categoryFilter,
     annotationFilter,
     filterMode,
-    tissueExpressionActive,
-    tissueSpecificityActive,
+    tissueFilter,
   } = useSearchStore()
 
   useEffect(() => {
@@ -185,7 +184,7 @@ export function SearchResultsPage() {
 const { proteins: filteredProteins, interactions } = filterProteinsAndInteractions(
     allProteins,
     allInteractions,
-    { scoreFilter, categoryFilter, annotationFilter, filterMode, tissueExpressionActive, tissueSpecificityActive },
+    { scoreFilter, categoryFilter, annotationFilter, filterMode, tissueFilter },
     queryProteinIds
   )
   const proteins = removedProteinIds.length
