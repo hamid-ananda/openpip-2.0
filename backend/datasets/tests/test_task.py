@@ -112,6 +112,29 @@ def test_task_passes_category_id_to_parser():
     CELERY_TASK_EAGER_PROPAGATES=True,
     CELERY_RESULT_BACKEND="cache+memory://",
 )
+def test_task_calls_uniprot_enrichment_after_import():
+    """After all batches are processed, the task enriches newly imported proteins."""
+    lines = ["line1"]
+    with patch("datasets.tasks.process_line_batch") as mock_plb, patch(
+        "datasets.tasks.enrich_proteins_from_uniprot"
+    ) as mock_enrich:
+        mock_plb.return_value = {
+            "proteins_created": 2,
+            "interactions_created": 1,
+            "interactions_skipped": 0,
+            "errors": [],
+            "new_protein_ids": [10, 11],
+        }
+        import_dataset_task.apply(args=[lines, "TestDS", "published", None])
+
+    mock_enrich.assert_called_once_with([10, 11])
+
+
+@override_settings(
+    CELERY_TASK_ALWAYS_EAGER=True,
+    CELERY_TASK_EAGER_PROPAGATES=True,
+    CELERY_RESULT_BACKEND="cache+memory://",
+)
 def test_task_calls_update_state_per_batch():
     lines = [f"line{i}" for i in range(6)]
     with patch("datasets.tasks.process_line_batch") as mock_plb, patch(

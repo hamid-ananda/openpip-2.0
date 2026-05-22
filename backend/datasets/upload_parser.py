@@ -367,6 +367,7 @@ def parse_and_ingest(
     interactions_created = 0
     interactions_skipped = 0
     errors: list[dict] = []
+    new_protein_ids: list[int] = []
 
     text = file_bytes.decode("utf-8", errors="replace")
     reader = csv.reader(io.StringIO(text), delimiter="\t")
@@ -408,6 +409,8 @@ def parse_and_ingest(
                     proteins_existing += 1
                 else:
                     proteins_created += 1
+                    if protein_a.id not in new_protein_ids:
+                        new_protein_ids.append(protein_a.id)
 
                 if raw_a == raw_b:
                     protein_b = protein_a
@@ -420,6 +423,8 @@ def parse_and_ingest(
                         proteins_existing += 1
                     else:
                         proteins_created += 1
+                        if protein_b.id not in new_protein_ids:
+                            new_protein_ids.append(protein_b.id)
 
                 # ── Aliases (cols 4+5) ──────────────────────────────────────
                 _add_gene_name_aliases(protein_a, _safe_col(row, 4))
@@ -498,4 +503,5 @@ def parse_and_ingest(
         "interactions_created": interactions_created,
         "interactions_skipped": interactions_skipped,
         "errors": errors,
+        "new_protein_ids": [] if dry_run else new_protein_ids,
     }
