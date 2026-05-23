@@ -62,7 +62,9 @@ def test_list_files_blocked_for_non_admin(user_auth_client):
 @pytest.mark.django_db
 def test_upload_valid_tab_file_creates_record(auth_client, tmp_path, settings):
     settings.MEDIA_ROOT = str(tmp_path)
-    f = SimpleUploadedFile("sample.tab", b"col1\tcol2\nA\tB\n", content_type="text/plain")
+    f = SimpleUploadedFile(
+        "sample.tab", b"col1\tcol2\nA\tB\n", content_type="text/plain"
+    )
     response = auth_client.post("/api/files", {"file": f}, format="multipart")
     assert response.status_code == 201
     assert UploadFiles.objects.filter(file_name="sample.tab").exists()
@@ -111,7 +113,9 @@ def test_upload_no_file_returns_400(auth_client):
 @pytest.mark.django_db
 def test_patch_toggles_visibility(auth_client, tmp_path):
     record = _make_file_record(tmp_path, show=True)
-    response = auth_client.patch(f"/api/files/{record.pk}", {"show": False}, format="json")
+    response = auth_client.patch(
+        f"/api/files/{record.pk}", {"show": False}, format="json"
+    )
     assert response.status_code == 200
     record.refresh_from_db()
     assert record.show is False
