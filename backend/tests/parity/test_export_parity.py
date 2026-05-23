@@ -28,7 +28,9 @@ from .conftest import fetch_legacy_search, LEGACY_TIMEOUT
 
 # Legacy download endpoints live in the local Docker container.
 # Production routes on openpip.usask.ca return 404 (Symfony routing cache).
-LEGACY_DOWNLOAD_BASE = "http://localhost:8000"
+# From inside the backend container, reach the host via the Docker gateway.
+import os as _os
+LEGACY_DOWNLOAD_BASE = _os.environ.get("LEGACY_DOWNLOAD_BASE", "http://172.19.0.1:8000")
 
 EXPORT_QUERIES = ["BRCA1", "TP53"]
 
