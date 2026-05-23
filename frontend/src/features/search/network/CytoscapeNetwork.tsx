@@ -79,12 +79,13 @@ export function CytoscapeNetwork({
     [proteins, interactions, queryProteinIds, palette]
   )
 
-  // Re-run layout when the layout name changes (without remounting the whole graph).
+  // Re-run layout whenever elements or layout name change.
+  // elements change on every new search; layout changes when the user picks a different algorithm.
   useEffect(() => {
     const cy = cyRef.current
-    if (!cy) return
+    if (!cy || elements.length === 0) return
     cy.layout({ name: layout } as LayoutOptions).run()
-  }, [layout])
+  }, [elements, layout])
 
   // Bind tap and hover event handlers. Re-bind whenever proteins/interactions
   // or the click callbacks change so the closures stay fresh.
@@ -154,7 +155,7 @@ export function CytoscapeNetwork({
   // changes, but Cytoscape doesn't always re-evaluate canvas styles for
   // data() references when data is mutated via .json() — remounting is
   // the only reliable path.
-  const graphKey = `${layout}-${Object.values(palette).join('-')}`
+  const graphKey = Object.values(palette).join('-')
 
   return (
     <div style={{ position: 'relative', height, background: 'var(--bg)' }}>
