@@ -1,0 +1,23 @@
+services:
+  db:
+    ports: []
+
+  redis:
+    ports: []
+
+  backend:
+    environment:
+      DJANGO_SETTINGS_MODULE: openpip.settings.prod
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080}
+    volumes: []
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py ensure_initial_data &&
+             exec gunicorn openpip.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+  celery:
+    environment:
+      DJANGO_SETTINGS_MODULE: openpip.settings.prod
+    volumes: []

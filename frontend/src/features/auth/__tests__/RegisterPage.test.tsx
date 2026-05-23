@@ -30,7 +30,6 @@ describe('RegisterPage', () => {
 
   it('shows error when passwords do not match', async () => {
     render(<RegisterPage />, { wrapper })
-    const [pwField, confirmField] = screen.getAllByDisplayValue('')
     // fill username
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: 'alice' } })
     // fill email
