@@ -90,7 +90,7 @@ describe('AdminDataPage', () => {
 
   it('shows drag-drop zone on step 1', () => {
     render(<AdminDataPage />, { wrapper })
-    expect(screen.getByRole('button', { name: /drop zone for psi-mi tab file/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /drop zone for interaction data file/i })).toBeInTheDocument()
   })
 
   it('Next button is disabled on step 1 when no file is chosen', () => {
@@ -234,5 +234,25 @@ describe('AdminDataPage', () => {
 
     expect(clearIntervalSpy).toHaveBeenCalled()
     clearIntervalSpy.mockRestore()
+  })
+
+  // ── CSV file support ─────────────────────────────────────
+
+  it('accepts a .csv file and advances to step 2', async () => {
+    render(<AdminDataPage />, { wrapper })
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(
+      ['protein_a,protein_b,score\nuniprotkb:P12345,uniprotkb:P67890,0.82\n'],
+      'test-dataset.csv',
+      { type: 'text/csv' },
+    )
+    fireEvent.change(input, { target: { files: [file] } })
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /next →/i })).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: /next →/i }))
+
+    await waitFor(() => expect(screen.getByText('Dataset name')).toBeInTheDocument())
+    const nameInput = screen.getByPlaceholderText('e.g. HuRI-2024') as HTMLInputElement
+    expect(nameInput.value).toBe('test-dataset')
   })
 })

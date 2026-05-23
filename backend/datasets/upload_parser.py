@@ -26,6 +26,24 @@ from proteins.models import (
 
 _MAX_ERRORS = 50
 
+_CSV_EXTENSIONS = {".csv"}
+_TAB_EXTENSIONS = {".tab", ".tsv", ".txt"}
+
+
+def detect_format(filename: str, file_bytes: bytes) -> str:
+    """Return 'csv' or 'tab' based on file extension, falling back to content sniff."""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if f".{ext}" in _CSV_EXTENSIONS:
+        return "csv"
+    if f".{ext}" in _TAB_EXTENSIONS:
+        return "tab"
+    # Content sniff: if the first non-empty line has commas but no tabs → CSV
+    first_line = file_bytes.split(b"\n")[0].decode("utf-8", errors="replace")
+    if "," in first_line and "\t" not in first_line:
+        return "csv"
+    return "tab"
+
+
 # psi-mi:"MI:1112"(two hybrid prey pooling approach)
 _PSIMI_LABEL_RE = re.compile(r'psi-mi:"[^"]*"\(([^)]+)\)', re.IGNORECASE)
 # taxid:9606(human)
@@ -484,6 +502,122 @@ def parse_and_ingest(
                     )
 
                 transaction.savepoint_commit(sid)
+
+            except Exception as exc:  # noqa: BLE001
+                transaction.savepoint_rollback(sid)
+                if len(errors) < _MAX_ERRORS:
+                    errors.append({"row": row_num, "reason": str(exc)})
+
+    with transaction.atomic():
+        _run()
+        if dry_run:
+            transaction.set_rollback(True)
+
+    return {
+        "dry_run": dry_run,
+        "rows_sampled": None,
+        "proteins_created": proteins_created,
+        "proteins_existing": proteins_existing,
+        "interactions_created": interactions_created,
+        "interactions_skipped": interactions_skipped,
+        "errors": errors,
+        "new_protein_ids": [] if dry_run else new_protein_ids,
+    }
+
+
+def parse_and_ingest_csv(
+    file_bytes: bytes,
+    dataset_name: str,
+    interaction_status: str = "published",
+    category_id: int | None = None,
+    dry_run: bool = False,
+) -> dict:
+    """
+    Parse a simple CSV interaction file and ingest interactions.
+
+    Expected format (header required):
+        protein_a,protein_b[,score][,pubmed_id]
+
+    Protein identifiers follow the same convention as PSI-MI TAB
+    (e.g. ``uniprotkb:P12345`` or a bare gene name).
+    Returns the same shape as parse_and_ingest().
+    """
+    proteins_created = 0
+    proteins_existing = 0
+    interactions_created = 0
+    interactions_skipped = 0
+    errors: list[dict] = []
+    new_protein_ids: list[int] = []
+
+    text = file_bytes.decode("utf-8", errors="replace")
+    reader = csv.DictReader(io.StringIO(text))
+
+    def _run() -> None:
+        nonlocal proteins_created, proteins_existing, interactions_created
+        nonlocal interactions_skipped
+
+        named_dataset = None
+        if dataset_name:
+            named_dataset, _ = Dataset.objects.get_or_create(
+                name=dataset_name,
+                defaults={"interaction_status": interaction_status},
+            )
+
+        for row_num, row in enumerate(reader, start=1):
+            raw_a = (row.get("protein_a") or "").strip()
+            raw_b = (row.get("protein_b") or "").strip()
+            if not raw_a or not raw_b:
+                continue
+
+            sid = transaction.savepoint()
+            try:
+                existing_a = Identifier.objects.filter(
+                    identifier__iexact=_strip_prefix(raw_a)
+                ).exists()
+                protein_a = _protein_handler(raw_a)
+                if existing_a:
+                    proteins_existing += 1
+                else:
+                    proteins_created += 1
+                    if protein_a.id not in new_protein_ids:
+                        new_protein_ids.append(protein_a.id)
+
+                if raw_a == raw_b:
+                    protein_b = protein_a
+                else:
+                    existing_b = Identifier.objects.filter(
+                        identifier__iexact=_strip_prefix(raw_b)
+                    ).exists()
+                    protein_b = _protein_handler(raw_b)
+                    if existing_b:
+                        proteins_existing += 1
+                    else:
+                        proteins_created += 1
+                        if protein_b.id not in new_protein_ids:
+                            new_protein_ids.append(protein_b.id)
+
+                if not _is_new_interaction(protein_a, protein_b):
+                    transaction.savepoint_commit(sid)
+                    interactions_skipped += 1
+                    continue
+
+                score_raw = (row.get("score") or "").strip()
+                score = score_raw[:10] if score_raw else None
+
+                interaction = Interaction.objects.create(
+                    interactor_A=protein_a,
+                    interactor_B=protein_b,
+                    score=score,
+                    removed="0",
+                )
+
+                if named_dataset:
+                    InteractionDataset.objects.get_or_create(
+                        interaction=interaction, dataset=named_dataset
+                    )
+
+                transaction.savepoint_commit(sid)
+                interactions_created += 1
 
             except Exception as exc:  # noqa: BLE001
                 transaction.savepoint_rollback(sid)

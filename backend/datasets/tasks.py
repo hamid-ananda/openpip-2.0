@@ -1,7 +1,7 @@
 from celery import shared_task
 
 from proteins.uniprot import enrich_proteins_from_uniprot
-from .upload_parser import process_line_batch
+from .upload_parser import process_line_batch, parse_and_ingest_csv
 
 BATCH_SIZE = 300
 
@@ -13,11 +13,13 @@ def import_dataset_task(
     dataset_name: str,
     interaction_status: str,
     category_id: int | None,
+    fmt: str = "tab",
 ) -> dict:
     """
-    Process a PSI-MI TAB dataset import asynchronously.
-    Splits lines into batches, updates task state with progress after each batch.
-    Enriches newly created proteins from UniProt after all batches complete.
+    Process a dataset import asynchronously.
+    Supports PSI-MI TAB (fmt='tab') and simple CSV (fmt='csv').
+    Splits TAB files into batches; CSV is processed in one pass.
+    Enriches newly created proteins from UniProt after completion.
     Returns the final totals dict on SUCCESS.
     """
     if not lines:
@@ -29,6 +31,22 @@ def import_dataset_task(
             "errors": [],
         }
 
+    if fmt == "csv":
+        self.update_state(state="PROGRESS", meta={"progress": 0})
+        file_bytes = "\n".join(lines).encode("utf-8")
+        result = parse_and_ingest_csv(
+            file_bytes, dataset_name, interaction_status, category_id
+        )
+        enrich_proteins_from_uniprot(result.get("new_protein_ids", []))
+        return {
+            "progress": 100,
+            "proteins_created": result["proteins_created"],
+            "interactions_created": result["interactions_created"],
+            "interactions_skipped": result["interactions_skipped"],
+            "errors": result["errors"],
+        }
+
+    # TAB: batch processing with per-batch progress updates
     batches = [lines[i : i + BATCH_SIZE] for i in range(0, len(lines), BATCH_SIZE)]
     totals = {
         "proteins_created": 0,

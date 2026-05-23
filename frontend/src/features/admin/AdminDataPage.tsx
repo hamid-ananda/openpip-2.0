@@ -193,7 +193,7 @@ function Step1({ file, onChange, onNext }: Step1Props) {
         onClick={() => inputRef.current?.click()}
         role="button"
         tabIndex={0}
-        aria-label="Drop zone for PSI-MI TAB file"
+        aria-label="Drop zone for interaction data file"
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click() }}
         style={{
           border: `2px dashed ${dragging ? 'var(--primary)' : 'var(--border-strong)'}`,
@@ -209,7 +209,7 @@ function Step1({ file, onChange, onNext }: Step1Props) {
         <input
           ref={inputRef}
           type="file"
-          accept=".tab,.tsv,.txt"
+          accept=".tab,.tsv,.txt,.csv"
           style={{ display: 'none' }}
           onChange={(e) => {
             const f = e.target.files?.[0]
@@ -234,12 +234,12 @@ function Step1({ file, onChange, onNext }: Step1Props) {
           </svg>
         </div>
         <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>
-          Drag & drop a PSI-MI TAB file
+          Drag & drop an interaction file
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
           or{' '}
           <span style={{ color: 'var(--primary)', fontWeight: 500 }}>browse</span>
-          {' '}to select — .tab, .tsv, .txt
+          {' '}to select — PSI-MI TAB (.tab, .tsv, .txt) or CSV (.csv)
         </div>
       </div>
 
@@ -374,12 +374,30 @@ const PSIMI_COLS = [
   { idx: 14, label: 'Score' },
 ]
 
-interface FileSnippet { rows: string[][]; totalRows: number }
+const CSV_COLS = [
+  { idx: 0, label: 'Protein A' },
+  { idx: 1, label: 'Protein B' },
+  { idx: 2, label: 'Score' },
+  { idx: 3, label: 'PubMed' },
+]
+
+function isCsvFile(file: File): boolean {
+  return file.name.toLowerCase().endsWith('.csv')
+}
+
+interface FileSnippet { rows: string[][]; totalRows: number; isCsv: boolean }
 
 function parseFileSnippet(file: File): Promise<FileSnippet> {
+  const csv = isCsvFile(file)
   return file.text().then((text) => {
+    if (csv) {
+      const lines = text.split('\n').filter((l) => l.trim())
+      // lines[0] is the header — skip it for data rows
+      const dataLines = lines.slice(1)
+      return { rows: dataLines.slice(0, 5).map((l) => l.split(',')), totalRows: dataLines.length, isCsv: true }
+    }
     const dataLines = text.split('\n').filter((l) => l.trim() && !l.startsWith('#'))
-    return { rows: dataLines.slice(0, 5).map((l) => l.split('\t')), totalRows: dataLines.length }
+    return { rows: dataLines.slice(0, 5).map((l) => l.split('\t')), totalRows: dataLines.length, isCsv: false }
   })
 }
 
@@ -395,13 +413,27 @@ async function runBatchedPreview(
     const text = await file.text()
     const uniqueIds = new Set<string>()
     let totalRows = 0
+    const csv = isCsvFile(file)
 
-    for (const line of text.split('\n')) {
+    const lines = text.split('\n')
+    let aIdx = 0
+    let bIdx = 1
+
+    if (csv) {
+      // Parse header to find protein_a / protein_b column positions
+      const header = (lines[0] || '').split(',').map((h) => h.trim().toLowerCase())
+      aIdx = header.indexOf('protein_a')
+      bIdx = header.indexOf('protein_b')
+      if (aIdx === -1) aIdx = 0
+      if (bIdx === -1) bIdx = 1
+    }
+
+    for (const line of csv ? lines.slice(1) : lines) {
       const l = line.trim()
-      if (!l || l.startsWith('#')) continue
-      const cols = l.split('\t')
+      if (!l || (!csv && l.startsWith('#'))) continue
+      const cols = csv ? l.split(',') : l.split('\t')
       if (cols.length < 2) continue
-      const a = cols[0]?.trim(); const b = cols[1]?.trim()
+      const a = cols[aIdx]?.trim(); const b = cols[bIdx]?.trim()
       if (!a || !b) continue
       totalRows++
       uniqueIds.add(a)
@@ -479,7 +511,7 @@ function Step3({ state, onBack, onNext }: Step3Props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'var(--mono)' }}>
               <thead>
                 <tr style={{ background: 'var(--surface-2)' }}>
-                  {PSIMI_COLS.map((c) => (
+                  {(snippet.isCsv ? CSV_COLS : PSIMI_COLS).map((c) => (
                     <th key={c.idx} style={{ padding: '7px 12px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
                       {c.label}
                     </th>
@@ -489,7 +521,7 @@ function Step3({ state, onBack, onNext }: Step3Props) {
               <tbody>
                 {snippet.rows.map((row, ri) => (
                   <tr key={ri} style={{ borderBottom: ri < snippet.rows.length - 1 ? '1px solid var(--border)' : undefined }}>
-                    {PSIMI_COLS.map((c) => {
+                    {(snippet.isCsv ? CSV_COLS : PSIMI_COLS).map((c) => {
                       const val = row[c.idx] ?? '—'
                       return (
                         <td key={c.idx} title={val} style={{ padding: '6px 12px', color: 'var(--text)', whiteSpace: 'nowrap' }}>

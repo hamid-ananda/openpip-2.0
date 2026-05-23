@@ -20,7 +20,12 @@ from interactions.models import Interaction, InteractionDataset
 from proteins.models import Identifier
 from .models import Dataset
 from .serializers import DatasetSerializer
-from .upload_parser import parse_and_ingest, fast_preview, process_line_batch
+from .upload_parser import (
+    parse_and_ingest,
+    fast_preview,
+    process_line_batch,
+    detect_format,
+)
 from .tasks import import_dataset_task
 
 logger = logging.getLogger(__name__)
@@ -372,15 +377,21 @@ class AsyncImportView(APIView):
         category_id_raw = request.data.get("category_id")
         category_id = int(category_id_raw) if category_id_raw else None
 
-        text = file_obj.read().decode("utf-8", errors="replace")
-        lines = [
-            line
-            for line in text.splitlines()
-            if line.strip() and not line.startswith("#")
-        ]
+        file_bytes = file_obj.read()
+        fmt = detect_format(file_obj.name or "", file_bytes)
+        text = file_bytes.decode("utf-8", errors="replace")
+
+        if fmt == "csv":
+            lines = [line for line in text.splitlines() if line.strip()]
+        else:
+            lines = [
+                line
+                for line in text.splitlines()
+                if line.strip() and not line.startswith("#")
+            ]
 
         task = import_dataset_task.delay(
-            lines, dataset_name, interaction_status, category_id
+            lines, dataset_name, interaction_status, category_id, fmt=fmt
         )
         return Response({"task_id": task.id}, status=status.HTTP_202_ACCEPTED)
 
