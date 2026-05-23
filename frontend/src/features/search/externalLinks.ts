@@ -56,7 +56,7 @@ export function buildLinks(allProteins: Protein[], queryProteinIds: number[]): E
 
   const uniprotUrl =
     'https://www.uniprot.org/uniprotkb?query=(' +
-    queryGenes.map((g) => `gene_name:${encodeURIComponent(g)}`).join('+OR+') +
+    queryGenes.map((g) => `gene:${encodeURIComponent(g)}`).join('+OR+') +
     ')+AND+organism_id:9606'
 
   async function openReactome() {
