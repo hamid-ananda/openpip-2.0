@@ -45,6 +45,20 @@ export function buildLinks(allProteins: Protein[], queryProteinIds: number[]): E
     'http://www.ebi.ac.uk/intact/query/' +
     queryGenes.map((g) => encodeURIComponent(g)).join('+')
 
+  const biogridUrl =
+    'https://thebiogrid.org/search.php?search=' +
+    queryGenes.map((g) => encodeURIComponent(g)).join('+') +
+    '&organism=9606'
+
+  const keggUrl =
+    'https://www.genome.jp/dbget-bin/www_bget?' +
+    queryGenes.map((g) => `hsa:${encodeURIComponent(g)}`).join('+')
+
+  const uniprotUrl =
+    'https://www.uniprot.org/uniprotkb?query=(' +
+    queryGenes.map((g) => `gene_name:${encodeURIComponent(g)}`).join('+OR+') +
+    ')+AND+organism_id:9606'
+
   async function openReactome() {
     try {
       const body = '#Genes\n' + genes.join('\n')
@@ -79,5 +93,8 @@ export function buildLinks(allProteins: Protein[], queryProteinIds: number[]): E
     { id: 'cbioportal', label: 'cBioPortal', href: cBioPortalUrl },
     { id: 'complexportal', label: 'Complex Portal', href: complexPortalUrl },
     { id: 'intact', label: 'IntAct (Query)', href: intActUrl },
+    { id: 'biogrid', label: 'BioGRID', href: biogridUrl },
+    { id: 'kegg', label: 'KEGG', href: keggUrl },
+    { id: 'uniprot', label: 'UniProt', href: uniprotUrl },
   ]
 }
