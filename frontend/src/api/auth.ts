@@ -27,6 +27,20 @@ export function useRegister() {
   })
 }
 
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (body: { email: string }) =>
+      apiClient.post('/auth/password-reset-request', body).then((r) => r.data),
+  })
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (body: { uid: string; token: string; password: string }) =>
+      apiClient.post('/auth/password-reset-confirm', body).then((r) => r.data),
+  })
+}
+
 export function useProfile() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   return useQuery({

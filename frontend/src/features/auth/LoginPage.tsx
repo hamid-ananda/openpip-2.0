@@ -135,12 +135,12 @@ export function LoginPage() {
               >
                 Password
               </label>
-              <a
-                href="#"
+              <Link
+                to="/forgot-password"
                 style={{ fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }}
               >
                 Forgot?
-              </a>
+              </Link>
             </div>
             <input
               id="login-password"

@@ -1,8 +1,6 @@
 import csv
 import io
 import logging
-import os
-import tempfile
 import time
 import zipfile
 
@@ -152,16 +150,48 @@ class DatasetArchiveDownloadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        datasets = Dataset.objects.exclude(file_path__isnull=True).exclude(file_path="")
-        tmp = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
-        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zf:
+        datasets = Dataset.objects.all()
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             for ds in datasets:
-                if ds.file_path and os.path.exists(ds.file_path):
-                    zf.write(ds.file_path, arcname=os.path.basename(ds.file_path))
-        tmp.seek(0)
-        return FileResponse(
-            open(tmp.name, "rb"), as_attachment=True, filename="datasets.zip"
-        )
+                rows = (
+                    InteractionDataset.objects.filter(dataset=ds)
+                    .select_related(
+                        "interaction__interactor_A", "interaction__interactor_B"
+                    )
+                    .only(
+                        "interaction__score",
+                        "interaction__interactor_A__uniprot_id",
+                        "interaction__interactor_A__gene_name",
+                        "interaction__interactor_B__uniprot_id",
+                        "interaction__interactor_B__gene_name",
+                    )
+                )
+                safe_name = ds.name.replace(" ", "_") if ds.name else f"dataset_{ds.id}"
+                pubmed = f"pubmed:{ds.pubmed_id}" if ds.pubmed_id else "-"
+                lines = [
+                    "#ID(s) interactor A\tID(s) interactor B\t"
+                    "Confidence value(s)\tPublication identifier(s)\n"
+                ]
+                for id_row in rows:
+                    ix = id_row.interaction
+                    a = ix.interactor_A
+                    b = ix.interactor_B
+                    uid_a = (
+                        f"uniprotkb:{a.uniprot_id}"
+                        if a.uniprot_id
+                        else a.gene_name or "-"
+                    )
+                    uid_b = (
+                        f"uniprotkb:{b.uniprot_id}"
+                        if b.uniprot_id
+                        else b.gene_name or "-"
+                    )
+                    score = f"score:{ix.score}" if ix.score else "-"
+                    lines.append(f"{uid_a}\t{uid_b}\t{score}\t{pubmed}\n")
+                zf.writestr(f"{safe_name}.tab", "".join(lines))
+        buf.seek(0)
+        return FileResponse(buf, as_attachment=True, filename="datasets.zip")
 
 
 class UploadView(APIView):
