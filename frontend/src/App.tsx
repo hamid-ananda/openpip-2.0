@@ -13,6 +13,8 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { ProfilePage } from './features/auth/ProfilePage'
+import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from './features/auth/ResetPasswordPage'
 import { ProteinDetailPage } from './features/protein/ProteinDetailPage'
 import { DownloadPage } from './features/static/DownloadPage'
 import { AboutPage } from './features/static/AboutPage'
@@ -22,7 +24,8 @@ import { DocumentationPage } from './features/static/DocumentationPage'
 
 const queryClient = new QueryClient()
 
-const router = createBrowserRouter([
+const router = createBrowserRouter(
+  [
   {
     path: '/',
     element: (
@@ -44,6 +47,8 @@ const router = createBrowserRouter([
       { path: 'documentation', element: <DocumentationPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
+      { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'profile', element: <ProtectedRoute><ProfilePage /></ProtectedRoute> },
       {
         path: 'admin/settings',
@@ -63,7 +68,9 @@ const router = createBrowserRouter([
       },
     ],
   },
-])
+  ],
+  { basename: import.meta.env.BASE_URL }
+)
 
 export default function App() {
   return <RouterProvider router={router} />

@@ -8,8 +8,9 @@ services:
   backend:
     environment:
       DJANGO_SETTINGS_MODULE: openpip.settings.prod
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-openpip.usask.ca,localhost}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://openpip.usask.ca}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://openpip.usask.ca}
     volumes: []
     command: >
       sh -c "python manage.py migrate &&
