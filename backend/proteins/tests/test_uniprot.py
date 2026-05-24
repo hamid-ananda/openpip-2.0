@@ -6,7 +6,6 @@ import pytest
 
 from proteins.tests.factories import ProteinFactory
 
-
 UNIPROT_ENTRY = {
     "primaryAccession": "P12345",
     "proteinDescription": {

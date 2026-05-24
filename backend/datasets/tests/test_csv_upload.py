@@ -8,7 +8,6 @@ from proteins.tests.factories import (
 )
 from interactions.models import Interaction
 
-
 MINIMAL_CSV = b"protein_a,protein_b\nuniprotkb:P12345,uniprotkb:P67890\n"
 
 FULL_CSV = (

@@ -27,7 +27,7 @@ function termUrl(term_id: string, source: EnrichmentSource): string {
   }
   if (source === 'KEGG') {
     const id = term_id.replace(/^KEGG:/, '')
-    return `https://www.genome.jp/kegg-bin/show_pathway?${id}`
+    return `https://www.genome.jp/kegg-bin/show_pathway?map=${id}`
   }
   return '#'
 }

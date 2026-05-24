@@ -140,27 +140,32 @@ def execute_search(q: str, filter_parameter: str = "None") -> dict:
     """
     terms = [t.strip() for t in q.split(",") if t.strip()]
 
-    # Step 1: Resolve query proteins via identifier table
+    # Step 1: Resolve query proteins via identifier table.
+    # Single query: JOIN through ProteinIdentifier to get protein_ids AND the
+    # matched identifier values (so we can classify found vs unfound terms
+    # without a second round-trip to the protein table).
     q_filter = Q()
     for term in terms:
         q_filter |= Q(identifier__iexact=term)
 
-    matched_identifiers = Identifier.objects.filter(q_filter)
-    query_protein_ids = list(
-        ProteinIdentifier.objects.filter(identifier__in=matched_identifiers)
-        .values_list("protein_id", flat=True)
+    matched_pairs = list(
+        ProteinIdentifier.objects.filter(
+            identifier__in=Identifier.objects.filter(q_filter)
+        )
+        .values("protein_id", "identifier__identifier")
         .distinct()
     )
-    query_protein_id_set = set(query_protein_ids)
 
-    found_gene_names = set(
-        Protein.objects.filter(id__in=query_protein_ids).values_list(
-            "gene_name", flat=True
-        )
-    )
-    found_upper = {g.upper() for g in found_gene_names if g}
-    found_terms = [t for t in terms if t.upper() in found_upper]
-    unfound_terms = [t for t in terms if t.upper() not in found_upper]
+    query_protein_id_set = {row["protein_id"] for row in matched_pairs}
+    query_protein_ids = list(query_protein_id_set)
+
+    matched_identifier_values = {
+        row["identifier__identifier"].upper()
+        for row in matched_pairs
+        if row["identifier__identifier"]
+    }
+    found_terms = [t for t in terms if t.upper() in matched_identifier_values]
+    unfound_terms = [t for t in terms if t.upper() not in matched_identifier_values]
 
     if not query_protein_ids:
         return {
@@ -221,9 +226,11 @@ def execute_search(q: str, filter_parameter: str = "None") -> dict:
     # Step 4: Build protein nodes
     protein_map = {p.id: p for p in Protein.objects.filter(id__in=interactor_ids)}
 
-    ann_protein_links = AnnotationProtein.objects.filter(
-        protein_id__in=interactor_ids
-    ).select_related("annotation")
+    ann_protein_links = (
+        AnnotationProtein.objects.filter(protein_id__in=interactor_ids)
+        .select_related("annotation")
+        .only("protein_id", "annotation__annotation", "annotation__type_name")
+    )
 
     annotations_by_protein = {}
     for ap in ann_protein_links:
@@ -248,24 +255,44 @@ def execute_search(q: str, filter_parameter: str = "None") -> dict:
 
     # Steps 5-6: Batch fetch datasets + categories
     datasets_by_interaction = {}
-    for id_obj in InteractionDataset.objects.filter(
-        interaction_id__in=interaction_ids
-    ).select_related("dataset"):
+    for id_obj in (
+        InteractionDataset.objects.filter(interaction_id__in=interaction_ids)
+        .select_related("dataset")
+        .only(
+            "interaction_id",
+            "dataset__name",
+            "dataset__pubmed_id",
+            "dataset__author",
+            "dataset__year",
+            "dataset__description",
+            "dataset__interaction_status",
+        )
+    ):
         datasets_by_interaction.setdefault(id_obj.interaction_id, []).append(
             id_obj.dataset
         )
 
     categories_by_interaction = {}
-    for ic in InteractionInteractionCategory.objects.filter(
-        interaction_id__in=interaction_ids
-    ).select_related("interaction_category"):
+    for ic in (
+        InteractionInteractionCategory.objects.filter(
+            interaction_id__in=interaction_ids
+        )
+        .select_related("interaction_category")
+        .only(
+            "interaction_id",
+            "interaction_category__category_name",
+            "interaction_category__order",
+        )
+    ):
         categories_by_interaction.setdefault(ic.interaction_id, []).append(
             ic.interaction_category
         )
 
     # Step 7: Interaction annotations (queried via annotation.identifier)
     annotations_by_interaction = {}
-    for ann in Annotation.objects.filter(identifier__in=interaction_ids):
+    for ann in Annotation.objects.filter(identifier__in=interaction_ids).only(
+        "annotation", "identifier", "type_name"
+    ):
         annotations_by_interaction.setdefault(ann.identifier, []).append(ann)
 
     # Step 8: Classify edges + build output
@@ -351,9 +378,11 @@ def build_result_from_interaction_ids(interaction_ids: list, query: str) -> dict
     }
     query_protein_ids = list(query_protein_id_set)
 
-    ann_protein_links = AnnotationProtein.objects.filter(
-        protein_id__in=protein_ids
-    ).select_related("annotation")
+    ann_protein_links = (
+        AnnotationProtein.objects.filter(protein_id__in=protein_ids)
+        .select_related("annotation")
+        .only("protein_id", "annotation__annotation", "annotation__type_name")
+    )
     annotations_by_protein: dict = {}
     for ap in ann_protein_links:
         ann = ap.annotation
@@ -372,23 +401,43 @@ def build_result_from_interaction_ids(interaction_ids: list, query: str) -> dict
     all_proteins = non_query_proteins + query_proteins
 
     datasets_by_interaction: dict = {}
-    for id_obj in InteractionDataset.objects.filter(
-        interaction_id__in=interaction_ids
-    ).select_related("dataset"):
+    for id_obj in (
+        InteractionDataset.objects.filter(interaction_id__in=interaction_ids)
+        .select_related("dataset")
+        .only(
+            "interaction_id",
+            "dataset__name",
+            "dataset__pubmed_id",
+            "dataset__author",
+            "dataset__year",
+            "dataset__description",
+            "dataset__interaction_status",
+        )
+    ):
         datasets_by_interaction.setdefault(id_obj.interaction_id, []).append(
             id_obj.dataset
         )
 
     categories_by_interaction: dict = {}
-    for ic in InteractionInteractionCategory.objects.filter(
-        interaction_id__in=interaction_ids
-    ).select_related("interaction_category"):
+    for ic in (
+        InteractionInteractionCategory.objects.filter(
+            interaction_id__in=interaction_ids
+        )
+        .select_related("interaction_category")
+        .only(
+            "interaction_id",
+            "interaction_category__category_name",
+            "interaction_category__order",
+        )
+    ):
         categories_by_interaction.setdefault(ic.interaction_id, []).append(
             ic.interaction_category
         )
 
     annotations_by_interaction: dict = {}
-    for ann in Annotation.objects.filter(identifier__in=interaction_ids):
+    for ann in Annotation.objects.filter(identifier__in=interaction_ids).only(
+        "annotation", "identifier", "type_name"
+    ):
         annotations_by_interaction.setdefault(ann.identifier, []).append(ann)
 
     multi_query_edges, query_edges, interactor_edges = [], [], []

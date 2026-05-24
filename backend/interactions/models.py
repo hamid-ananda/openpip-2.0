@@ -45,6 +45,18 @@ class Interaction(models.Model):
 
     class Meta:
         db_table = "interaction"
+        indexes = [
+            # Every search filters WHERE removed='0'
+            models.Index(fields=["removed"], name="interaction_removed_idx"),
+            # Covers: WHERE interactor_A IN (...) AND interactor_B IN (...)
+            models.Index(
+                fields=["interactor_A", "interactor_B"], name="interaction_a_b_idx"
+            ),
+            # Covers: B-side queries in query_interactor filter mode
+            models.Index(
+                fields=["interactor_B", "interactor_A"], name="interaction_b_a_idx"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.interactor_A} — {self.interactor_B}"

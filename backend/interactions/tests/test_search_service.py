@@ -24,7 +24,6 @@ from interactions.search_service import (
     build_result_from_interaction_ids,
 )
 
-
 # ── _safe_float ───────────────────────────────────────────────────────────────
 
 

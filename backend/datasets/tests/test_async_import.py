@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-
 SAMPLE_TAB = (
     'uniprotkb:P12345\tuniprotkb:P67890\t-\t-\t-\t-\tpsi-mi:"MI:0018"(two hybrid)\t'
     "Smith et al.(2020)\tpubmed:32000001\ttaxid:9606(human)\ttaxid:9606(human)\t"
