@@ -19,6 +19,7 @@ urlpatterns = [
     path("api/", include("datasets.urls")),
     path("api/", include("interactions.urls")),
     path("api/interactions/categories", InteractionCategoryListView.as_view()),
+    path("psicquic/", include("psicquic.urls")),
 ]
 
 if settings.DEBUG:
