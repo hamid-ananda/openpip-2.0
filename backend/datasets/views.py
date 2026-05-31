@@ -10,7 +10,7 @@ from django.db.models import Count, OuterRef, Subquery
 from django.http import FileResponse, Http404, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -50,7 +50,7 @@ class DatasetListView(APIView):
 
 
 class DatasetFileDownloadView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request, pk):
         dataset = Dataset.objects.filter(pk=pk).first()
@@ -147,7 +147,7 @@ class DatasetFileDownloadView(APIView):
 
 
 class DatasetArchiveDownloadView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         datasets = Dataset.objects.all()
