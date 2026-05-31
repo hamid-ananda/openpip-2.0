@@ -32,7 +32,7 @@ async function fetchBestPdbId(uniprotId: string): Promise<string | null> {
   if (!res.ok) throw new Error(`RCSB search failed: ${res.status}`)
 
   const data: RcsbSearchResponse = await res.json()
-  return data.result_set?.[0]?.identifier ?? null
+  return data.result_set?.[0]?.identifier?.trim() || null
 }
 
 export function useStructureAvailability(uniprotId: string): {
