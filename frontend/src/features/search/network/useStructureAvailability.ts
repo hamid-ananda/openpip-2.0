@@ -23,8 +23,7 @@ async function fetchBestPdbId(uniprotId: string): Promise<string | null> {
       return_type: 'entry',
       request_options: {
         paginate: { start: 0, rows: 1 },
-        sort: [{ sort_by: 'rcsb_entry_info.resolution_combined', direction: 'asc' }],
-        results_content_type: ['experimental'],
+        sort: [{ sort_by: 'score', direction: 'desc' }],
       },
     }),
   })

@@ -8,8 +8,11 @@ export interface StructureViewerProps {
 
 type Status = 'loading' | 'ready' | 'error-import' | 'error-structure'
 
-function alphafoldCifUrl(uniprotId: string) {
-  return `https://alphafold.ebi.ac.uk/files/AF-${uniprotId}-F1-model_v4.cif`
+async function fetchAlphaFoldCifUrl(uniprotId: string): Promise<string | null> {
+  const res = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${uniprotId}`)
+  if (!res.ok) return null
+  const data = await res.json()
+  return (data as Array<{ cifUrl?: string }>)?.[0]?.cifUrl ?? null
 }
 
 function pdbCifUrl(pdbId: string) {
@@ -96,16 +99,17 @@ export function StructureViewer({ uniprotId, source, pdbId }: StructureViewerPro
     let cancelled = false
     const plugin = pluginRef.current
 
-    const url =
-      source === 'alphafold'
-        ? alphafoldCifUrl(uniprotId)
-        : pdbId
-          ? pdbCifUrl(pdbId)
-          : null
-    if (!url) return
-
     async function load() {
       try {
+        const url =
+          source === 'alphafold'
+            ? await fetchAlphaFoldCifUrl(uniprotId)
+            : pdbId
+              ? pdbCifUrl(pdbId)
+              : null
+        if (!url) { if (!cancelled) setStatus('error-structure'); return }
+
+        if (cancelled) return
         await plugin.clear()
         const data = await plugin.builders.data.download(
           { url },
@@ -129,10 +133,12 @@ export function StructureViewer({ uniprotId, source, pdbId }: StructureViewerPro
 
   return (
     <div>
-      <div
-        ref={containerRef}
-        style={{ height: 180, position: 'relative', background: '#0d0d1e', borderRadius: 4 }}
-      >
+      {/* Wrapper provides the stacking context for absolutely-positioned overlays */}
+      <div style={{ position: 'relative', height: 180, borderRadius: 4, overflow: 'hidden' }}>
+        {/* Mol* calls createRoot() on this div — React must put NO children here */}
+        <div ref={containerRef} style={{ height: '100%', background: '#0d0d1e' }} />
+
+        {/* Status overlays are siblings, not children, of the Mol* container */}
         {status === 'loading' && (
           <div style={overlay}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading structure…</span>
@@ -178,6 +184,8 @@ const overlay: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   gap: 6,
+  background: '#0d0d1e',
+  zIndex: 1,
 }
 
 const extLinkStyle: React.CSSProperties = {

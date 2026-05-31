@@ -19,4 +19,14 @@ export const rcsbHandlers = [
 
     return HttpResponse.json({ total_count: 0, result_set: [] })
   }),
+
+  // AlphaFold prediction API — returns the canonical CIF URL for a UniProt ID
+  http.get('https://alphafold.ebi.ac.uk/api/prediction/:uniprotId', ({ params }) => {
+    const { uniprotId } = params as { uniprotId: string }
+    return HttpResponse.json([
+      {
+        cifUrl: `https://alphafold.ebi.ac.uk/files/AF-${uniprotId}-F1-model_v4.cif`,
+      },
+    ])
+  }),
 ]
