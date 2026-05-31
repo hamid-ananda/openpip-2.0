@@ -13,7 +13,7 @@ function alphafoldCifUrl(uniprotId: string) {
 }
 
 function pdbCifUrl(pdbId: string) {
-  return `https://files.rcsb.org/download/${pdbId}.cif`
+  return `https://files.rcsb.org/download/${pdbId.toUpperCase()}.cif`
 }
 
 function externalHref(source: 'alphafold' | 'pdb', uniprotId: string, pdbId: string | null) {
@@ -83,10 +83,19 @@ export function StructureViewer({ uniprotId, source, pdbId }: StructureViewerPro
     }
   }, [])
 
+  // Reset error-structure back to ready when source/id changes so load can retry
+  useEffect(() => {
+    if (status === 'error-structure' && pluginRef.current) {
+      setStatus('ready')
+    }
+  }, [source, uniprotId, pdbId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load / swap structure whenever plugin is ready or source/ids change
   useEffect(() => {
     if (status !== 'ready' || !pluginRef.current) return
+    let cancelled = false
     const plugin = pluginRef.current
+
     const url =
       source === 'alphafold'
         ? alphafoldCifUrl(uniprotId)
@@ -102,14 +111,17 @@ export function StructureViewer({ uniprotId, source, pdbId }: StructureViewerPro
           { url },
           { state: { isGhost: true } }
         )
+        if (cancelled) return
         const trajectory = await plugin.builders.structure.parseTrajectory(data, 'mmcif')
+        if (cancelled) return
         await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default')
       } catch {
-        setStatus('error-structure')
+        if (!cancelled) setStatus('error-structure')
       }
     }
 
     load()
+    return () => { cancelled = true }
   }, [status, source, uniprotId, pdbId])
 
   const href = externalHref(source, uniprotId, pdbId)
