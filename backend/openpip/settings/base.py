@@ -103,6 +103,8 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_URLS_REGEX = r"^/(api|psicquic)/.*$"
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
