@@ -9,7 +9,7 @@ import { EnrichmentPanel } from './enrichment/EnrichmentPanel'
 import { OverlaySystem } from './modals/OverlaySystem'
 import { SearchSidebar } from './SearchSidebar'
 import { NodeInfoPanel } from './NodeInfoPanel'
-import type { Protein, Interaction } from '../../types/api'
+import type { Protein } from '../../types/api'
 
 const MIN_NETWORK_H = 150
 const MAX_NETWORK_H = window.innerHeight - 56 - 120
