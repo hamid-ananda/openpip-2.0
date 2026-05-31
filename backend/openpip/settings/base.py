@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
     "corsheaders",
     "django_filters",
     "core",
@@ -92,7 +93,21 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "PAGE_SIZE": 50,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "openPIP API",
+    "DESCRIPTION": (
+        "Protein-protein interaction database API. "
+        "All read endpoints are public and require no authentication. "
+        "PSICQUIC-compliant query endpoint available at /psicquic/rest/query."
+    ),
+    "VERSION": "2.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "CONTACT": {"email": "openpip@usask.ca"},
+    "LICENSE": {"name": "MIT"},
 }
 
 SIMPLE_JWT = {
