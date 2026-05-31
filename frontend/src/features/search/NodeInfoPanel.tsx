@@ -59,7 +59,7 @@ export function NodeInfoPanel({
   const ensemblId = protein.protein_ensembl_id
   const uniprotId = protein.protein_uniprot_id
 
-  const pdbDisabled = pdbId === null
+  const pdbDisabled = pdbLoading || pdbId === null
   const pdbTitle = pdbError
     ? 'Could not check PDB availability'
     : pdbLoading

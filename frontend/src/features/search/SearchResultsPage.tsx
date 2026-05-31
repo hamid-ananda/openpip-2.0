@@ -161,6 +161,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
           />
           {selectedProtein && (
             <NodeInfoPanel
+              key={selectedProtein.protein_id}
               protein={selectedProtein}
               networkInteractions={interactions}
               searchTerm={term}
