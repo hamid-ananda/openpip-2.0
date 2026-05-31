@@ -9,6 +9,7 @@ import { datasetHandlers } from './datasets'
 import { proteinHandlers } from './proteins'
 import { networksHandlers } from './networks'
 import { filesHandlers } from './files'
+import { rcsbHandlers } from './rcsb'
 
 export const handlers = [
   ...settingsHandlers,
@@ -22,4 +23,5 @@ export const handlers = [
   ...proteinHandlers,
   ...networksHandlers,
   ...filesHandlers,
+  ...rcsbHandlers,
 ]
