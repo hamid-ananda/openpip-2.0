@@ -79,6 +79,13 @@ class OpenPIPApp(App):
         yield Footer()
 
 
+# TODO(phase5): TUI admin panel screens (announcement manager, category manager)
+# TODO(phase5): TUI dataset browser (list + download from TUI)
+# TODO(phase5): TUI network: clickable nodes navigate to protein detail
+# TODO(phase5): TUI: keyboard shortcut for PSICQUIC query
+# TODO(phase5): openpip db shell (interactive psql via docker exec)
+
+
 def launch_tui() -> None:
     app = OpenPIPApp()
     app.run()
