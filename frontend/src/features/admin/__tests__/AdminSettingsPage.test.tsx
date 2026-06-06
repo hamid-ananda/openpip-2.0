@@ -25,7 +25,7 @@ vi.mock('react-quill-new', () => ({
 
 vi.mock('react-quill-new/dist/quill.snow.css', () => ({}))
 
-vi.mock('../../api/interactionCategories', () => ({
+vi.mock('../../../api/interactionCategories', () => ({
   useInteractionCategories: vi.fn().mockReturnValue({ data: [], isLoading: false }),
   useCreateCategory: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
   useUpdateCategory: vi.fn().mockReturnValue({ mutate: vi.fn() }),
