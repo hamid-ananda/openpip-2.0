@@ -24,6 +24,10 @@ describe('Types compile', () => {
       literatureEdgeColor: '#ff9900',
       url: 'https://openpip.usask.ca/',
       version: '1.0',
+      about: '', faq: '', contact: '', download: '',
+      showDownloads: true, showDownloadAll: true,
+      example1: '', example2: '', example3: '',
+      example1Type: '', example2Type: '', example3Type: '',
     }
     expect(s.shortTitle).toBe('openPIP')
   })

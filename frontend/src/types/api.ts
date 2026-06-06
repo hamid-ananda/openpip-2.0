@@ -31,6 +31,26 @@ export interface AdminSettings {
   navStyle?: string | null
   mainColorScheme2?: string | null
   gradientAngle?: number | null
+  about: string
+  faq: string
+  contact: string
+  download: string
+  showDownloads: boolean
+  showDownloadAll: boolean
+  example1: string
+  example2: string
+  example3: string
+  example1Type: string
+  example2Type: string
+  example3Type: string
+}
+
+export interface InteractionCategory {
+  id: number
+  categoryName: string
+  order: string
+  colorScheme: string
+  description: string
 }
 
 export interface Announcement {

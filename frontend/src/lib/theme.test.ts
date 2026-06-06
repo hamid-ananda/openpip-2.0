@@ -16,6 +16,10 @@ const mockSettings: AdminSettings = {
   verifiedEdgeColor: '#cc0000',
   literatureEdgeColor: '#ff9900',
   url: '', version: '2.0',
+  about: '', faq: '', contact: '', download: '',
+  showDownloads: true, showDownloadAll: true,
+  example1: '', example2: '', example3: '',
+  example1Type: '', example2Type: '', example3Type: '',
 }
 
 describe('injectCSSVars', () => {
