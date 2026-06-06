@@ -5,6 +5,8 @@ from .views import (
     AnnouncementAdminView,
     AnnouncementListView,
     CountsView,
+    InteractionCategoryDetailView,
+    InteractionCategoryListView,
     LogoUploadView,
 )
 
@@ -15,4 +17,6 @@ urlpatterns = [
     path("counts", CountsView.as_view()),
     path("admin/announcements", AnnouncementAdminView.as_view()),
     path("admin/announcements/<int:pk>", AnnouncementAdminDetailView.as_view()),
+    path("interaction-categories", InteractionCategoryListView.as_view()),
+    path("interaction-categories/<int:pk>", InteractionCategoryDetailView.as_view()),
 ]

@@ -8,7 +8,12 @@ from proteins.models import Protein
 from interactions.models import Interaction
 from datasets.models import Dataset
 from .models import AdminSettings, Announcement
-from .serializers import AdminSettingsSerializer, AnnouncementSerializer
+from .serializers import (
+    AdminSettingsSerializer,
+    AnnouncementSerializer,
+    InteractionCategorySerializer,
+)
+from interactions.models import InteractionCategory
 
 
 class AdminSettingsView(APIView):
@@ -129,3 +134,49 @@ class CountsView(APIView):
                 "datasets": Dataset.objects.count(),
             }
         )
+
+
+class InteractionCategoryListView(APIView):
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAdminUser()]
+        return [AllowAny()]
+
+    def get(self, request):
+        qs = InteractionCategory.objects.filter(
+            admin_settings_id=1
+        ).order_by("order")
+        return Response(InteractionCategorySerializer(qs, many=True).data)
+
+    def post(self, request):
+        serializer = InteractionCategorySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        settings_obj, _ = AdminSettings.objects.get_or_create(pk=1)
+        serializer.save(admin_settings=settings_obj)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class InteractionCategoryDetailView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def _get_object(self, pk: int):
+        try:
+            return InteractionCategory.objects.get(pk=pk, admin_settings_id=1)
+        except InteractionCategory.DoesNotExist:
+            return None
+
+    def patch(self, request, pk: int):
+        obj = self._get_object(pk)
+        if obj is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = InteractionCategorySerializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk: int):
+        obj = self._get_object(pk)
+        if obj is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
