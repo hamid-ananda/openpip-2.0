@@ -12,6 +12,26 @@ vi.mock('../../../api/settings', () => ({
   useDeleteLogo: vi.fn(),
 }))
 
+vi.mock('react-quill-new', () => ({
+  default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
+    <textarea
+      data-testid="rich-text-editor"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}))
+
+vi.mock('react-quill-new/dist/quill.snow.css', () => ({}))
+
+vi.mock('../../api/interactionCategories', () => ({
+  useInteractionCategories: vi.fn().mockReturnValue({ data: [], isLoading: false }),
+  useCreateCategory: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
+  useUpdateCategory: vi.fn().mockReturnValue({ mutate: vi.fn() }),
+  useDeleteCategory: vi.fn().mockReturnValue({ mutate: vi.fn() }),
+}))
+
 const mockSettings = {
   title: 'openPIP — Protein Interaction Portal',
   shortTitle: 'openPIP',
@@ -33,6 +53,18 @@ const mockSettings = {
   literatureEdgeColor: '#ff9900',
   url: 'http://localhost:5173/',
   version: '2.0',
+  about: '<p>About openPIP.</p>',
+  faq: '<p>FAQ content.</p>',
+  contact: '<p>Contact intro.</p>',
+  download: '<p>Download intro.</p>',
+  showDownloads: true,
+  showDownloadAll: true,
+  example1: 'BAD\nBAK1',
+  example2: 'BAD',
+  example3: '',
+  example1Type: 'query-query',
+  example2Type: 'query-interactor',
+  example3Type: 'all',
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -122,5 +154,27 @@ describe('AdminSettingsPage', () => {
     fireEvent.click(saveButton)
 
     expect(mockUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('renders Global Settings tab by default', () => {
+    ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({ data: mockSettings, isLoading: false })
+    render(<AdminSettingsPage />, { wrapper })
+    expect(screen.getByText('Global Settings')).toBeInTheDocument()
+    expect(screen.getByText('Site Title')).toBeInTheDocument()
+  })
+
+  it('shows About editor when About tab is clicked', () => {
+    ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({ data: mockSettings, isLoading: false })
+    render(<AdminSettingsPage />, { wrapper })
+    fireEvent.click(screen.getByRole('button', { name: /^about$/i }))
+    expect(screen.getByText('About page content')).toBeInTheDocument()
+  })
+
+  it('shows Downloads toggles when Downloads tab is clicked', () => {
+    ;(useSettings as ReturnType<typeof vi.fn>).mockReturnValue({ data: mockSettings, isLoading: false })
+    render(<AdminSettingsPage />, { wrapper })
+    fireEvent.click(screen.getByRole('button', { name: /downloads/i }))
+    expect(screen.getByText('Show Dataset Downloads')).toBeInTheDocument()
+    expect(screen.getByText('Show Download All Datasets')).toBeInTheDocument()
   })
 })

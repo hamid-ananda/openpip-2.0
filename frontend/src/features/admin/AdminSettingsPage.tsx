@@ -567,8 +567,11 @@ function CategoryTable() {
   const setDraft = (id: number, field: keyof InteractionCategory, value: string) =>
     setDrafts((d) => ({ ...d, [id]: { ...d[id], [field]: value } }))
 
-  const getDraft = (cat: InteractionCategory, field: keyof InteractionCategory) =>
-    (drafts[cat.id]?.[field] as string | undefined) ?? (cat[field] as string)
+  const getDraft = (
+    cat: InteractionCategory,
+    field: Exclude<keyof InteractionCategory, 'id'>
+  ): string =>
+    (drafts[cat.id]?.[field] as string | undefined) ?? cat[field]
 
   if (isLoading) return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</p>
 
@@ -1085,6 +1088,78 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             Each row controls how an interaction source is displayed in search results.
           </p>
           <CategoryTable />
+        </Section>
+      </TabPanel>
+
+      {/* ── ABOUT ── */}
+      <TabPanel active={activeTab === 'about'}>
+        <Section title="About page content">
+          <RichTextEditor
+            value={form.about ?? ''}
+            onChange={(v) => set('about', v)}
+            placeholder="Enter the About page body…"
+            rows={16}
+          />
+        </Section>
+      </TabPanel>
+
+      {/* ── FAQS ── */}
+      <TabPanel active={activeTab === 'faqs'}>
+        <Section title="FAQ page content">
+          <RichTextEditor
+            value={form.faq ?? ''}
+            onChange={(v) => set('faq', v)}
+            placeholder="Enter FAQ content…"
+            rows={16}
+          />
+        </Section>
+      </TabPanel>
+
+      {/* ── CONTACT ── */}
+      <TabPanel active={activeTab === 'contact'}>
+        <Section title="Contact page intro text">
+          <RichTextEditor
+            value={form.contact ?? ''}
+            onChange={(v) => set('contact', v)}
+            placeholder="Introductory text shown above the contact form…"
+            rows={10}
+          />
+        </Section>
+      </TabPanel>
+
+      {/* ── DOWNLOADS ── */}
+      <TabPanel active={activeTab === 'downloads'}>
+        <Section title="Visibility">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {(
+              [
+                { key: 'showDownloads',   label: 'Show Dataset Downloads' },
+                { key: 'showDownloadAll', label: 'Show Download All Datasets' },
+              ] as { key: 'showDownloads' | 'showDownloadAll'; label: string }[]
+            ).map(({ key, label }) => (
+              <label
+                key={key}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={form[key] ?? false}
+                  onChange={(e) => set(key, e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <span style={{ color: 'var(--text)' }}>{label}</span>
+              </label>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Downloads page content">
+          <RichTextEditor
+            value={form.download ?? ''}
+            onChange={(v) => set('download', v)}
+            placeholder="Introductory text shown at the top of the Downloads page…"
+            rows={12}
+          />
         </Section>
       </TabPanel>
 
