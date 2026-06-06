@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '../../api/settings'
 import { injectCSSVars } from '../../lib/theme'
 import type { AdminSettings } from '../../types/api'
+import { RichTextEditor } from '../../components/RichTextEditor'
 
 // ─────────────────────────────────────────────────────────
 // Defaults
@@ -77,13 +78,16 @@ const PRESETS: Preset[] = [
 // ─────────────────────────────────────────────────────────
 // Field metadata
 // ─────────────────────────────────────────────────────────
-type TabId = 'general' | 'appearance' | 'home' | 'network'
+type TabId = 'global' | 'home' | 'search' | 'about' | 'faqs' | 'contact' | 'downloads'
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'general',    label: 'General' },
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'home',       label: 'Home Content' },
-  { id: 'network',    label: 'Network Colors' },
+  { id: 'global',    label: 'Global Settings' },
+  { id: 'home',      label: 'Home Page' },
+  { id: 'search',    label: 'Search' },
+  { id: 'about',     label: 'About' },
+  { id: 'faqs',      label: 'FAQs' },
+  { id: 'contact',   label: 'Contact' },
+  { id: 'downloads', label: 'Downloads' },
 ]
 
 // ─────────────────────────────────────────────────────────
@@ -125,6 +129,7 @@ function TextInput({
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TextareaInput({
   value,
   onChange,
@@ -333,6 +338,7 @@ function NavPreview({
 // ─────────────────────────────────────────────────────────
 // Mini network preview
 // ─────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function NetworkPreview({
   queryColor,
   interactorColor,
@@ -558,7 +564,7 @@ function seedDefaults(s: AdminSettings): AdminSettings {
 function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
   const { mutate: update, isPending, isSuccess, isError } = useUpdateSettings()
   const [form, setForm] = useState<AdminSettings>(() => seedDefaults(initialSettings))
-  const [activeTab, setActiveTab] = useState<TabId>('general')
+  const [activeTab, setActiveTab] = useState<TabId>('global')
 
   const set = useCallback(<K extends keyof AdminSettings>(field: K, value: AdminSettings[K]) => {
     setForm((f) => ({ ...f, [field]: value }))
@@ -621,8 +627,8 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
         ))}
       </div>
 
-      {/* ── GENERAL ── */}
-      <TabPanel active={activeTab === 'general'}>
+      {/* ── GLOBAL SETTINGS ── */}
+      <TabPanel active={activeTab === 'global'}>
         <Section title="Site identity">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div>
@@ -652,10 +658,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
 
         <Section title="Footer">
           <FieldLabel>Footer HTML</FieldLabel>
-          <TextareaInput value={form.footer ?? ''} onChange={(v) => set('footer', v)} rows={3} mono />
-          <p style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 6 }}>
-            Rendered as raw HTML. Use inline styles for formatting.
-          </p>
+          <RichTextEditor value={form.footer ?? ''} onChange={(v) => set('footer', v)} rows={3} />
         </Section>
 
         <Section title="Administration">
@@ -673,10 +676,6 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             Register new admin
           </a>
         </Section>
-      </TabPanel>
-
-      {/* ── APPEARANCE ── */}
-      <TabPanel active={activeTab === 'appearance'}>
 
         {/* Preset themes */}
         <Section title="Themes">
@@ -809,59 +808,29 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
         />
       </TabPanel>
 
-      {/* ── HOME CONTENT ── */}
+      {/* ── HOME PAGE ── */}
       <TabPanel active={activeTab === 'home'}>
         <Section title="Top section">
           <div style={{ marginBottom: 16 }}>
-            <FieldLabel>Mission Title</FieldLabel>
+            <FieldLabel>Top Section Title</FieldLabel>
             <TextInput value={form.missionTitle ?? ''} onChange={(v) => set('missionTitle', v)} placeholder="HTML allowed, e.g. <h4>Our Mission</h4>" />
           </div>
           <div>
-            <FieldLabel>Mission Text</FieldLabel>
-            <TextareaInput value={form.missionText ?? ''} onChange={(v) => set('missionText', v)} rows={5} />
+            <FieldLabel>Top Section Text</FieldLabel>
+            <RichTextEditor value={form.missionText ?? ''} onChange={(v) => set('missionText', v)} />
           </div>
         </Section>
 
         <Section title="Bottom section">
           <div style={{ marginBottom: 16 }}>
-            <FieldLabel>Method Title</FieldLabel>
+            <FieldLabel>Bottom Section Title</FieldLabel>
             <TextInput value={form.methodTitle ?? ''} onChange={(v) => set('methodTitle', v)} placeholder="HTML allowed, e.g. <h4>Methods</h4>" />
           </div>
           <div>
-            <FieldLabel>Method Text</FieldLabel>
-            <TextareaInput value={form.methodText ?? ''} onChange={(v) => set('methodText', v)} rows={5} />
+            <FieldLabel>Bottom Section Text</FieldLabel>
+            <RichTextEditor value={form.methodText ?? ''} onChange={(v) => set('methodText', v)} />
           </div>
         </Section>
-      </TabPanel>
-
-      {/* ── NETWORK COLORS ── */}
-      <TabPanel active={activeTab === 'network'}>
-        <Section title="Node colors">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <ColorInput label="Query Node Color"      value={form.queryNodeColor ?? '#e11d48'}      onChange={(v) => set('queryNodeColor', v)} />
-            <ColorInput label="Interactor Node Color" value={form.interactorNodeColor ?? '#2563eb'} onChange={(v) => set('interactorNodeColor', v)} />
-          </div>
-        </Section>
-
-        <Section title="Edge colors">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <ColorInput label="Published Edge"   value={form.publishedEdgeColor ?? '#38761d'}  onChange={(v) => set('publishedEdgeColor', v)} />
-            <ColorInput label="Validated Edge"   value={form.validatedEdgeColor ?? '#1155cc'}  onChange={(v) => set('validatedEdgeColor', v)} />
-            <ColorInput label="Verified Edge"    value={form.verifiedEdgeColor ?? '#cc0000'}   onChange={(v) => set('verifiedEdgeColor', v)} />
-            <ColorInput label="Literature Edge"  value={form.literatureEdgeColor ?? '#ff9900'} onChange={(v) => set('literatureEdgeColor', v)} />
-          </div>
-        </Section>
-
-        <NetworkPreview
-          queryColor={form.queryNodeColor ?? '#e11d48'}
-          interactorColor={form.interactorNodeColor ?? '#2563eb'}
-          edgeColors={{
-            published: form.publishedEdgeColor ?? '#38761d',
-            validated: form.validatedEdgeColor ?? '#1155cc',
-            verified: form.verifiedEdgeColor ?? '#cc0000',
-            literature: form.literatureEdgeColor ?? '#ff9900',
-          }}
-        />
       </TabPanel>
 
       {/* Footer bar */}
