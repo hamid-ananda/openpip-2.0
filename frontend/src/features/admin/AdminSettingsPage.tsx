@@ -638,7 +638,20 @@ function CategoryTable() {
                   type="button"
                   className="op-btn"
                   style={{ fontSize: 11, padding: '3px 10px', marginRight: 6 }}
-                  onClick={() => updateCat({ id: cat.id, ...drafts[cat.id] })}
+                  disabled={!drafts[cat.id] || Object.keys(drafts[cat.id]).length === 0}
+                  onClick={() =>
+                    updateCat(
+                      { id: cat.id, ...drafts[cat.id] },
+                      {
+                        onSuccess: () =>
+                          setDrafts((d) => {
+                            const next = { ...d }
+                            delete next[cat.id]
+                            return next
+                          }),
+                      }
+                    )
+                  }
                 >
                   Save
                 </button>
@@ -1072,16 +1085,18 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           </div>
         </Section>
 
-        <NetworkPreview
-          queryColor={form.queryNodeColor ?? '#e11d48'}
-          interactorColor={form.interactorNodeColor ?? '#2563eb'}
-          edgeColors={{
-            published: form.publishedEdgeColor ?? '#38761d',
-            validated: form.validatedEdgeColor ?? '#1155cc',
-            verified: form.verifiedEdgeColor ?? '#cc0000',
-            literature: form.literatureEdgeColor ?? '#ff9900',
-          }}
-        />
+        <Section title="Network preview">
+          <NetworkPreview
+            queryColor={form.queryNodeColor ?? '#e11d48'}
+            interactorColor={form.interactorNodeColor ?? '#2563eb'}
+            edgeColors={{
+              published: form.publishedEdgeColor ?? '#38761d',
+              validated: form.validatedEdgeColor ?? '#1155cc',
+              verified: form.verifiedEdgeColor ?? '#cc0000',
+              literature: form.literatureEdgeColor ?? '#ff9900',
+            }}
+          />
+        </Section>
 
         <Section title="Interaction categories">
           <p style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 12 }}>
