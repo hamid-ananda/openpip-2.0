@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useDatasets } from '../../api/downloads'
 import { usePublicFiles } from '../../api/files'
 import type { UploadedFile } from '../../api/files'
+import { useSettings } from '../../api/settings'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
@@ -48,6 +49,7 @@ export function DownloadPage() {
   const token = useAuthStore((s) => s.token)
   const { data: datasets, isLoading } = useDatasets()
   const { data: suppFiles } = usePublicFiles()
+  const { data: settings } = useSettings()
   const [downloading, setDownloading] = useState<string | null>(null)
 
   async function handleDownload(datasetId: number, fmt: string) {
@@ -99,6 +101,15 @@ export function DownloadPage() {
         </div>
       </section>
 
+      {settings?.download && (
+        <section style={{ padding: '0 80px 8px' }}>
+          <div
+            style={{ maxWidth: 1280, margin: '0 auto', lineHeight: 1.7, fontSize: 14, color: 'var(--text)' }}
+            dangerouslySetInnerHTML={{ __html: settings.download }}
+          />
+        </section>
+      )}
+
       {/* Moratorium notice */}
       <section style={{ padding: '0 80px 32px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
@@ -144,6 +155,7 @@ export function DownloadPage() {
       </section>
 
       {/* Dataset table */}
+      {(settings?.showDownloads ?? true) && (
       <section style={{ padding: '0 80px 64px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           {isLoading ? (
@@ -260,9 +272,10 @@ export function DownloadPage() {
           )}
         </div>
       </section>
+      )}
 
       {/* Supplementary Files */}
-      {isLoggedIn && suppFiles && suppFiles.length > 0 && (
+      {(settings?.showDownloadAll ?? true) && isLoggedIn && suppFiles && suppFiles.length > 0 && (
         <section style={{ padding: '0 80px 64px' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto' }}>
             <div

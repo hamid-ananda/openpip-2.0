@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useContact } from '../../api/contact'
+import { useSettings } from '../../api/settings'
 
 export function ContactPage() {
   const { mutate: submit, isPending, isSuccess, error } = useContact()
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' })
+  const { data: settings } = useSettings()
 
   if (isSuccess) {
     return (
@@ -19,6 +21,12 @@ export function ContactPage() {
       <h1 className="text-3xl font-bold mb-6" style={{ color: 'var(--color-main)' }}>
         Contact
       </h1>
+      {settings?.contact && (
+        <div
+          style={{ lineHeight: 1.7, fontSize: 14, color: 'var(--text)', marginBottom: 20 }}
+          dangerouslySetInnerHTML={{ __html: settings.contact }}
+        />
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault()

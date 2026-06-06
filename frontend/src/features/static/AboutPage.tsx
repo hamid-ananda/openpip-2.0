@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useSettings } from '../../api/settings'
 
 const ExternalLink = ({ href, children }: { href: string; children: ReactNode }) => (
@@ -81,34 +82,16 @@ export function AboutPage() {
         About {settings?.title ?? 'openPIP'}
       </h1>
 
-      <p style={pStyle}>
-        At CCSB, the Human Reference Interactome Mapping Project has grown in several distinct stages
-        primarily defined by the number of human protein-coding genes amenable to screening for which
-        at least one Gateway-cloned Open Reading Frame (ORF) was available at the time of the project.
-        As of today, three proteome-scale human PPI datasets are available via this web portal, in
-        addition to other PPI datasets from CCSB, which were generated to optimize our pipeline, build
-        a framework for quality control, benchmark new Y2H assay versions, or assess network rewiring
-        as a result of alternative splicing (see below for more details).
-      </p>
-      <p style={pStyle}>
-        We also make available a subset of the curated binary protein interactions from the scientific
-        literature that is of comparable quality to interactions identified in systematic screens at CCSB.
-      </p>
-      <p style={pStyle}>
-        All provided PPI datasets on this web portal have been processed using a new pipeline that maps
-        our ORF sequences and resulting PPIs to Ensembl gene, transcript and protein identifiers that are
-        annotated by the GENCODE consortium as protein-coding. As a result of this updated mapping,
-        previously published datasets that are provided for download on this portal vary slightly in their
-        number of PPIs compared to the protein interaction count provided in the original paper. The
-        original datasets can be accessed in the supplementary material of each respective publication. We
-        highly encourage users to use the updated datasets provided on this web portal for their research.
-      </p>
-      <p style={pStyle}>
-        All datasets are available for download as simple tab-separated file with the interacting protein
-        pairs being indicated as pairs of Ensembl gene IDs. All CCSB interaction data is also available
-        for download in PSI-MI format containing detailed experimental information and isoform-specific
-        ORF, transcript and protein identifiers for each interaction.
-      </p>
+      {settings?.about ? (
+        <div
+          style={{ lineHeight: 1.7, fontSize: 14, color: 'var(--text)' }}
+          dangerouslySetInnerHTML={{ __html: settings.about }}
+        />
+      ) : (
+        <p style={pStyle}>
+          openPIP is an open-source protein interaction platform.
+        </p>
+      )}
 
       {/* ── Proteome-scale efforts ── */}
       <h2 style={h2Style}>CCSB Proteome-scale efforts</h2>
@@ -414,6 +397,85 @@ export function AboutPage() {
       <p style={pStyle}>
         The web browser must be configured to accept cookies and JavaScript must be enabled.
       </p>
+
+      {/* ── Programmatic access ── */}
+      <h2 style={h2Style}>Programmatic Access</h2>
+      <p style={pStyle}>
+        openPIP provides several ways to access its data programmatically. All read endpoints are
+        public and require no API key.
+      </p>
+
+      <h3 style={h3Style}>REST API &amp; interactive docs</h3>
+      <p style={pStyle}>
+        A full REST API is available at{' '}
+        <ExternalLink href="/v2/api/docs/">/v2/api/docs/</ExternalLink>. Endpoints cover protein
+        search, protein detail, interaction data, dataset listings, and file downloads. All responses
+        are JSON and CORS-enabled for use from any browser or server.
+      </p>
+
+      <h3 style={h3Style}>Deep links</h3>
+      <p style={pStyle}>
+        Other websites can link directly to a search or protein page using stable URLs:
+      </p>
+      <div style={{ background: 'var(--surface-2)', borderRadius: 6, padding: '10px 16px', fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text)', marginBottom: 12 }}>
+        /v2/search/BRCA1<br />
+        /v2/search/BRCA1,TP53<br />
+        /v2/protein/BRCA1<br />
+        /v2/protein/P38398
+      </div>
+
+      <h3 style={h3Style}>Python SDK &amp; CLI</h3>
+      <p style={pStyle}>
+        A Python package (<code style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>openpip</code>)
+        provides a typed SDK for use in scripts and Jupyter notebooks, as well as a command-line
+        interface for searching, downloading, and exporting interaction networks.
+      </p>
+
+      <h3 style={h3Style}>PSICQUIC</h3>
+      <p style={pStyle}>
+        openPIP implements the{' '}
+        <ExternalLink href="https://psicquic.github.io/">PSICQUIC standard</ExternalLink>, the same
+        protocol used by BioGRID and IntAct. Any tool or script written for those databases can query
+        openPIP at{' '}
+        <ExternalLink href="/v2/psicquic/rest/query?q=BRCA1&format=tab25">
+          /v2/psicquic/rest/query
+        </ExternalLink>{' '}
+        using identical MIQL syntax.
+      </p>
+
+      <p style={pStyle}>
+        Full documentation with copy-paste code examples is on the{' '}
+        <Link to="/developer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+          API &amp; External Access
+        </Link>{' '}
+        page.
+      </p>
+
+      {/* ── Useful links ── */}
+      <h2 style={h2Style}>Useful Links</h2>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginBottom: 8 }}>
+        {[
+          { label: 'Search', desc: 'Search proteins and interactions', to: '/search' },
+          { label: 'Downloads', desc: 'Download full interaction datasets', to: '/download' },
+          { label: 'Documentation', desc: 'How to use the web interface', to: '/documentation' },
+          { label: 'API & External Access', desc: 'REST API, SDK, PSICQUIC, code examples', to: '/developer' },
+          { label: 'Interactive API Docs', desc: 'Swagger UI — try every endpoint live', href: '/v2/api/docs/' },
+          { label: 'OpenAPI Schema', desc: 'Machine-readable schema (JSON/YAML)', href: '/v2/api/schema/' },
+          { label: 'PSICQUIC Endpoint', desc: 'Standard PPI query interface', href: '/v2/psicquic/rest/query?q=BRCA1&format=tab25' },
+          { label: 'FAQ', desc: 'Frequently asked questions', to: '/faq' },
+          { label: 'Contact', desc: 'Get in touch with the team', to: '/contact' },
+        ].map(({ label, desc, to, href }) => (
+          <div key={label} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px' }}>
+            {to ? (
+              <Link to={to} style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>{label}</Link>
+            ) : (
+              <ExternalLink href={href!}><span style={{ fontWeight: 600, fontSize: 14 }}>{label}</span></ExternalLink>
+            )}
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>{desc}</p>
+          </div>
+        ))}
+      </div>
 
       {/* ── Acknowledgments ── */}
       <h2 style={h2Style}>Acknowledgments</h2>
