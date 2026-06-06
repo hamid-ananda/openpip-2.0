@@ -10,6 +10,7 @@ import { proteinHandlers } from './proteins'
 import { networksHandlers } from './networks'
 import { filesHandlers } from './files'
 import { rcsbHandlers } from './rcsb'
+import { interactionCategoryHandlers } from './interactionCategories'
 
 export const handlers = [
   ...settingsHandlers,
@@ -24,4 +25,5 @@ export const handlers = [
   ...networksHandlers,
   ...filesHandlers,
   ...rcsbHandlers,
+  ...interactionCategoryHandlers,
 ]
