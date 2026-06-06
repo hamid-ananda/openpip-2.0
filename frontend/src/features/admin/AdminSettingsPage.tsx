@@ -3,6 +3,13 @@ import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '..
 import { injectCSSVars } from '../../lib/theme'
 import type { AdminSettings } from '../../types/api'
 import { RichTextEditor } from '../../components/RichTextEditor'
+import {
+  useInteractionCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+} from '../../api/interactionCategories'
+import type { InteractionCategory } from '../../types/api'
 
 // ─────────────────────────────────────────────────────────
 // Defaults
@@ -129,7 +136,6 @@ function TextInput({
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TextareaInput({
   value,
   onChange,
@@ -338,7 +344,6 @@ function NavPreview({
 // ─────────────────────────────────────────────────────────
 // Mini network preview
 // ─────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function NetworkPreview({
   queryColor,
   interactorColor,
@@ -538,6 +543,177 @@ function LogoUploadSection({ currentLogoUrl }: { currentLogoUrl?: string | null 
         style={{ display: 'none' }}
         onChange={handleFile}
       />
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
+// Interaction category table
+// ─────────────────────────────────────────────────────────
+function CategoryTable() {
+  const { data: categories = [], isLoading } = useInteractionCategories()
+  const { mutate: createCat, isPending: creating } = useCreateCategory()
+  const { mutate: updateCat } = useUpdateCategory()
+  const { mutate: deleteCat } = useDeleteCategory()
+
+  const [drafts, setDrafts] = useState<Record<number, Partial<InteractionCategory>>>({})
+  const [newRow, setNewRow] = useState<Omit<InteractionCategory, 'id'>>({
+    categoryName: '',
+    order: '',
+    colorScheme: '#2563eb',
+    description: '',
+  })
+
+  const setDraft = (id: number, field: keyof InteractionCategory, value: string) =>
+    setDrafts((d) => ({ ...d, [id]: { ...d[id], [field]: value } }))
+
+  const getDraft = (cat: InteractionCategory, field: keyof InteractionCategory) =>
+    (drafts[cat.id]?.[field] as string | undefined) ?? (cat[field] as string)
+
+  if (isLoading) return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</p>
+
+  return (
+    <div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+            {['Name', 'Order', 'Color', 'Description', ''].map((h) => (
+              <th
+                key={h}
+                style={{
+                  textAlign: 'left',
+                  padding: '6px 8px',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  fontSize: 10,
+                  letterSpacing: '.06em',
+                }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {categories.map((cat) => (
+            <tr key={cat.id} style={{ borderBottom: '1px solid var(--border)' }}>
+              <td style={{ padding: '6px 8px' }}>
+                <input
+                  className="op-input"
+                  style={{ fontSize: 12, padding: '4px 8px' }}
+                  value={getDraft(cat, 'categoryName')}
+                  onChange={(e) => setDraft(cat.id, 'categoryName', e.target.value)}
+                />
+              </td>
+              <td style={{ padding: '6px 8px', width: 60 }}>
+                <input
+                  className="op-input"
+                  style={{ fontSize: 12, padding: '4px 8px' }}
+                  value={getDraft(cat, 'order')}
+                  onChange={(e) => setDraft(cat.id, 'order', e.target.value)}
+                />
+              </td>
+              <td style={{ padding: '6px 8px', width: 60 }}>
+                <input
+                  type="color"
+                  value={getDraft(cat, 'colorScheme')}
+                  onChange={(e) => setDraft(cat.id, 'colorScheme', e.target.value)}
+                  style={{ width: 36, height: 28, cursor: 'pointer', border: 'none', padding: 0, background: 'transparent' }}
+                />
+              </td>
+              <td style={{ padding: '6px 8px' }}>
+                <input
+                  className="op-input"
+                  style={{ fontSize: 12, padding: '4px 8px' }}
+                  value={getDraft(cat, 'description')}
+                  onChange={(e) => setDraft(cat.id, 'description', e.target.value)}
+                />
+              </td>
+              <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
+                <button
+                  type="button"
+                  className="op-btn"
+                  style={{ fontSize: 11, padding: '3px 10px', marginRight: 6 }}
+                  onClick={() => updateCat({ id: cat.id, ...drafts[cat.id] })}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    fontSize: 11,
+                    padding: '3px 8px',
+                    background: 'transparent',
+                    border: '1px solid var(--danger)',
+                    borderRadius: 6,
+                    color: 'var(--danger)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font)',
+                  }}
+                  onClick={() => {
+                    if (window.confirm(`Delete "${cat.categoryName}"?`)) deleteCat(cat.id)
+                  }}
+                >
+                  ✕
+                </button>
+              </td>
+            </tr>
+          ))}
+          {/* New row */}
+          <tr>
+            <td style={{ padding: '6px 8px' }}>
+              <input
+                className="op-input"
+                style={{ fontSize: 12, padding: '4px 8px' }}
+                placeholder="Name"
+                value={newRow.categoryName}
+                onChange={(e) => setNewRow((r) => ({ ...r, categoryName: e.target.value }))}
+              />
+            </td>
+            <td style={{ padding: '6px 8px' }}>
+              <input
+                className="op-input"
+                style={{ fontSize: 12, padding: '4px 8px' }}
+                placeholder="Order"
+                value={newRow.order}
+                onChange={(e) => setNewRow((r) => ({ ...r, order: e.target.value }))}
+              />
+            </td>
+            <td style={{ padding: '6px 8px' }}>
+              <input
+                type="color"
+                value={newRow.colorScheme}
+                onChange={(e) => setNewRow((r) => ({ ...r, colorScheme: e.target.value }))}
+                style={{ width: 36, height: 28, cursor: 'pointer', border: 'none', padding: 0, background: 'transparent' }}
+              />
+            </td>
+            <td style={{ padding: '6px 8px' }}>
+              <input
+                className="op-input"
+                style={{ fontSize: 12, padding: '4px 8px' }}
+                placeholder="Description"
+                value={newRow.description}
+                onChange={(e) => setNewRow((r) => ({ ...r, description: e.target.value }))}
+              />
+            </td>
+            <td style={{ padding: '6px 8px' }}>
+              <button
+                type="button"
+                className="op-btn primary"
+                style={{ fontSize: 11, padding: '3px 10px' }}
+                disabled={creating || !newRow.categoryName}
+                onClick={() => {
+                  createCat(newRow)
+                  setNewRow({ categoryName: '', order: '', colorScheme: '#2563eb', description: '' })
+                }}
+              >
+                + Add
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -830,6 +1006,85 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             <FieldLabel>Bottom Section Text</FieldLabel>
             <RichTextEditor value={form.methodText ?? ''} onChange={(v) => set('methodText', v)} />
           </div>
+        </Section>
+      </TabPanel>
+
+      {/* ── SEARCH ── */}
+      <TabPanel active={activeTab === 'search'}>
+        <Section title="Search examples">
+          {([1, 2, 3] as const).map((n) => {
+            const proteinsKey = `example${n}` as 'example1' | 'example2' | 'example3'
+            const typeKey = `example${n}Type` as 'example1Type' | 'example2Type' | 'example3Type'
+            return (
+              <div key={n} style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <FieldLabel>Example {n}</FieldLabel>
+                  <select
+                    value={form[typeKey] ?? 'query-query'}
+                    onChange={(e) => set(typeKey, e.target.value)}
+                    style={{
+                      fontSize: 12,
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      fontFamily: 'var(--font)',
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="query-query">query-query</option>
+                    <option value="query-interactor">query-interactor</option>
+                    <option value="all">all</option>
+                  </select>
+                </div>
+                <TextareaInput
+                  value={form[proteinsKey] ?? ''}
+                  onChange={(v) => set(proteinsKey, v)}
+                  rows={5}
+                  mono
+                />
+                <p style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 4 }}>
+                  One protein symbol per line.
+                </p>
+              </div>
+            )
+          })}
+        </Section>
+
+        <Section title="Node colors">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ColorInput label="Query Node Color"      value={form.queryNodeColor ?? '#e11d48'}      onChange={(v) => set('queryNodeColor', v)} />
+            <ColorInput label="Interactor Node Color" value={form.interactorNodeColor ?? '#2563eb'} onChange={(v) => set('interactorNodeColor', v)} />
+          </div>
+        </Section>
+
+        <Section title="Edge colors">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ColorInput label="Published Edge"  value={form.publishedEdgeColor ?? '#38761d'}  onChange={(v) => set('publishedEdgeColor', v)} />
+            <ColorInput label="Validated Edge"  value={form.validatedEdgeColor ?? '#1155cc'}  onChange={(v) => set('validatedEdgeColor', v)} />
+            <ColorInput label="Verified Edge"   value={form.verifiedEdgeColor ?? '#cc0000'}   onChange={(v) => set('verifiedEdgeColor', v)} />
+            <ColorInput label="Literature Edge" value={form.literatureEdgeColor ?? '#ff9900'} onChange={(v) => set('literatureEdgeColor', v)} />
+          </div>
+        </Section>
+
+        <NetworkPreview
+          queryColor={form.queryNodeColor ?? '#e11d48'}
+          interactorColor={form.interactorNodeColor ?? '#2563eb'}
+          edgeColors={{
+            published: form.publishedEdgeColor ?? '#38761d',
+            validated: form.validatedEdgeColor ?? '#1155cc',
+            verified: form.verifiedEdgeColor ?? '#cc0000',
+            literature: form.literatureEdgeColor ?? '#ff9900',
+          }}
+        />
+
+        <Section title="Interaction categories">
+          <p style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 12 }}>
+            Each row controls how an interaction source is displayed in search results.
+          </p>
+          <CategoryTable />
         </Section>
       </TabPanel>
 
