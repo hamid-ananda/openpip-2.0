@@ -333,3 +333,147 @@ def test_logo_delete_requires_admin(user_auth_client):
     AdminSettings.objects.create(pk=1, title="T")
     response = user_auth_client.delete("/api/settings/logo")
     assert response.status_code == 403
+
+
+# ── New AdminSettings field tests ─────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_get_settings_exposes_about_and_content_fields(api_client):
+    AdminSettings.objects.create(
+        pk=1,
+        about="<p>About text</p>",
+        faq="<p>FAQ text</p>",
+        contact="<p>Contact text</p>",
+        download="<p>Download text</p>",
+        show_downloads=True,
+        show_download_all=False,
+    )
+    response = api_client.get("/api/settings")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["about"] == "<p>About text</p>"
+    assert data["faq"] == "<p>FAQ text</p>"
+    assert data["contact"] == "<p>Contact text</p>"
+    assert data["download"] == "<p>Download text</p>"
+    assert data["showDownloads"] is True
+    assert data["showDownloadAll"] is False
+
+
+@pytest.mark.django_db
+def test_get_settings_exposes_example_fields(api_client):
+    AdminSettings.objects.create(
+        pk=1,
+        example_1="BAD\nBAK1\nMCL1",
+        example_1_type="query-query",
+        example_2="BAD\nBAK1",
+        example_2_type="query-interactor",
+        example_3="BAD",
+        example_3_type="all",
+    )
+    response = api_client.get("/api/settings")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["example1"] == "BAD\nBAK1\nMCL1"
+    assert data["example1Type"] == "query-query"
+    assert data["example2Type"] == "query-interactor"
+    assert data["example3Type"] == "all"
+
+
+@pytest.mark.django_db
+def test_patch_settings_updates_example_type(auth_client):
+    AdminSettings.objects.create(pk=1)
+    response = auth_client.patch(
+        "/api/settings",
+        {"example1": "BAD\nBAK1", "example1Type": "query-query"},
+        format="json",
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["example1"] == "BAD\nBAK1"
+    assert data["example1Type"] == "query-query"
+
+
+# ── InteractionCategory endpoint tests ────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_list_interaction_categories_is_public(api_client):
+    from interactions.models import InteractionCategory
+
+    settings_obj, _ = AdminSettings.objects.get_or_create(pk=1)
+    InteractionCategory.objects.create(
+        admin_settings=settings_obj,
+        category_name="Literature",
+        order="1",
+        color_scheme="#0ea5e9",
+        description="Curated literature interactions",
+    )
+    response = api_client.get("/api/interaction-categories")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 1
+    lit = next(d for d in data if d["categoryName"] == "Literature")
+    assert lit["colorScheme"] == "#0ea5e9"
+
+
+@pytest.mark.django_db
+def test_create_interaction_category_requires_admin(api_client):
+    response = api_client.post(
+        "/api/interaction-categories",
+        {"categoryName": "HI-Union", "order": "3"},
+        format="json",
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_create_interaction_category_as_admin(auth_client):
+    AdminSettings.objects.get_or_create(pk=1)
+    response = auth_client.post(
+        "/api/interaction-categories",
+        {
+            "categoryName": "HI-Union",
+            "order": "3",
+            "colorScheme": "#7c3aed",
+            "description": "High-quality binary interactions",
+        },
+        format="json",
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["categoryName"] == "HI-Union"
+    assert "id" in data
+
+
+@pytest.mark.django_db
+def test_patch_interaction_category(auth_client):
+    from interactions.models import InteractionCategory
+
+    settings_obj, _ = AdminSettings.objects.get_or_create(pk=1)
+    cat = InteractionCategory.objects.create(
+        admin_settings=settings_obj,
+        category_name="Literature",
+        order="1",
+        color_scheme="#0ea5e9",
+    )
+    response = auth_client.patch(
+        f"/api/interaction-categories/{cat.pk}",
+        {"colorScheme": "#ff0000"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["colorScheme"] == "#ff0000"
+
+
+@pytest.mark.django_db
+def test_delete_interaction_category(auth_client):
+    from interactions.models import InteractionCategory
+
+    settings_obj, _ = AdminSettings.objects.get_or_create(pk=1)
+    cat = InteractionCategory.objects.create(
+        admin_settings=settings_obj, category_name="ToDelete", order="1"
+    )
+    response = auth_client.delete(f"/api/interaction-categories/{cat.pk}")
+    assert response.status_code == 204
+    assert not InteractionCategory.objects.filter(pk=cat.pk).exists()
