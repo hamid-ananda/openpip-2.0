@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import AdminSettings, Announcement
+from interactions.models import InteractionCategory
 
 
 class AdminSettingsSerializer(serializers.ModelSerializer):
@@ -71,6 +72,34 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     gradientAngle = serializers.IntegerField(
         source="gradient_angle", allow_null=True, required=False
     )
+    about = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    faq = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    contact = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    download = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    showDownloads = serializers.BooleanField(
+        source="show_downloads", required=False
+    )
+    showDownloadAll = serializers.BooleanField(
+        source="show_download_all", required=False
+    )
+    example1 = serializers.CharField(
+        source="example_1", allow_null=True, allow_blank=True, required=False
+    )
+    example2 = serializers.CharField(
+        source="example_2", allow_null=True, allow_blank=True, required=False
+    )
+    example3 = serializers.CharField(
+        source="example_3", allow_null=True, allow_blank=True, required=False
+    )
+    example1Type = serializers.CharField(
+        source="example_1_type", allow_null=True, allow_blank=True, required=False
+    )
+    example2Type = serializers.CharField(
+        source="example_2_type", allow_null=True, allow_blank=True, required=False
+    )
+    example3Type = serializers.CharField(
+        source="example_3_type", allow_null=True, allow_blank=True, required=False
+    )
 
     class Meta:
         model = AdminSettings
@@ -99,6 +128,18 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
             "navStyle",
             "mainColorScheme2",
             "gradientAngle",
+            "about",
+            "faq",
+            "contact",
+            "download",
+            "showDownloads",
+            "showDownloadAll",
+            "example1",
+            "example2",
+            "example3",
+            "example1Type",
+            "example2Type",
+            "example3Type",
         ]
 
     def get_logoUrl(self, obj):
@@ -113,3 +154,16 @@ class AnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Announcement
         fields = ["id", "title", "text", "date", "show", "showOnHomePage"]
+
+
+class InteractionCategorySerializer(serializers.ModelSerializer):
+    categoryName = serializers.CharField(
+        source="category_name", allow_null=True, allow_blank=True, required=False
+    )
+    colorScheme = serializers.CharField(
+        source="color_scheme", allow_null=True, allow_blank=True, required=False
+    )
+
+    class Meta:
+        model = InteractionCategory
+        fields = ["id", "categoryName", "order", "colorScheme", "description"]
