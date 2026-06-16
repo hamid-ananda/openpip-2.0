@@ -41,6 +41,7 @@ export const datasetHandlers = [
     HttpResponse.json({
       task_id: 'test-task-123',
       status: 'SUCCESS',
+      stage: 'done',
       progress: 100,
       proteins_created: 10,
       interactions_created: 20,

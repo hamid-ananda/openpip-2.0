@@ -3,6 +3,16 @@ import { apiClient } from './client'
 export interface AsyncImportStatus {
   task_id: string
   status: string
+  stage:
+    | 'parsing'
+    | 'enriching_uniprot'
+    | 'enriching_uniprot_warn'
+    | 'enriching_ensembl'
+    | 'enriching_ensembl_warn'
+    | 'enriching_organisms'
+    | 'enriching_organisms_warn'
+    | 'done'
+    | null
   progress: number
   proteins_created: number
   interactions_created: number
