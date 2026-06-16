@@ -5,7 +5,7 @@ from .exceptions import NotFound, ServerError, AuthRequired
 
 
 class APIClient:
-    """Raw HTTP client — one method per API endpoint. Returns dicts/strings."""
+    """Raw HTTP client — one method per API endpoint. Returns dicts/lists/strings."""
 
     def __init__(self, url: str, token: Optional[str] = None):
         self._base = url.rstrip("/")
@@ -18,7 +18,7 @@ class APIClient:
             h["Authorization"] = f"Bearer {self._token}"
         return h
 
-    def _get(self, path: str, params: dict = None) -> dict | str:
+    def _get(self, path: str, params: dict = None) -> dict | list | str:
         response = self._http.get(
             f"{self._base}{path}", params=params, headers=self._headers()
         )
@@ -45,24 +45,21 @@ class APIClient:
         if response.status_code >= 500:
             raise ServerError(f"Server error {response.status_code}: {response.url}")
 
-    def search(self, query: str, page: int = 1) -> dict:
-        return self._get("/api/search/", params={"q": query, "page": page})
+    def search(self, query: str) -> dict:
+        """Returns {all_proteins, all_interactions, ...}."""
+        return self._get("/api/search", params={"q": query})
 
-    def protein(self, protein_id: int) -> dict:
-        return self._get(f"/api/proteins/{protein_id}/")
+    def protein(self, identifier) -> dict:
+        """Accepts UniProt ID, gene name, Ensembl ID, or integer protein_id."""
+        return self._get(f"/api/proteins/{identifier}")
 
-    def interactions(self, protein_id: int, page: int = 1) -> dict:
-        return self._get("/api/interactions/", params={"protein": protein_id, "page": page})
-
-    def network(self, protein_id: int) -> dict:
-        return self._get(f"/api/network/{protein_id}/")
-
-    def datasets(self, page: int = 1) -> dict:
-        return self._get("/api/datasets/", params={"page": page})
+    def datasets(self) -> list:
+        """Returns a list of dataset objects."""
+        return self._get("/api/datasets")
 
     def download(self, dataset_id: int) -> bytes:
         response = self._http.get(
-            f"{self._base}/api/datasets/{dataset_id}/download/",
+            f"{self._base}/api/datasets/{dataset_id}/download",
             headers=self._headers(),
         )
         self._raise_for_status(response)

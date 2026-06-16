@@ -250,7 +250,7 @@ export function LoginPage() {
             "openPIP is the fastest way to walk a neighborhood of the human interactome."
           </div>
           <div style={{ fontSize: 13, opacity: 0.7, marginTop: 12 }}>
-            — Helmy Lab, VIDO
+            - Helmy Lab, VIDO
           </div>
         </div>
       </div>

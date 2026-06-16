@@ -64,10 +64,10 @@ export function ProfilePage() {
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text)' }}>
-                {profile?.username ?? '—'}
+                {profile?.username ?? '-'}
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-                {profile?.email ?? '—'}
+                {profile?.email ?? '-'}
               </div>
             </div>
             {profile?.is_admin && (

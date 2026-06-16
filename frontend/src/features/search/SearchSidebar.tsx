@@ -3,6 +3,7 @@ import { buildLinks } from './externalLinks'
 import { useNavigate } from 'react-router-dom'
 import { useSearchStore } from './searchStore'
 import { useAuthStore } from '../../store/authStore'
+import { useSettings } from '../../api/settings'
 import { useSaveNetwork } from '../../api/networks'
 import {
   formatSIF,
@@ -21,7 +22,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   Literature: 'var(--literature)',
 }
 
-const EXAMPLE_GENES = ['BAD', 'TP53', 'BRCA1', 'AKT1']
+function toFilterMode(type: string | undefined): 'None' | 'query_query' | 'query_interactor' {
+  if (type === 'query-query') return 'query_query'
+  if (type === 'query-interactor') return 'query_interactor'
+  return 'None'
+}
 
 // Keys match tissue_expression_array field names in the search result
 const TISSUES = [
@@ -39,12 +44,77 @@ const TISSUES = [
 
 type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
 
-const LAYOUT_OPTIONS: { value: LayoutName; label: string; icon: string }[] = [
-  { value: 'cola',       label: 'Force-directed (Cola)', icon: '/cola_layout.png' },
-  { value: 'cose',       label: 'Force-directed (CoSE)', icon: '/cose_layout.png' },
-  { value: 'concentric', label: 'Concentric',            icon: '/concentric_layout.png' },
-  { value: 'circle',     label: 'Circle',                icon: '/circle_layout.png' },
-  { value: 'grid',       label: 'Grid',                  icon: '/grid_layout.png' },
+function LayoutIcon({ value }: { value: LayoutName }) {
+  const s = { flexShrink: 0 as const }
+  if (value === 'cola') return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" style={s} aria-hidden="true">
+      <circle cx="9" cy="4" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="3" cy="13" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="10" r="1.5" fill="currentColor" stroke="none" />
+      <line x1="9" y1="5.5" x2="9" y2="8.5" />
+      <line x1="9" y1="11.5" x2="4.2" y2="12.3" />
+      <line x1="9" y1="11.5" x2="13.8" y2="12.3" />
+      <line x1="9" y1="5.5" x2="3.5" y2="11.8" />
+    </svg>
+  )
+  if (value === 'cose') return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" style={s} aria-hidden="true">
+      <circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="3" cy="4" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="14" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="14" r="1.5" fill="currentColor" stroke="none" />
+      <line x1="9" y1="9" x2="3.8" y2="5.2" />
+      <line x1="9" y1="9" x2="14.2" y2="6" />
+      <line x1="9" y1="9" x2="4.8" y2="13" />
+      <line x1="9" y1="9" x2="13.2" y2="13" />
+      <line x1="3.8" y1="5.2" x2="14.2" y2="6" />
+    </svg>
+  )
+  if (value === 'concentric') return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.3" style={s} aria-hidden="true">
+      <circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="9" r="4.5" />
+      <circle cx="9" cy="9" r="7.5" />
+      <circle cx="9" cy="4.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="13.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="13.5" cy="9" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="9" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+  if (value === 'circle') return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.3" style={s} aria-hidden="true">
+      <circle cx="9" cy="2" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15.2" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15.2" cy="12.5" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="16" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="2.8" cy="12.5" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="2.8" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="9" r="6.5" strokeDasharray="2 2" />
+    </svg>
+  )
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.3" style={s} aria-hidden="true">
+      <circle cx="4" cy="4" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="4" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="4" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="9" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="9" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="14" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="14" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="14" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+const LAYOUT_OPTIONS: { value: LayoutName; label: string }[] = [
+  { value: 'cola',       label: 'Force-directed (Cola)' },
+  { value: 'cose',       label: 'Force-directed (CoSE)' },
+  { value: 'concentric', label: 'Concentric'            },
+  { value: 'circle',     label: 'Circle'                },
+  { value: 'grid',       label: 'Grid'                  },
 ]
 
 const FILTER_MODE_OPTIONS: { label: string; value: 'None' | 'query_query' | 'query_interactor' }[] = [
@@ -132,6 +202,12 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   const setModal = useSearchStore((s) => s.setModal)
 
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  const { data: settings } = useSettings()
+  const searchExamples = [
+    { proteins: settings?.example1, type: settings?.example1Type },
+    { proteins: settings?.example2, type: settings?.example2Type },
+    { proteins: settings?.example3, type: settings?.example3Type },
+  ].filter((ex) => ex.proteins?.trim())
 
   const { mutateAsync: saveNetwork, isPending: isSaving } = useSaveNetwork()
   const [saveOpen, setSaveOpen] = useState(false)
@@ -245,25 +321,41 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
           </button>
         </form>
 
-        <div style={{ display: 'flex', gap: 5, marginTop: 10, flexWrap: 'wrap' }}>
-          {EXAMPLE_GENES.map((g) => (
-            <button
-              key={g}
-              onClick={() => navigate(`/search/${encodeURIComponent(g)}`)}
-              className="op-chip"
-              style={{
-                cursor: 'pointer',
-                fontFamily: 'var(--mono)',
-                fontSize: 11,
-                background: term === g ? 'var(--primary-soft)' : undefined,
-                color: term === g ? 'var(--primary-deep)' : undefined,
-                borderColor: term === g ? 'transparent' : undefined,
-              }}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
+        {searchExamples.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-muted)', opacity: 0.55, textTransform: 'uppercase', paddingBottom: 2 }}>
+              Examples
+            </span>
+            {searchExamples.map((ex, i) => {
+              const genes = (ex.proteins ?? '').split('\n').map((g) => g.trim()).filter(Boolean)
+              const preview = genes.slice(0, 2).join(', ') + (genes.length > 2 ? '…' : '')
+              const query = genes.join(',')
+              const typeLabel = ex.type ?? 'all'
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setFilterMode(toFilterMode(ex.type))
+                    navigate(`/search/${encodeURIComponent(query)}`)
+                  }}
+                  className="op-chip"
+                  style={{
+                    cursor: 'pointer',
+                    fontFamily: 'var(--mono)',
+                    fontSize: 11,
+                    textAlign: 'left',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={genes.join(', ')}
+                >
+                  {preview} · {typeLabel}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Confidence score */}
@@ -286,16 +378,18 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
       </div>
 
       {/* Found / not found */}
-      {foundSummary && (
+      {(foundSummary || unfoundSummary) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            <span style={{ fontWeight: 600, color: 'var(--text)' }}>Found: </span>
-            <span dangerouslySetInnerHTML={{ __html: foundSummary }} />
-          </div>
+          {foundSummary && (
+            <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 600, color: '#16a34a' }}>Found: </span>
+              <span style={{ color: '#16a34a' }}>{foundSummary.split('<br>').join(', ')}</span>
+            </div>
+          )}
           {unfoundSummary && (
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              <span style={{ fontWeight: 600, color: 'var(--warn)' }}>Not found: </span>
-              {unfoundSummary}
+            <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 600, color: '#e11d48' }}>Not found: </span>
+              <span style={{ color: '#e11d48' }}>{unfoundSummary.split('<br>').join(', ')}</span>
             </div>
           )}
         </div>
@@ -337,13 +431,13 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
         </div>
       )}
 
-      {/* Tool sections — only shown once a search has been performed */}
+      {/* Tool sections - only shown once a search has been performed */}
       {term && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={sectionLabelStyle}>Tools</span>
 
           <SidebarAccordion label="Layout">
-            {LAYOUT_OPTIONS.map(({ value, label, icon }) => (
+            {LAYOUT_OPTIONS.map(({ value, label }) => (
               <label
                 key={value}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', fontSize: 13, cursor: 'pointer', color: 'var(--text)' }}
@@ -356,7 +450,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                   onChange={() => setLayout(value)}
                   style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
-                <img src={icon} alt="" width={18} height={18} style={{ flexShrink: 0, opacity: 0.75 }} />
+                <LayoutIcon value={value} />
                 {label}
               </label>
             ))}
@@ -415,7 +509,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                 <span style={{ color: 'var(--text-muted)' }}>
                   {allProteins.length > 0
                     ? ((2 * allInteractions.length) / allProteins.length).toFixed(2)
-                    : '—'}
+                    : '-'}
                 </span>
               </div>
             </div>

@@ -4,6 +4,7 @@ export interface StructureViewerProps {
   uniprotId: string
   source: 'alphafold' | 'pdb'
   pdbId: string | null
+  height?: number
 }
 
 type Status = 'loading' | 'ready' | 'error-import' | 'error-structure'
@@ -24,7 +25,7 @@ function externalHref(source: 'alphafold' | 'pdb', uniprotId: string, pdbId: str
   return pdbId ? `https://www.rcsb.org/structure/${pdbId}` : null
 }
 
-export function StructureViewer({ uniprotId, source, pdbId }: StructureViewerProps) {
+export function StructureViewer({ uniprotId, source, pdbId, height = 180 }: StructureViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pluginRef = useRef<any>(null)
@@ -134,7 +135,7 @@ export function StructureViewer({ uniprotId, source, pdbId }: StructureViewerPro
   return (
     <div>
       {/* Wrapper provides the stacking context for absolutely-positioned overlays */}
-      <div style={{ position: 'relative', height: 180, borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ position: 'relative', height, borderRadius: 4, overflow: 'hidden' }}>
         {/* Mol* calls createRoot() on this div — React must put NO children here */}
         <div ref={containerRef} style={{ height: '100%', background: '#0d0d1e' }} />
 

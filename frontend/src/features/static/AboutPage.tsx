@@ -460,7 +460,7 @@ export function AboutPage() {
           { label: 'Downloads', desc: 'Download full interaction datasets', to: '/download' },
           { label: 'Documentation', desc: 'How to use the web interface', to: '/documentation' },
           { label: 'API & External Access', desc: 'REST API, SDK, PSICQUIC, code examples', to: '/developer' },
-          { label: 'Interactive API Docs', desc: 'Swagger UI — try every endpoint live', href: '/v2/api/docs/' },
+          { label: 'Interactive API Docs', desc: 'Swagger UI - try every endpoint live', href: '/v2/api/docs/' },
           { label: 'OpenAPI Schema', desc: 'Machine-readable schema (JSON/YAML)', href: '/v2/api/schema/' },
           { label: 'PSICQUIC Endpoint', desc: 'Standard PPI query interface', href: '/v2/psicquic/rest/query?q=BRCA1&format=tab25' },
           { label: 'FAQ', desc: 'Frequently asked questions', to: '/faq' },

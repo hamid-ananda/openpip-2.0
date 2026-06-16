@@ -43,12 +43,12 @@ export function injectCSSVars(settings: AdminSettings): void {
   const angle    = settings.gradientAngle    ?? 135
   const style    = settings.navStyle         || 'solid'
 
-  // Primary brand color + derived shades — dark mode needs lighter/darker inverted values
+  // Primary brand color + derived shades - dark mode needs lighter/darker inverted values
   root.style.setProperty('--primary',      primary)
   root.style.setProperty('--primary-soft', isDark ? mixWith(primary, 0, 0.14)   : mixWith(primary, 255, 0.14))
   root.style.setProperty('--primary-deep', isDark ? lighten(primary, 0.50)      : darken(primary, 0.25))
 
-  // Header background — solid, gradient, or light (white)
+  // Header background - solid, gradient, or light (white)
   let navBg: string
   if (style === 'gradient') {
     navBg = `linear-gradient(${angle}deg, ${primary}, ${primary2})`
@@ -70,11 +70,11 @@ export function injectCSSVars(settings: AdminSettings): void {
   root.style.setProperty('--color-logo',   settings.logoColorScheme   || '#ffffff')
   root.style.setProperty('--color-button', settings.buttonColorScheme || primary)
 
-  // Network viz — node colors (also drive --query / --interactor via CSS)
+  // Network viz - node colors (also drive --query / --interactor via CSS)
   root.style.setProperty('--color-query-node',      settings.queryNodeColor      || '#e11d48')
   root.style.setProperty('--color-interactor-node', settings.interactorNodeColor || '#2563eb')
 
-  // Network viz — edge colors (also drive --literature / --hi-union / --huri-lit via CSS)
+  // Network viz - edge colors (also drive --literature / --hi-union / --huri-lit via CSS)
   root.style.setProperty('--color-edge-published',  settings.publishedEdgeColor  || '#38761d')
   root.style.setProperty('--color-edge-validated',  settings.validatedEdgeColor  || '#1155cc')
   root.style.setProperty('--color-edge-verified',   settings.verifiedEdgeColor   || '#cc0000')

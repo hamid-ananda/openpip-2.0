@@ -5,11 +5,11 @@ import { useSearchStore } from './searchStore'
 import { filterProteinsAndInteractions } from './filterInteractions'
 import { CytoscapeNetwork } from './network/CytoscapeNetwork'
 import { ResultTablePanel } from './tables/ResultTablePanel'
-import { EnrichmentPanel } from './enrichment/EnrichmentPanel'
 import { OverlaySystem } from './modals/OverlaySystem'
 import { SearchSidebar } from './SearchSidebar'
 import { NodeInfoPanel } from './NodeInfoPanel'
-import type { Protein } from '../../types/api'
+import { EdgeInfoPanel } from './EdgeInfoPanel'
+import type { Protein, Interaction } from '../../types/api'
 
 const MIN_NETWORK_H = 150
 const MAX_NETWORK_H = window.innerHeight - 56 - 120
@@ -18,10 +18,18 @@ export function SearchResultsPage() {
   const { term = '' } = useParams<{ term: string }>()
   const [networkHeight, setNetworkHeight] = useState(500)
   const [selectedProtein, setSelectedProtein] = useState<Protein | null>(null)
-  // Removed nodes are scoped to the current search term — automatically clears on new search
+  const [selectedInteraction, setSelectedInteraction] = useState<Interaction | null>(null)
+  // Removed nodes are scoped to the current search term - automatically clears on new search
   const [removed, setRemoved] = useState<{ term: string; ids: number[] }>({ term: '', ids: [] })
   const removedProteinIds = removed.term === term ? removed.ids : []
-  const handleNodeClick = useCallback((p: Protein) => setSelectedProtein(p), [])
+  const handleNodeClick = useCallback((p: Protein) => {
+    setSelectedProtein(p)
+    setSelectedInteraction(null)
+  }, [])
+  const handleEdgeClick = useCallback((ix: Interaction) => {
+    setSelectedInteraction(ix)
+    setSelectedProtein(null)
+  }, [])
   const handleRemoveNode = useCallback((id: number) => {
     setRemoved((prev) => ({ term, ids: [...(prev.term === term ? prev.ids : []), id] }))
     setSelectedProtein(null)
@@ -56,6 +64,7 @@ export function SearchResultsPage() {
     annotationFilter,
     filterMode,
     tissueFilter,
+    unfoundSummary,
   } = useSearchStore()
 
   useEffect(() => {
@@ -73,8 +82,6 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
     : filteredProteins
 
   const visibleInteractionIds = interactions.map((ix) => ix.interaction_id)
-
-  const geneNames = proteins.map((p) => p.protein_gene_name)
 
   const renderMain = () => {
     if (!term) {
@@ -147,6 +154,44 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
       )
     }
 
+    if (!isLoading && allProteins.length === 0 && term) {
+      const names = unfoundSummary ? unfoundSummary.split('<br>').filter(Boolean) : [term]
+      return (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          minHeight: 400,
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            padding: '14px 18px',
+            borderRadius: 16,
+            background: '#fff1f2',
+            border: '1px solid #fecdd3',
+            maxWidth: 480,
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" style={{ flexShrink: 0 }} aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+              <path d="M11 8v3M11 14h.01" />
+            </svg>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#be123c', marginBottom: 4 }}>
+                Not found: {names.join(', ')}
+              </div>
+              <div style={{ fontSize: 11, color: '#9f1239' }}>
+                Check the spelling or try a UniProt ID.
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <>
         {/* Network */}
@@ -158,6 +203,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
             layout={selectedLayout}
             height={networkHeight}
             onNodeClick={handleNodeClick}
+            onEdgeClick={handleEdgeClick}
           />
           {selectedProtein && (
             <NodeInfoPanel
@@ -167,6 +213,13 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
               searchTerm={term}
               onClose={() => setSelectedProtein(null)}
               onRemove={handleRemoveNode}
+            />
+          )}
+          {selectedInteraction && (
+            <EdgeInfoPanel
+              key={selectedInteraction.interaction_id}
+              interaction={selectedInteraction}
+              onClose={() => setSelectedInteraction(null)}
             />
           )}
         </div>
@@ -196,10 +249,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
         </div>
 
         {/* Tables */}
-        <ResultTablePanel />
-
-        {/* Enrichment */}
-        <EnrichmentPanel geneNames={geneNames} />
+        <ResultTablePanel selectedProtein={selectedProtein} />
 
         {/* Modals */}
         <OverlaySystem />
@@ -209,10 +259,10 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 56px)' }}>
-      {/* Sidebar — left */}
+      {/* Sidebar - left */}
       <SearchSidebar key={term} term={term} visibleInteractionIds={visibleInteractionIds} />
 
-      {/* Main — scrolls vertically */}
+      {/* Main - scrolls vertically */}
       <main style={{ flex: 1, overflowY: 'auto', minWidth: 0, background: 'var(--bg)' }}>
         {renderMain()}
       </main>

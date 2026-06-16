@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 import yaml
 
-DEFAULT_URL = "https://openpip.usask.ca"
+DEFAULT_URL = "https://openpip.usask.ca/v2"
 DEFAULT_CONFIG_PATH = Path.home() / ".openpip" / "config.yaml"
 
 

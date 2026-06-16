@@ -2,8 +2,8 @@ from __future__ import annotations
 from typing import Optional, Union
 from pathlib import Path
 from .client import APIClient
-from .models import Protein, Interaction, Dataset, NetworkData
-from .config import get_or_create_config, DEFAULT_URL
+from .models import Protein, Interaction, Dataset, NetworkData, NetworkNode, NetworkEdge
+from .config import get_or_create_config
 
 # TODO(phase5): Publish to PyPI as 'openpip' — confirm package name with Dr. Helmy first
 # TODO(phase5): Add openpip logout command (clear token from config)
@@ -47,34 +47,45 @@ class OpenPIP:
 
     def search(self, query: str, as_dataframe: bool = False) -> list[Protein]:
         """Search proteins by gene name, UniProt ID, or Ensembl ID."""
-        all_results = []
-        page = 1
-        while True:
-            data = self._client.search(query, page=page)
-            all_results.extend(data.get("results", []))
-            if not data.get("next"):
-                break
-            page += 1
-        proteins = [Protein.model_validate(r) for r in all_results]
+        data = self._client.search(query)
+        proteins = [Protein.model_validate(p) for p in data.get("all_proteins", [])]
         if as_dataframe:
             return self._to_dataframe([p.model_dump() for p in proteins])
         return proteins
 
-    def protein(self, protein_id: int) -> Protein:
-        """Get full protein detail by ID."""
-        return Protein.model_validate(self._client.protein(protein_id))
+    def search_full(self, query: str) -> dict:
+        """Return raw search response including all_proteins, all_interactions, query_protein_id_array.
 
-    def interactions(self, protein_id: int, as_dataframe: bool = False) -> list[Interaction]:
-        """Get all interactions for a protein."""
-        all_results = []
-        page = 1
-        while True:
-            data = self._client.interactions(protein_id, page=page)
-            all_results.extend(data.get("results", []))
-            if not data.get("next"):
-                break
-            page += 1
-        items = [Interaction.model_validate(r) for r in all_results]
+        Falls back to protein detail lookup for single-term queries that return no results
+        (e.g. UniProt IDs, which the search index doesn't cover).
+        """
+        data = self._client.search(query)
+        terms = [t.strip() for t in query.split(",") if t.strip()]
+        if data.get("all_proteins") or len(terms) != 1:
+            return data
+        # Single-term search returned nothing — resolve via protein detail, then re-search by gene name
+        from .exceptions import NotFound
+        try:
+            prot = self._client.protein(terms[0])
+            gene_name = prot.get("protein_gene_name")
+            if gene_name:
+                data = self._client.search(gene_name)
+            else:
+                data["all_proteins"] = [prot]
+                data["query_protein_id_array"] = [prot["protein_id"]]
+                data["unfound_protein_summary"] = ""
+        except NotFound:
+            pass
+        return data
+
+    def protein(self, identifier) -> Protein:
+        """Get full protein detail by ID, UniProt ID, gene name, or Ensembl ID."""
+        return Protein.model_validate(self._client.protein(identifier))
+
+    def interactions(self, identifier, as_dataframe: bool = False) -> list[Interaction]:
+        """Get all interactions for a protein (gene name, UniProt ID, or Ensembl ID)."""
+        data = self._client.search(str(identifier))
+        items = [Interaction.model_validate(i) for i in data.get("all_interactions", [])]
         if as_dataframe:
             rows = [
                 {
@@ -88,21 +99,33 @@ class OpenPIP:
             return self._to_dataframe(rows)
         return items
 
-    def network(self, protein_id: int) -> NetworkData:
-        """Get Cytoscape.js network data for a protein."""
-        return NetworkData.model_validate(self._client.network(protein_id))
+    def network(self, identifier) -> NetworkData:
+        """Get interaction network for a protein as Cytoscape.js-compatible data."""
+        data = self._client.search(str(identifier))
+        query_ids = set(str(qid) for qid in data.get("query_protein_id_array", []))
+        nodes = [
+            NetworkNode(data={
+                "id": str(p["protein_id"]),
+                "label": p.get("protein_gene_name") or p.get("protein_uniprot_id", ""),
+                "uniprot_id": p.get("protein_uniprot_id"),
+                "is_query": str(p["protein_id"]) in query_ids,
+            })
+            for p in data.get("all_proteins", [])
+        ]
+        edges = [
+            NetworkEdge(data={
+                "id": str(i["interaction_id"]),
+                "source": str(i["interactor_A"]["protein_id"]),
+                "target": str(i["interactor_B"]["protein_id"]),
+                "weight": i.get("score"),
+            })
+            for i in data.get("all_interactions", [])
+        ]
+        return NetworkData(nodes=nodes, edges=edges)
 
     def datasets(self, as_dataframe: bool = False) -> list[Dataset]:
         """List all available datasets."""
-        all_results = []
-        page = 1
-        while True:
-            data = self._client.datasets(page=page)
-            all_results.extend(data.get("results", []))
-            if not data.get("next"):
-                break
-            page += 1
-        items = [Dataset.model_validate(r) for r in all_results]
+        items = [Dataset.model_validate(d) for d in self._client.datasets()]
         if as_dataframe:
             return self._to_dataframe([d.model_dump() for d in items])
         return items
@@ -118,10 +141,10 @@ class OpenPIP:
         """PSICQUIC MIQL query."""
         return self._client.psicquic(query, fmt=format, first=first, max_results=max_results)
 
-    def export_network(self, protein_id: int, path: str) -> Path:
+    def export_network(self, identifier, path: str) -> Path:
         """Export network as image or data file. Format detected from extension."""
         from .export import export_network
-        network = self.network(protein_id)
+        network = self.network(identifier)
         return export_network(network, path)
 
     def upload(self, file_path: str, name: str) -> dict:

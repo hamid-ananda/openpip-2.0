@@ -35,7 +35,7 @@ $ openpip
   Interface [1]:
 ```
 
-**Server URL** — press Enter to use the public instance at `openpip.usask.ca`, or type `http://localhost:8001` if you are running your own local instance.
+**Server URL** — press Enter to use the public instance at `openpip.usask.ca/v2`, or type `http://localhost:8001` if you are running your own local instance.
 
 **Interface** — choose TUI for an interactive experience, or Rich if you want to pipe output into scripts.
 

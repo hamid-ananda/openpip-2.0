@@ -32,7 +32,7 @@ export function NodeInfoPanel({
   onRemove,
 }: NodeInfoPanelProps) {
   const navigate = useNavigate()
-  const gene = protein.protein_gene_name || protein.protein_uniprot_id || '—'
+  const gene = protein.protein_gene_name || protein.protein_uniprot_id || '-'
 
   const [viewerOpen, setViewerOpen] = useState(false)
   const [structureSource, setStructureSource] = useState<'alphafold' | 'pdb'>('alphafold')
@@ -112,7 +112,7 @@ export function NodeInfoPanel({
         </button>
       </div>
 
-      {/* 3D Structure — only when UniProt ID is known */}
+      {/* 3D Structure - only when UniProt ID is known */}
       {uniprotId && (
         <div style={{ marginTop: 12 }}>
           <button
@@ -274,7 +274,7 @@ export function NodeInfoPanel({
             Ensembl
           </a>
         )}
-        {gene !== '—' && (
+        {gene !== '-' && (
           <a
             href={`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${gene}`}
             target="_blank"

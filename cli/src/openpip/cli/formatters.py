@@ -73,13 +73,11 @@ def print_dataset_table(datasets: list[Dataset]) -> None:
     table.add_column("Name", style="bold")
     table.add_column("Author")
     table.add_column("Year", width=6)
-    table.add_column("Interactions", justify="right")
     for d in datasets:
         table.add_row(
             str(d.id),
             d.name or "-",
             d.author or "-",
-            d.year or "-",
-            str(d.number_of_interactions or "-"),
+            str(d.year or "-"),
         )
     console.print(table)

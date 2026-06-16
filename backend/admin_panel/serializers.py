@@ -76,9 +76,7 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     faq = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     contact = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     download = serializers.CharField(allow_null=True, allow_blank=True, required=False)
-    showDownloads = serializers.BooleanField(
-        source="show_downloads", required=False
-    )
+    showDownloads = serializers.BooleanField(source="show_downloads", required=False)
     showDownloadAll = serializers.BooleanField(
         source="show_download_all", required=False
     )

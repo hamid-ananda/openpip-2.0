@@ -148,13 +148,308 @@ const INITIAL_STATE: WizardState = {
 }
 
 // ─────────────────────────────────────────────────────────
-// Step 1 — file picker
+// Step 1 - file picker
 // ─────────────────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+// ─── format guide ───
+
+type ColStatus = 'required' | 'parsed' | 'ignored'
+
+const PSIMI_COLS_SPEC: { col: number; name: string; status: ColStatus; note: string }[] = [
+  { col: 1,  name: 'Unique identifier - Protein A',   status: 'required', note: 'e.g. uniprotkb:P04637 or a bare gene name' },
+  { col: 2,  name: 'Unique identifier - Protein B',   status: 'required', note: 'same format as column 1' },
+  { col: 3,  name: 'Alternative IDs - Protein A',     status: 'ignored',  note: 'accepted in file but not read' },
+  { col: 4,  name: 'Alternative IDs - Protein B',     status: 'ignored',  note: 'accepted in file but not read' },
+  { col: 5,  name: 'Aliases - Protein A',             status: 'parsed',   note: 'gene names extracted, e.g. uniprotkb:TP53(gene name)' },
+  { col: 6,  name: 'Aliases - Protein B',             status: 'parsed',   note: 'same format as column 5' },
+  { col: 7,  name: 'Detection method',                status: 'parsed',   note: 'e.g. psi-mi:"MI:0018"(two hybrid)' },
+  { col: 8,  name: 'First author',                    status: 'ignored',  note: 'use dataset metadata in the next step instead' },
+  { col: 9,  name: 'Publication ID (PubMed)',         status: 'ignored',  note: 'use dataset metadata in the next step instead' },
+  { col: 10, name: 'Taxon - Protein A',               status: 'parsed',   note: 'e.g. taxid:9606(human)' },
+  { col: 11, name: 'Taxon - Protein B',               status: 'parsed',   note: 'same format as column 10' },
+  { col: 12, name: 'Interaction type',                status: 'ignored',  note: '' },
+  { col: 13, name: 'Source database',                 status: 'ignored',  note: '' },
+  { col: 14, name: 'Interaction identifier',          status: 'ignored',  note: '' },
+  { col: 15, name: 'Confidence score',                status: 'parsed',   note: 'e.g. 0.92 or intact-miscore:0.92' },
+  { col: 16, name: 'Expansion method',                status: 'ignored',  note: '' },
+  { col: 17, name: 'Biological role - Protein A',     status: 'ignored',  note: '' },
+  { col: 18, name: 'Biological role - Protein B',     status: 'ignored',  note: '' },
+  { col: 19, name: 'Experimental role - Protein A',   status: 'ignored',  note: '' },
+  { col: 20, name: 'Experimental role - Protein B',   status: 'ignored',  note: '' },
+  { col: 21, name: 'Interactor type - Protein A',     status: 'ignored',  note: '' },
+  { col: 22, name: 'Interactor type - Protein B',     status: 'ignored',  note: '' },
+  { col: 23, name: 'Xref - Protein A',                status: 'ignored',  note: '' },
+  { col: 24, name: 'Xref - Protein B',                status: 'ignored',  note: '' },
+  { col: 25, name: 'Xref - Interaction',              status: 'ignored',  note: '' },
+  { col: 26, name: 'Annotations - Protein A',         status: 'parsed',   note: 'key:value pairs stored as support info' },
+  { col: 27, name: 'Annotations - Protein B',         status: 'parsed',   note: 'same format as column 26' },
+  { col: 28, name: 'Annotations - Interaction',       status: 'parsed',   note: 'pipe-separated key:value pairs' },
+]
+
+const STATUS_BADGE: Record<ColStatus, { label: string; color: string; bg: string }> = {
+  required: { label: 'Required', color: '#fff',               bg: 'var(--primary)' },
+  parsed:   { label: 'Parsed',   color: 'var(--success)',     bg: 'rgba(16,185,129,.12)' },
+  ignored:  { label: 'Ignored',  color: 'var(--text-muted)',  bg: 'var(--surface-2)' },
+}
+
+const CSV_COLS_SPEC: { name: string; status: ColStatus; note: string }[] = [
+  { name: 'protein_a', status: 'required', note: 'UniProtKB accession, Ensembl ID, Entrez ID, or bare gene name' },
+  { name: 'protein_b', status: 'required', note: 'same format as protein_a' },
+  { name: 'score',     status: 'parsed',   note: 'numeric confidence value, e.g. 0.92' },
+  { name: 'pubmed',    status: 'ignored',  note: 'use dataset metadata in the next step instead' },
+]
+
+const CSV_EXAMPLE_ROWS = [
+  ['P04637', 'Q9NQC3', '0.92', ''],
+  ['O14757', 'P31749', '0.75', ''],
+]
+
+function FileFormatGuide() {
+  const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<'psimi' | 'csv'>('psimi')
+
+  return (
+    <div style={{ marginBottom: 20, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%',
+          background: 'var(--surface-2)',
+          border: 'none',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="2.5"
+          aria-hidden
+          style={{ flexShrink: 0, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>File format reference</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>
+          - view all columns and their status before uploading
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)' }}>
+          {/* Tab switcher */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            {(['psimi', 'csv'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  border: `1px solid ${tab === t ? 'var(--primary)' : 'var(--border)'}`,
+                  background: tab === t ? 'var(--primary-soft)' : 'transparent',
+                  color: tab === t ? 'var(--primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                {t === 'psimi' ? 'PSI-MI TAB 2.7  (.tab / .tsv / .txt)' : 'CSV  (.csv)'}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            {(Object.entries(STATUS_BADGE) as [ColStatus, typeof STATUS_BADGE[ColStatus]][]).map(([key, b]) => (
+              <span
+                key={key}
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  background: b.bg,
+                  color: b.color,
+                  border: key === 'required' ? 'none' : '1px solid var(--border)',
+                  letterSpacing: '.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {b.label}
+              </span>
+            ))}
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>
+              - "ignored" columns may be present in the file but are not stored
+            </span>
+          </div>
+
+          {tab === 'psimi' ? (
+            <>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>
+                Tab-separated, 28 columns. Lines starting with <code style={{ fontFamily: 'var(--mono)' }}>#</code> are
+                skipped (use them for comments or a human-readable header). Columns 1 and 2 are the only ones required
+                - all others may be <code style={{ fontFamily: 'var(--mono)' }}>-</code> (dash) if unknown.
+              </p>
+              <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)', maxHeight: 340, overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                  <thead style={{ position: 'sticky', top: 0, background: 'var(--surface-2)', zIndex: 1 }}>
+                    <tr>
+                      <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', width: 44 }}>#</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Column name</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Status</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Notes / example value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PSIMI_COLS_SPEC.map((c, i) => {
+                      const badge = STATUS_BADGE[c.status]
+                      return (
+                        <tr
+                          key={c.col}
+                          style={{
+                            borderBottom: i < PSIMI_COLS_SPEC.length - 1 ? '1px solid var(--border)' : undefined,
+                            background: c.status === 'required' ? 'rgba(99,102,241,.04)' : undefined,
+                          }}
+                        >
+                          <td style={{ padding: '5px 10px', fontFamily: 'var(--mono)', color: 'var(--text-muted)', fontSize: 11 }}>{c.col}</td>
+                          <td style={{ padding: '5px 10px', color: 'var(--text)', fontWeight: c.status === 'required' ? 600 : 400 }}>{c.name}</td>
+                          <td style={{ padding: '5px 10px', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: badge.bg, color: badge.color, border: c.status === 'required' ? 'none' : '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: '5px 10px', color: 'var(--text-muted)', fontFamily: 'var(--mono)', fontSize: 10 }}>{c.note || '-'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>
+                Comma-separated with a header row. Column names are case-insensitive.{' '}
+                <code style={{ fontFamily: 'var(--mono)' }}>protein_a</code> and{' '}
+                <code style={{ fontFamily: 'var(--mono)' }}>protein_b</code> are the only required columns.
+              </p>
+
+              {/* Column spec */}
+              <div style={{ borderRadius: 6, border: '1px solid var(--border)', marginBottom: 12 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--surface-2)' }}>
+                      <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Column name</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Status</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Notes / example value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CSV_COLS_SPEC.map((c, i) => {
+                      const badge = STATUS_BADGE[c.status]
+                      return (
+                        <tr key={c.name} style={{ borderBottom: i < CSV_COLS_SPEC.length - 1 ? '1px solid var(--border)' : undefined, background: c.status === 'required' ? 'rgba(99,102,241,.04)' : undefined }}>
+                          <td style={{ padding: '5px 10px', fontFamily: 'var(--mono)', color: 'var(--text)', fontWeight: c.status === 'required' ? 700 : 400 }}>{c.name}</td>
+                          <td style={{ padding: '5px 10px', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: badge.bg, color: badge.color, border: c.status === 'required' ? 'none' : '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: '5px 10px', color: 'var(--text-muted)', fontFamily: 'var(--mono)', fontSize: 10 }}>{c.note}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Example */}
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Example</div>
+              <div style={{ overflowX: 'auto', borderRadius: 6, border: '1px solid var(--border)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, fontFamily: 'var(--mono)' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--surface-2)' }}>
+                      {CSV_COLS_SPEC.map((c) => (
+                        <th key={c.name} style={{ padding: '5px 10px', textAlign: 'left', color: 'var(--primary)', fontWeight: 700, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                          {c.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CSV_EXAMPLE_ROWS.map((row, ri) => (
+                      <tr key={ri} style={{ borderBottom: ri < CSV_EXAMPLE_ROWS.length - 1 ? '1px solid var(--border)' : undefined }}>
+                        {row.map((cell, ci) => (
+                          <td key={ci} style={{ padding: '5px 10px', color: cell ? 'var(--text)' : 'var(--text-muted)', fontStyle: cell ? 'normal' : 'italic' }}>
+                            {cell || '(optional)'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── validation ───
+
+interface ValidationResult {
+  valid: boolean
+  errors: string[]
+  detectedFormat: 'psimi' | 'csv'
+}
+
+async function validateUploadedFile(file: File): Promise<ValidationResult> {
+  const snippet = await file.slice(0, 16384).text()
+  const csv = file.name.toLowerCase().endsWith('.csv')
+  const lines = snippet.split('\n').filter((l) => l.trim())
+  const errors: string[] = []
+
+  if (csv) {
+    if (lines.length === 0) {
+      errors.push('File is empty.')
+      return { valid: false, errors, detectedFormat: 'csv' }
+    }
+    const header = lines[0].split(',').map((h) => h.trim().toLowerCase())
+    if (!header.includes('protein_a')) errors.push('Missing required column: protein_a')
+    if (!header.includes('protein_b')) errors.push('Missing required column: protein_b')
+    const dataLines = lines.slice(1)
+    if (dataLines.length === 0) errors.push('File has a header but no data rows.')
+    return { valid: errors.length === 0, errors, detectedFormat: 'csv' }
+  }
+
+  const dataLines = lines.filter((l) => !l.startsWith('#'))
+  if (dataLines.length === 0) {
+    errors.push('File has no data rows (all lines are comments or blank).')
+    return { valid: false, errors, detectedFormat: 'psimi' }
+  }
+  const badRows = dataLines.slice(0, 10).filter((l) => {
+    const cols = l.split('\t')
+    return cols.length < 2 || !cols[0]?.trim() || !cols[1]?.trim()
+  })
+  if (badRows.length > 0)
+    errors.push('Some rows are missing Protein A or Protein B values (columns 1 and 2).')
+  return { valid: errors.length === 0, errors, detectedFormat: 'psimi' }
 }
 
 interface Step1Props {
@@ -165,16 +460,31 @@ interface Step1Props {
 
 function Step1({ file, onChange, onNext }: Step1Props) {
   const [dragging, setDragging] = useState(false)
+  const [validation, setValidation] = useState<ValidationResult | null>(null)
+  const [validating, setValidating] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = useCallback(
+    (f: File) => {
+      onChange(f)
+      setValidation(null)
+      setValidating(true)
+      validateUploadedFile(f).then((result) => {
+        setValidation(result)
+        setValidating(false)
+      })
+    },
+    [onChange],
+  )
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
       setDragging(false)
       const dropped = e.dataTransfer.files[0]
-      if (dropped) onChange(dropped)
+      if (dropped) handleFile(dropped)
     },
-    [onChange],
+    [handleFile],
   )
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -184,8 +494,12 @@ function Step1({ file, onChange, onNext }: Step1Props) {
 
   const handleDragLeave = () => setDragging(false)
 
+  const canProceed = !!file && !validating && !!validation?.valid
+
   return (
     <div>
+      <FileFormatGuide />
+
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -203,7 +517,7 @@ function Step1({ file, onChange, onNext }: Step1Props) {
           cursor: 'pointer',
           background: dragging ? 'var(--primary-soft)' : 'var(--surface-2)',
           transition: 'border-color .15s, background .15s',
-          marginBottom: 20,
+          marginBottom: 14,
         }}
       >
         <input
@@ -213,7 +527,7 @@ function Step1({ file, onChange, onNext }: Step1Props) {
           style={{ display: 'none' }}
           onChange={(e) => {
             const f = e.target.files?.[0]
-            if (f) onChange(f)
+            if (f) handleFile(f)
           }}
         />
         <div style={{ marginBottom: 10 }}>
@@ -239,7 +553,7 @@ function Step1({ file, onChange, onNext }: Step1Props) {
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
           or{' '}
           <span style={{ color: 'var(--primary)', fontWeight: 500 }}>browse</span>
-          {' '}to select — PSI-MI TAB (.tab, .tsv, .txt) or CSV (.csv)
+          {' '}to select - PSI-MI TAB (.tab, .tsv, .txt) or CSV (.csv)
         </div>
       </div>
 
@@ -253,7 +567,7 @@ function Step1({ file, onChange, onNext }: Step1Props) {
             background: 'var(--surface-2)',
             borderRadius: 8,
             border: '1px solid var(--border)',
-            marginBottom: 20,
+            marginBottom: 12,
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" aria-hidden>
@@ -265,8 +579,77 @@ function Step1({ file, onChange, onNext }: Step1Props) {
         </div>
       )}
 
+      {/* Validation banner */}
+      {file && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            padding: '12px 14px',
+            borderRadius: 8,
+            marginBottom: 20,
+            border: `1px solid ${
+              validating
+                ? 'var(--border)'
+                : validation?.valid
+                  ? 'var(--success)'
+                  : 'var(--warn)'
+            }`,
+            background: validating
+              ? 'var(--surface-2)'
+              : validation?.valid
+                ? 'rgba(16,185,129,.07)'
+                : 'rgba(241,87,66,.07)',
+          }}
+        >
+          {validating ? (
+            <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" aria-hidden style={{ flexShrink: 0, marginTop: 1 }}>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Validating file format…</span>
+            </>
+          ) : validation?.valid ? (
+            <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" aria-hidden style={{ flexShrink: 0, marginTop: 1 }}>
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--success)' }}>
+                  File is valid - ready for next step
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Detected format: {validation.detectedFormat === 'csv' ? 'CSV' : 'PSI-MI TAB'}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.5" aria-hidden style={{ flexShrink: 0, marginTop: 1 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--warn)', marginBottom: 4 }}>
+                  File format issues detected
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: 'var(--warn)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {validation?.errors.map((err, i) => <li key={i}>{err}</li>)}
+                </ul>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                  See the "File format reference" above for the expected column layout.
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="op-btn primary" onClick={onNext} disabled={!file}>
+        <button className="op-btn primary" onClick={onNext} disabled={!canProceed}>
           Next →
         </button>
       </div>
@@ -275,7 +658,7 @@ function Step1({ file, onChange, onNext }: Step1Props) {
 }
 
 // ─────────────────────────────────────────────────────────
-// Step 2 — metadata
+// Step 2 - metadata
 // ─────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = [
@@ -339,7 +722,7 @@ function Step2({ state, onChange, onBack, onNext }: Step2Props) {
             style={{ width: '100%' }}
             disabled={catsLoading}
           >
-            <option value="">— None —</option>
+            <option value="">- None -</option>
             {categories.map((cat) => (
               <option key={cat.id} value={String(cat.id)}>{cat.category_name}</option>
             ))}
@@ -362,7 +745,7 @@ function Step2({ state, onChange, onBack, onNext }: Step2Props) {
 }
 
 // ─────────────────────────────────────────────────────────
-// Step 3 — dry-run preview
+// Step 3 - dry-run preview
 // ─────────────────────────────────────────────────────────
 
 const PSIMI_COLS = [
@@ -392,7 +775,7 @@ function parseFileSnippet(file: File): Promise<FileSnippet> {
   return file.text().then((text) => {
     if (csv) {
       const lines = text.split('\n').filter((l) => l.trim())
-      // lines[0] is the header — skip it for data rows
+      // lines[0] is the header - skip it for data rows
       const dataLines = lines.slice(1)
       return { rows: dataLines.slice(0, 5).map((l) => l.split(',')), totalRows: dataLines.length, isCsv: true }
     }
@@ -498,7 +881,7 @@ function Step3({ state, onBack, onNext }: Step3Props) {
 
   return (
     <div>
-      {/* File snippet — shown immediately from local parse */}
+      {/* File snippet - shown immediately from local parse */}
       {snippet && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8, display: 'flex', gap: 10, alignItems: 'baseline' }}>
@@ -522,10 +905,10 @@ function Step3({ state, onBack, onNext }: Step3Props) {
                 {snippet.rows.map((row, ri) => (
                   <tr key={ri} style={{ borderBottom: ri < snippet.rows.length - 1 ? '1px solid var(--border)' : undefined }}>
                     {(snippet.isCsv ? CSV_COLS : PSIMI_COLS).map((c) => {
-                      const val = row[c.idx] ?? '—'
+                      const val = row[c.idx] ?? '-'
                       return (
                         <td key={c.idx} title={val} style={{ padding: '6px 12px', color: 'var(--text)', whiteSpace: 'nowrap' }}>
-                          {val.length > 30 ? val.slice(0, 30) + '…' : val || '—'}
+                          {val.length > 30 ? val.slice(0, 30) + '…' : val || '-'}
                         </td>
                       )
                     })}
@@ -537,7 +920,7 @@ function Step3({ state, onBack, onNext }: Step3Props) {
         </div>
       )}
 
-      {/* Progress bar — real batched progress */}
+      {/* Progress bar - real batched progress */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -607,7 +990,7 @@ function Step3({ state, onBack, onNext }: Step3Props) {
 }
 
 // ─────────────────────────────────────────────────────────
-// Step 4 — final upload
+// Step 4 - final upload
 // ─────────────────────────────────────────────────────────
 
 interface ImportTotals {
@@ -821,7 +1204,7 @@ function DatasetTable({ datasets }: { datasets: DatasetRef[] }) {
               </span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ds.description}</span>
             </div>
-            <div className="op-num" style={{ color: 'var(--text-muted)', fontSize: 13 }}>{ds.year ?? '—'}</div>
+            <div className="op-num" style={{ color: 'var(--text-muted)', fontSize: 13 }}>{ds.year ?? '-'}</div>
             <div><span className="op-chip" style={{ fontSize: 10 }}>{ds.interaction_status}</span></div>
             <div>
               <button
@@ -969,7 +1352,7 @@ export function AdminDataPage() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
           <StatCard
-            value={counts?.proteins ?? '—'}
+            value={counts?.proteins ?? '-'}
             label="Proteins indexed"
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -979,7 +1362,7 @@ export function AdminDataPage() {
             }
           />
           <StatCard
-            value={counts?.interactions ?? '—'}
+            value={counts?.interactions ?? '-'}
             label="Interactions"
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -988,7 +1371,7 @@ export function AdminDataPage() {
             }
           />
           <StatCard
-            value={datasets?.length ?? '—'}
+            value={datasets?.length ?? '-'}
             label="Datasets"
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>

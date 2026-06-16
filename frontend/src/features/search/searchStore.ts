@@ -92,6 +92,6 @@ export const useSearchStore = create<SearchState>()((set) => ({
   reset: () => set(initialState),
 }))
 
-// Static method for test resets — exposes initial state snapshot
+// Static method for test resets - exposes initial state snapshot
 ;(useSearchStore as unknown as { getInitialState: () => typeof initialState }).getInitialState =
   () => ({ ...initialState })

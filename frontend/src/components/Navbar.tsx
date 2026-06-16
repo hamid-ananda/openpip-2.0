@@ -10,6 +10,7 @@ const publicLinks = [
   { to: '/', label: 'Home', end: true },
   { to: '/search', label: 'Search', end: false },
   { to: '/download', label: 'Downloads', end: false },
+  { to: '/developer', label: 'API', end: false },
   { to: '/about', label: 'About', end: false },
   { to: '/faq', label: 'FAQ', end: false },
   { to: '/contact', label: 'Contact', end: false },

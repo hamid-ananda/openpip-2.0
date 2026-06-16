@@ -214,7 +214,7 @@ export function DownloadPage() {
                       <KindChip status={ds.interaction_status} />
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                      {ds.description}{ds.dataset_author ? ` — ${ds.dataset_author}` : ''}
+                      {ds.description}{ds.dataset_author ? ` - ${ds.dataset_author}` : ''}
                     </div>
                   </div>
 
@@ -222,7 +222,7 @@ export function DownloadPage() {
                     className="op-num"
                     style={{ fontSize: 13, color: 'var(--text-muted)' }}
                   >
-                    {ds.year ?? '—'}
+                    {ds.year ?? '-'}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>

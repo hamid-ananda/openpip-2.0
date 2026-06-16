@@ -17,7 +17,7 @@ export function filterProteinsAndInteractions(
 ): { proteins: Protein[]; interactions: Interaction[] } {
   const querySet = new Set(queryProteinIds)
 
-  // Tissue filter — build allowed protein id set first
+  // Tissue filter - build allowed protein id set first
   let allowedProteinIds: Set<number> | null = null
   if (filters.tissueFilter) {
     allowedProteinIds = new Set(

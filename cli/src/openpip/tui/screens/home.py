@@ -30,7 +30,7 @@ class HomeScreen(Screen):
         try:
             from openpip.config import get_or_create_config
             cfg = get_or_create_config()
-            response = httpx.get(f"{cfg.url.rstrip('/')}/api/announcements/", timeout=5)
+            response = httpx.get(f"{cfg.url.rstrip('/')}/api/announcements", timeout=5)
             announcements = response.json() if response.status_code == 200 else []
         except Exception:
             announcements = []
@@ -49,7 +49,7 @@ class HomeScreen(Screen):
         try:
             from openpip.config import get_or_create_config
             cfg = get_or_create_config()
-            response = httpx.get(f"{cfg.url.rstrip('/')}/api/counts/", timeout=5)
+            response = httpx.get(f"{cfg.url.rstrip('/')}/api/counts", timeout=5)
             counts = response.json() if response.status_code == 200 else {}
         except Exception:
             counts = {}

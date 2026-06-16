@@ -89,7 +89,7 @@ describe('formatFASTA', () => {
     expect(result).toBe('>BAD|Q92934\nMSEQ\n')
   })
 
-  it('includes all proteins passed in — both query and interactors', () => {
+  it('includes all proteins passed in - both query and interactors', () => {
     const result = formatFASTA([p1, p2])
     expect(result).toContain('>BAD|Q92934')
     expect(result).toContain('>BCL2L1|Q07817')

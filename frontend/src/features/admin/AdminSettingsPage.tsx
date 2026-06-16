@@ -738,7 +738,7 @@ function CategoryTable() {
 // Main form
 // ─────────────────────────────────────────────────────────
 function seedDefaults(s: AdminSettings): AdminSettings {
-  // Null color fields mean "never saved" — seed with display defaults so
+  // Null color fields mean "never saved" - seed with display defaults so
   // the first Save writes real values instead of null back to the DB.
   return {
     ...s,
@@ -929,7 +929,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             ))}
           </div>
 
-          {/* Colors — shown contextually */}
+          {/* Colors - shown contextually */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <ColorInput
               label={(form.navStyle ?? 'solid') === 'gradient' ? 'Gradient start' : 'Primary color'}
@@ -1212,7 +1212,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
         )}
         {isError && (
           <span style={{ fontSize: 13, color: 'var(--danger)', fontWeight: 500 }}>
-            ✗ Save failed — check that you are logged in as an admin
+            ✗ Save failed - check that you are logged in as an admin
           </span>
         )}
       </div>

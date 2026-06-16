@@ -1,5 +1,9 @@
 from .base import *  # noqa: F401, F403
 
+# App is mounted at /v2/ in production nginx — tells Django's reverse() to
+# prepend this prefix so generated URLs (e.g. Swagger schema link) are correct.
+FORCE_SCRIPT_NAME = "/v2"
+
 SECURE_HSTS_SECONDS = 3600
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True

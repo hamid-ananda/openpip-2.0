@@ -114,7 +114,7 @@ export interface Interaction {
   }
   score: number | null
   annotation_array: Record<string, string[]>
-  experiment_array: unknown[]
+  experiment_array: string[]
   dataset_array: DatasetRef[]
   interaction_category_array: {
     highest_category_status: string

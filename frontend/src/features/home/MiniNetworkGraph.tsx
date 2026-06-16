@@ -39,7 +39,7 @@ export function MiniNetworkGraph() {
           </span>
           {queryGene && (
             <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>
-              — {queryGene} neighborhood
+              - {queryGene} neighborhood
             </span>
           )}
         </div>

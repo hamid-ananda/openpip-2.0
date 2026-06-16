@@ -31,20 +31,22 @@ class ProteinScreen(Screen):
 
     def load_protein(self, protein: Protein) -> None:
         self._protein = protein
+        identifier = protein.gene_name or protein.uniprot_id
         if self.is_attached:
             self.query_one("#protein-card", ProteinCard).show(protein)
-            self._fetch_interactions(protein.id)
+            self._fetch_interactions(identifier)
 
     def on_mount(self) -> None:
         if self._protein:
+            identifier = self._protein.gene_name or self._protein.uniprot_id
             self.query_one("#protein-card", ProteinCard).show(self._protein)
-            self._fetch_interactions(self._protein.id)
+            self._fetch_interactions(identifier)
 
     @work(thread=True)
-    def _fetch_interactions(self, protein_id: int) -> None:
+    def _fetch_interactions(self, identifier: str) -> None:
         from openpip import OpenPIP
         try:
-            interactions = OpenPIP().interactions(protein_id)
+            interactions = OpenPIP().interactions(identifier)
         except Exception:
             interactions = []
         self.app.call_from_thread(

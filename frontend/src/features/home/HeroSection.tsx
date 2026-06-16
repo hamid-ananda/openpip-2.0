@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { StatsCounter } from './StatsCounter'
 import { MiniNetworkGraph } from './MiniNetworkGraph'
+import { useSettings } from '../../api/settings'
+import { useSearchStore } from '../search/searchStore'
 
 interface HeroSectionProps {
   shortTitle: string
@@ -10,9 +12,23 @@ interface HeroSectionProps {
   datasets: number
 }
 
+function toFilterMode(type: string | undefined): 'None' | 'query_query' | 'query_interactor' {
+  if (type === 'query-query') return 'query_query'
+  if (type === 'query-interactor') return 'query_interactor'
+  return 'None'
+}
+
 export function HeroSection({ shortTitle, proteins, interactions, datasets }: HeroSectionProps) {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
+  const { data: settings } = useSettings()
+  const setFilterMode = useSearchStore((s) => s.setFilterMode)
+
+  const searchExamples = [
+    { proteins: settings?.example1, type: settings?.example1Type },
+    { proteins: settings?.example2, type: settings?.example2Type },
+    { proteins: settings?.example3, type: settings?.example3Type },
+  ].filter((ex) => ex.proteins?.trim())
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,7 +80,7 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
             }}
           >
             Search proteins across verified interactions from the CCSB Human
-            Interactome — visualized, filterable, and ready to export.
+            Interactome, visualized, filterable, and ready to export.
           </p>
 
           <form onSubmit={handleSearch} style={{ display: 'flex', marginBottom: 36 }}>
@@ -90,6 +106,52 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
               Search
             </button>
           </form>
+
+          {searchExamples.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-soft)', letterSpacing: '.04em', textTransform: 'uppercase' }}>Try:</span>
+              {searchExamples.map((ex, i) => {
+                const genes = (ex.proteins ?? '').split('\n').map((g) => g.trim()).filter(Boolean)
+                const preview = genes.slice(0, 2).join(', ') + (genes.length > 2 ? '…' : '')
+                const query = genes.join(',')
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setFilterMode(toFilterMode(ex.type))
+                      navigate(`/search/${encodeURIComponent(query)}`)
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      fontFamily: 'var(--mono)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      padding: '6px 14px',
+                      borderRadius: 8,
+                      border: '1.5px solid var(--border-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      transition: 'border-color .15s, background .15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary)'
+                      e.currentTarget.style.background = 'var(--primary-soft)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-strong)'
+                      e.currentTarget.style.background = 'var(--surface)'
+                    }}
+                  >
+                    {preview}
+                    <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font)' }}>
+                      {ex.type ?? 'all'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           <StatsCounter proteins={proteins} interactions={interactions} datasets={datasets} />
         </div>
