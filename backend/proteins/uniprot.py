@@ -7,7 +7,9 @@ import requests
 logger = logging.getLogger(__name__)
 
 UNIPROT_SEARCH = "https://rest.uniprot.org/uniprotkb/search"
-UNIPROT_FIELDS = "accession,gene_names,protein_name,sequence,cc_function,xref_ensembl,xref_geneid"
+UNIPROT_FIELDS = (
+    "accession,gene_names,protein_name,sequence,cc_function,xref_ensembl,xref_geneid"
+)
 BATCH_SIZE = 50
 TIMEOUT = 30
 
@@ -151,8 +153,12 @@ def enrich_proteins_from_uniprot(protein_ids: list[int]) -> tuple[int, bool]:
         if changed:
             protein.save(
                 update_fields=[
-                    "protein_name", "gene_name", "sequence", "description",
-                    "ensembl_id", "entrez_id",
+                    "protein_name",
+                    "gene_name",
+                    "sequence",
+                    "description",
+                    "ensembl_id",
+                    "entrez_id",
                 ]
             )
             updated += 1

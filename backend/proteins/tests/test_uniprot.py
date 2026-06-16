@@ -103,7 +103,9 @@ def test_extract_ensembl_id_returns_empty_when_missing():
     from proteins.uniprot import _extract_ensembl_id
 
     assert _extract_ensembl_id({}) == ""
-    assert _extract_ensembl_id(UNIPROT_ENTRY) == ""  # no cross-references in base fixture
+    assert (
+        _extract_ensembl_id(UNIPROT_ENTRY) == ""
+    )  # no cross-references in base fixture
 
 
 def test_extract_entrez_id_returns_gene_id_string():
