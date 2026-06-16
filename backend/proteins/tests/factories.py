@@ -38,3 +38,4 @@ class OrganismFactory(factory.django.DjangoModelFactory):
 
     name = "Homo sapiens"
     taxonomy_id = "9606"
+    scientific_name = None
