@@ -41,6 +41,7 @@ def test_task_empty_lines_returns_zeros_without_calling_parser():
     assert data["proteins_created"] == 0
     assert data["interactions_created"] == 0
     assert data["progress"] == 100
+    assert data["stage"] == "done"
 
 
 @EAGER
