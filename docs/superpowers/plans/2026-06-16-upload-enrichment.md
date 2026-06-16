@@ -1178,12 +1178,16 @@ The task needs to:
   from datasets.tasks import import_dataset_task
 
 
-  def _make_batch_result(proteins=2, interactions=5, skipped=0, errors=None, new_organism_ids=None):
+  def _make_batch_result(
+      proteins=2, interactions=5, skipped=0, errors=None,
+      new_protein_ids=None, new_organism_ids=None,
+  ):
       return {
           "proteins_created": proteins,
           "interactions_created": interactions,
           "interactions_skipped": skipped,
           "errors": errors or [],
+          "new_protein_ids": new_protein_ids or [],
           "new_organism_ids": new_organism_ids or [],
       }
 
@@ -1406,7 +1410,7 @@ The task needs to:
           }
           new_protein_ids = result.get("new_protein_ids", [])
           new_organism_ids = result.get("new_organism_ids", [])
-          self._run_enrichment(base, new_protein_ids, new_organism_ids)
+          _run_enrichment(self, base, new_protein_ids, new_organism_ids)
           return {**base, "stage": "done"}
 
       # TAB: batch processing with per-batch progress updates
@@ -1439,41 +1443,41 @@ The task needs to:
           )
 
       base = {**totals, "progress": 100}
-      self._run_enrichment(base, all_new_protein_ids, all_new_organism_ids)
+      _run_enrichment(self, base, all_new_protein_ids, all_new_organism_ids)
       return {**base, "stage": "done"}
 
   def _run_enrichment(
-      self,
+      task,
       base: dict,
       new_protein_ids: list[int],
       new_organism_ids: list[int],
   ) -> None:
       """Emit stage states and call all three enrichment functions."""
-      self.update_state(state="PROGRESS", meta={**base, "stage": "enriching_uniprot"})
+      task.update_state(state="PROGRESS", meta={**base, "stage": "enriching_uniprot"})
       _, uniprot_err = enrich_proteins_from_uniprot(new_protein_ids)
       if uniprot_err:
-          self.update_state(
+          task.update_state(
               state="PROGRESS", meta={**base, "stage": "enriching_uniprot_warn"}
           )
 
-      self.update_state(state="PROGRESS", meta={**base, "stage": "enriching_ensembl"})
+      task.update_state(state="PROGRESS", meta={**base, "stage": "enriching_ensembl"})
       _, ensembl_err = enrich_proteins_from_ensembl(new_protein_ids)
       if ensembl_err:
-          self.update_state(
+          task.update_state(
               state="PROGRESS", meta={**base, "stage": "enriching_ensembl_warn"}
           )
 
-      self.update_state(
+      task.update_state(
           state="PROGRESS", meta={**base, "stage": "enriching_organisms"}
       )
       _, ncbi_err = enrich_organisms_from_ncbi(new_organism_ids)
       if ncbi_err:
-          self.update_state(
+          task.update_state(
               state="PROGRESS", meta={**base, "stage": "enriching_organisms_warn"}
           )
   ```
 
-  Note: `_run_enrichment` is a plain method on the task — in Celery, `bind=True` tasks are instances of the task class, so `self._run_enrichment(...)` works.
+  `_run_enrichment` is a **module-level function** (not a method). The Celery task instance is passed explicitly as `task`. Call sites use `_run_enrichment(self, base, ...)` — **not** `self._run_enrichment(...)`, which would raise `AttributeError` since the function is not on the task class.
 
 - [ ] **Step 4: Run tests**
 
@@ -1512,10 +1516,9 @@ The GET handler for task status currently omits `stage` from the response. One l
   Find `backend/datasets/tests/test_async_import.py` and add:
 
   ```python
+  @pytest.mark.django_db
   def test_task_status_forwards_stage_from_progress_meta(auth_client):
       """The GET view must include 'stage' from Celery task meta."""
-      from unittest.mock import patch, MagicMock
-
       mock_result = MagicMock()
       mock_result.state = "PROGRESS"
       mock_result.info = {
@@ -1534,7 +1537,7 @@ The GET handler for task status currently omits `stage` from the response. One l
       assert resp.json()["stage"] == "enriching_uniprot"
   ```
 
-  Check what `auth_client` fixture is in this test file to use the same pattern.
+  `auth_client` is a pytest fixture from `backend/conftest.py` — it's already used in every other test in this file. `MagicMock` and `patch` are already imported at the top of the file.
 
 - [ ] **Step 2: Run to confirm failure**
 
@@ -2010,4 +2013,6 @@ Because warn stages are transient (the stage quickly advances past them), we tra
   - `enrich_organisms_from_ncbi` → `tuple[int, bool]` in Task 4, consumed same way in Task 6 ✓
   - `_handle_taxon` → `int | None` in Task 5, collected in Task 5 ✓
   - `AsyncImportStatus.stage` type union in Task 8, used in `StageChecklist` props in Task 9 ✓
-  - Test helpers `_make_batch_result` updated to include `new_organism_ids` in Task 6 ✓
+  - `_make_batch_result` includes both `new_protein_ids` and `new_organism_ids` in Task 6 ✓
+  - `_run_enrichment` is a module-level function taking `task` as first arg; called as `_run_enrichment(self, ...)` NOT `self._run_enrichment(...)` ✓
+  - Task 7 test uses `@pytest.mark.django_db` + `auth_client` from `backend/conftest.py` ✓
