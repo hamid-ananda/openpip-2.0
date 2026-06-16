@@ -89,3 +89,24 @@ def test_async_import_status_success(auth_client):
     assert data["status"] == "SUCCESS"
     assert data["progress"] == 100
     assert data["interactions_created"] == 100
+
+
+@pytest.mark.django_db
+def test_task_status_forwards_stage_from_progress_meta(auth_client):
+    """The GET view must include 'stage' from Celery task meta."""
+    mock_result = MagicMock()
+    mock_result.state = "PROGRESS"
+    mock_result.info = {
+        "progress": 50,
+        "stage": "enriching_uniprot",
+        "proteins_created": 0,
+        "interactions_created": 0,
+        "interactions_skipped": 0,
+        "errors": [],
+    }
+
+    with patch("datasets.views.AsyncResult", return_value=mock_result):
+        resp = auth_client.get("/api/datasets/import-async/fake-task-id")
+
+    assert resp.status_code == 200
+    assert resp.json()["stage"] == "enriching_uniprot"

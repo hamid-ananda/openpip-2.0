@@ -446,6 +446,7 @@ class AsyncImportStatusView(APIView):
             {
                 "task_id": task_id,
                 "status": state,
+                "stage": data.get("stage", None),
                 "progress": data.get("progress", 0),
                 "proteins_created": data.get("proteins_created", 0),
                 "interactions_created": data.get("interactions_created", 0),
