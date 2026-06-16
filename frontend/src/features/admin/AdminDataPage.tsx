@@ -9,6 +9,7 @@ import {
 import type { DatasetPreviewResult } from '../../api/datasets'
 import { apiClient } from '../../api/client'
 import { startAsyncImport, pollImportStatus } from '../../api/asyncImport'
+import type { AsyncImportStatus } from '../../api/asyncImport'
 
 // ─────────────────────────────────────────────────────────
 // Stat card
@@ -1000,6 +1001,99 @@ interface ImportTotals {
   errors: { row: number; reason: string }[]
 }
 
+// ─────────────────────────────────────────────────────────
+// Stage checklist
+// ─────────────────────────────────────────────────────────
+
+type StageChecklistRowState = 'pending' | 'active' | 'warn' | 'done'
+
+interface StageChecklistProps {
+  stage: AsyncImportStatus['stage']
+}
+
+const STAGE_ORDER = [
+  'parsing',
+  'enriching_uniprot',
+  'enriching_ensembl',
+  'enriching_organisms',
+  'done',
+] as const
+
+function stageIndex(stage: StageChecklistProps['stage']): number {
+  if (!stage) return -1
+  const base = stage.replace('_warn', '') as (typeof STAGE_ORDER)[number]
+  return STAGE_ORDER.indexOf(base)
+}
+
+function StageChecklist({ stage }: StageChecklistProps) {
+  const [warned, setWarned] = useState({ uniprot: false, ensembl: false, organisms: false })
+  const [prevStage, setPrevStage] = useState(stage)
+
+  if (stage !== prevStage) {
+    setPrevStage(stage)
+    if (stage === 'enriching_uniprot_warn') setWarned((w) => ({ ...w, uniprot: true }))
+    if (stage === 'enriching_ensembl_warn') setWarned((w) => ({ ...w, ensembl: true }))
+    if (stage === 'enriching_organisms_warn') setWarned((w) => ({ ...w, organisms: true }))
+  }
+
+  const idx = stageIndex(stage)
+
+  const rowState = (rowIdx: number, warnKey?: keyof typeof warned): StageChecklistRowState => {
+    if (warnKey && warned[warnKey]) return 'warn'
+    if (idx > rowIdx) return 'done'
+    if (idx === rowIdx) return 'active'
+    return 'pending'
+  }
+
+  const rows: { label: string; state: StageChecklistRowState; warnMsg?: string }[] = [
+    { label: 'Parsing rows', state: rowState(0) },
+    { label: 'Fetching UniProt metadata', state: rowState(1, 'uniprot'), warnMsg: 'UniProt unavailable — metadata skipped' },
+    { label: 'Fetching Ensembl data', state: rowState(2, 'ensembl'), warnMsg: 'Ensembl unavailable — data skipped' },
+    { label: 'Fetching organism names', state: rowState(3, 'organisms'), warnMsg: 'NCBI unavailable — names skipped' },
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+      {rows.map((row) => (
+        <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 20, height: 20, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+            {row.state === 'done' && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" aria-hidden>
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            )}
+            {row.state === 'active' && (
+              <div style={{
+                width: 14, height: 14, borderRadius: '50%',
+                border: '2px solid var(--primary)', borderTopColor: 'transparent',
+                animation: 'spin 0.7s linear infinite',
+              }} />
+            )}
+            {row.state === 'warn' && (
+              <span style={{ fontSize: 14, color: 'var(--warn)' }}>⚠</span>
+            )}
+            {row.state === 'pending' && (
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)' }} />
+            )}
+          </div>
+          <div>
+            <span style={{
+              fontSize: 12,
+              color: row.state === 'pending' ? 'var(--text-muted)' : row.state === 'warn' ? 'var(--warn)' : 'var(--text)',
+              fontWeight: row.state === 'active' ? 500 : 400,
+            }}>
+              {row.label}
+            </span>
+            {row.state === 'warn' && row.warnMsg && (
+              <span style={{ fontSize: 11, color: 'var(--warn)', marginLeft: 6 }}>— {row.warnMsg}</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 interface Step4Props {
   state: WizardState
   onReset: () => void
@@ -1013,6 +1107,7 @@ function Step4({ state, onReset }: Step4Props) {
   const [totals, setTotals] = useState<ImportTotals>({ proteins_created: 0, interactions_created: 0, interactions_skipped: 0, errors: [] })
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [stage, setStage] = useState<AsyncImportStatus['stage']>(null)
 
   useEffect(() => {
     if (hasRun.current) return
@@ -1027,6 +1122,7 @@ function Step4({ state, onReset }: Step4Props) {
         try {
           const s = await pollImportStatus(taskId)
           setProgress(s.progress)
+          setStage(s.stage ?? null)
           setTotals({
             proteins_created: s.proteins_created,
             interactions_created: s.interactions_created,
@@ -1074,6 +1170,9 @@ function Step4({ state, onReset }: Step4Props) {
           }} />
         </div>
       </div>
+
+      {/* Stage checklist */}
+      <StageChecklist stage={stage} />
 
       {/* Live running totals while importing */}
       {isPending && (

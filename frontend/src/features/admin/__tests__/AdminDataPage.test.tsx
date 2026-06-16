@@ -255,4 +255,65 @@ describe('AdminDataPage', () => {
     const nameInput = screen.getByPlaceholderText('e.g. HuRI-2024') as HTMLInputElement
     expect(nameInput.value).toBe('test-dataset')
   })
+
+  // ── Step 4 StageChecklist ─────────────────────────────────
+
+  describe('Step4 StageChecklist', () => {
+    async function goToStep4() {
+      render(<AdminDataPage />, { wrapper })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      const file = new File(
+        ['#header\nuniprotkb:P12345\tuniprotkb:P67890\n'],
+        'test.tab',
+        { type: 'text/tab-separated-values' },
+      )
+      fireEvent.change(input, { target: { files: [file] } })
+      await waitFor(() => expect(screen.getByRole('button', { name: /next →/i })).not.toBeDisabled())
+      fireEvent.click(screen.getByRole('button', { name: /next →/i }))
+      await waitFor(() => expect(screen.getByText('Dataset name')).toBeInTheDocument())
+      const nameInput = screen.getByPlaceholderText('e.g. HuRI-2024') as HTMLInputElement
+      fireEvent.change(nameInput, { target: { value: 'TestDS' } })
+      await waitFor(() => expect(screen.getByRole('button', { name: /preview →/i })).not.toBeDisabled())
+      fireEvent.click(screen.getByRole('button', { name: /preview →/i }))
+      await waitFor(() => expect(screen.getByRole('button', { name: /import →/i })).not.toBeDisabled())
+      fireEvent.click(screen.getByRole('button', { name: /import →/i }))
+    }
+
+    it('renders all four stage rows during import', async () => {
+      const { server } = await import('../../../mocks/server')
+      const { http, HttpResponse } = await import('msw')
+      server.use(
+        http.get('/api/datasets/import-async/:taskId', () =>
+          HttpResponse.json({
+            task_id: 'test-task-123',
+            status: 'PROGRESS',
+            progress: 50,
+            proteins_created: 0,
+            interactions_created: 0,
+            interactions_skipped: 0,
+            errors: [],
+            stage: 'parsing',
+          })
+        )
+      )
+
+      await goToStep4()
+
+      await waitFor(() => {
+        expect(screen.getByText('Parsing rows')).toBeInTheDocument()
+        expect(screen.getByText('Fetching UniProt metadata')).toBeInTheDocument()
+        expect(screen.getByText('Fetching Ensembl data')).toBeInTheDocument()
+        expect(screen.getByText('Fetching organism names')).toBeInTheDocument()
+      }, { timeout: 3000 })
+    })
+
+    it('shows checklist when import completes (stage=done)', async () => {
+      await goToStep4()
+
+      await waitFor(
+        () => expect(screen.getByText('Parsing rows')).toBeInTheDocument(),
+        { timeout: 3000 },
+      )
+    })
+  })
 })
