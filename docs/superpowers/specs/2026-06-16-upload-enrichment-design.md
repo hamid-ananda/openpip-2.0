@@ -105,7 +105,7 @@ def enrich_organisms_from_ncbi(organism_ids: list[int]) -> tuple[int, bool]:
 
 Track `all_new_organism_ids` across batches (same pattern as `all_new_protein_ids`).
 
-Add `stage` to every `update_state` call:
+Add `stage` to every `update_state` call. Each enrichment function returns `(count, had_error: bool)`. On error the stage advances to its `_warn` variant before moving on:
 
 ```python
 # During batch ingestion
@@ -113,38 +113,51 @@ self.update_state(state="PROGRESS", meta={
     **totals, "progress": progress, "stage": "parsing"
 })
 
-# After batches complete
-self.update_state(state="PROGRESS", meta={
-    **totals, "progress": 100, "stage": "enriching_uniprot"
-})
-enrich_proteins_from_uniprot(all_new_protein_ids)
+# UniProt enrichment
+self.update_state(state="PROGRESS", meta={**totals, "progress": 100, "stage": "enriching_uniprot"})
+_, uniprot_err = enrich_proteins_from_uniprot(all_new_protein_ids)
+if uniprot_err:
+    self.update_state(state="PROGRESS", meta={**totals, "progress": 100, "stage": "enriching_uniprot_warn"})
 
-self.update_state(state="PROGRESS", meta={
-    **totals, "progress": 100, "stage": "enriching_ensembl"
-})
-enrich_proteins_from_ensembl(all_new_protein_ids)
+# Ensembl enrichment
+self.update_state(state="PROGRESS", meta={**totals, "progress": 100, "stage": "enriching_ensembl"})
+_, ensembl_err = enrich_proteins_from_ensembl(all_new_protein_ids)
+if ensembl_err:
+    self.update_state(state="PROGRESS", meta={**totals, "progress": 100, "stage": "enriching_ensembl_warn"})
 
-self.update_state(state="PROGRESS", meta={
-    **totals, "progress": 100, "stage": "enriching_organisms"
-})
-ok, had_error = enrich_organisms_from_ncbi(all_new_organism_ids)
-if had_error:
-    self.update_state(state="PROGRESS", meta={
-        **totals, "progress": 100, "stage": "enriching_organisms_warn"
-    })
+# NCBI organism enrichment
+self.update_state(state="PROGRESS", meta={**totals, "progress": 100, "stage": "enriching_organisms"})
+_, ncbi_err = enrich_organisms_from_ncbi(all_new_organism_ids)
+if ncbi_err:
+    self.update_state(state="PROGRESS", meta={**totals, "progress": 100, "stage": "enriching_organisms_warn"})
 ```
 
-Final return includes `stage: "done"`.
+All three enrichment functions return `(count_updated, had_error: bool)` — update `enrich_proteins_from_uniprot` signature to match.
+
+Final return includes `"stage": "done"`. The view's `data.get("stage")` will pick this up from the SUCCESS result.
+
+**CSV path:** `parse_and_ingest_csv` also creates organisms. Update it to also return `new_organism_ids` and give the CSV branch in the task the same four enrichment stages with `update_state` calls.
 
 ---
 
 ## Frontend Architecture
 
+### `datasets/views.py` — changes
+
+The GET task-status response currently does not forward `stage`. Add:
+```python
+"stage": data.get("stage", None),
+```
+to the `Response(...)` dict so the frontend receives it.
+
 ### `src/api/asyncImport.ts` — changes
 
 Add `stage` to `AsyncImportStatus`:
 ```ts
-stage: 'parsing' | 'enriching_uniprot' | 'enriching_ensembl' | 'enriching_organisms' | 'enriching_organisms_warn' | 'done' | null
+stage: 'parsing' | 'enriching_uniprot' | 'enriching_uniprot_warn'
+     | 'enriching_ensembl' | 'enriching_ensembl_warn'
+     | 'enriching_organisms' | 'enriching_organisms_warn'
+     | 'done' | null
 ```
 
 ### `AdminDataPage.tsx` Step 4 — changes
