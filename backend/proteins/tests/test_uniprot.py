@@ -21,6 +21,21 @@ UNIPROT_ENTRY = {
     ],
 }
 
+UNIPROT_ENTRY_WITH_XREFS = {
+    **UNIPROT_ENTRY,
+    "uniProtKBCrossReferences": [
+        {
+            "database": "Ensembl",
+            "id": "ENST00000315491",
+            "properties": [
+                {"key": "ProteinId", "value": "ENSP00000320396"},
+                {"key": "GeneId", "value": "ENSG00000139618.17"},
+            ],
+        },
+        {"database": "GeneID", "id": "675", "properties": []},
+    ],
+}
+
 
 # ── fetch_uniprot_data ────────────────────────────────────────────────────────
 
@@ -74,6 +89,36 @@ def test_fetch_uniprot_data_returns_empty_on_no_results():
     assert result == {}
 
 
+# ── _extract_ensembl_id / _extract_entrez_id ─────────────────────────────────
+
+
+def test_extract_ensembl_id_returns_gene_id_without_version():
+    from proteins.uniprot import _extract_ensembl_id
+
+    result = _extract_ensembl_id(UNIPROT_ENTRY_WITH_XREFS)
+    assert result == "ENSG00000139618"
+
+
+def test_extract_ensembl_id_returns_empty_when_missing():
+    from proteins.uniprot import _extract_ensembl_id
+
+    assert _extract_ensembl_id({}) == ""
+    assert _extract_ensembl_id(UNIPROT_ENTRY) == ""  # no cross-references in base fixture
+
+
+def test_extract_entrez_id_returns_gene_id_string():
+    from proteins.uniprot import _extract_entrez_id
+
+    result = _extract_entrez_id(UNIPROT_ENTRY_WITH_XREFS)
+    assert result == "675"
+
+
+def test_extract_entrez_id_returns_empty_when_missing():
+    from proteins.uniprot import _extract_entrez_id
+
+    assert _extract_entrez_id({}) == ""
+
+
 # ── enrich_proteins_from_uniprot ─────────────────────────────────────────────
 
 
@@ -88,10 +133,11 @@ def test_enrich_fills_missing_protein_name_and_sequence():
     with patch(
         "proteins.uniprot.fetch_uniprot_data", return_value={"P12345": UNIPROT_ENTRY}
     ):
-        count = enrich_proteins_from_uniprot([protein.id])
+        count, had_error = enrich_proteins_from_uniprot([protein.id])
 
     protein.refresh_from_db()
     assert count == 1
+    assert had_error is False
     assert protein.protein_name == "Apoptosis regulator BAX"
     assert protein.sequence == "MSEQSEQSEQ"
     assert protein.description == "Accelerates programmed cell death."
@@ -143,10 +189,11 @@ def test_enrich_skips_proteins_without_uniprot_id():
     protein = ProteinFactory(uniprot_id=None, gene_name="BAX")
 
     with patch("proteins.uniprot.fetch_uniprot_data") as mock_fetch:
-        count = enrich_proteins_from_uniprot([protein.id])
+        count, had_error = enrich_proteins_from_uniprot([protein.id])
 
     mock_fetch.assert_not_called()
     assert count == 0
+    assert had_error is False
 
 
 @pytest.mark.django_db
@@ -156,9 +203,10 @@ def test_enrich_returns_zero_when_uniprot_has_no_data():
     protein = ProteinFactory(uniprot_id="P99999", protein_name=None)
 
     with patch("proteins.uniprot.fetch_uniprot_data", return_value={}):
-        count = enrich_proteins_from_uniprot([protein.id])
+        count, had_error = enrich_proteins_from_uniprot([protein.id])
 
     assert count == 0
+    assert had_error is False
 
 
 @pytest.mark.django_db
@@ -172,6 +220,43 @@ def test_enrich_returns_zero_on_api_error():
         "proteins.uniprot.fetch_uniprot_data",
         side_effect=requests.RequestException("timeout"),
     ):
-        count = enrich_proteins_from_uniprot([protein.id])
+        count, had_error = enrich_proteins_from_uniprot([protein.id])
 
     assert count == 0
+    assert had_error is True
+
+
+@pytest.mark.django_db
+def test_enrich_fills_ensembl_id_and_entrez_id():
+    from proteins.uniprot import enrich_proteins_from_uniprot
+
+    protein = ProteinFactory(uniprot_id="P12345", ensembl_id=None, entrez_id=None)
+    with patch(
+        "proteins.uniprot.fetch_uniprot_data",
+        return_value={"P12345": UNIPROT_ENTRY_WITH_XREFS},
+    ):
+        count, had_error = enrich_proteins_from_uniprot([protein.id])
+
+    protein.refresh_from_db()
+    assert count == 1
+    assert had_error is False
+    assert protein.ensembl_id == "ENSG00000139618"
+    assert protein.entrez_id == "675"
+
+
+@pytest.mark.django_db
+def test_enrich_does_not_overwrite_existing_ensembl_entrez():
+    from proteins.uniprot import enrich_proteins_from_uniprot
+
+    protein = ProteinFactory(
+        uniprot_id="P12345", ensembl_id="ENSG00000111111", entrez_id="999"
+    )
+    with patch(
+        "proteins.uniprot.fetch_uniprot_data",
+        return_value={"P12345": UNIPROT_ENTRY_WITH_XREFS},
+    ):
+        enrich_proteins_from_uniprot([protein.id])
+
+    protein.refresh_from_db()
+    assert protein.ensembl_id == "ENSG00000111111"
+    assert protein.entrez_id == "999"
