@@ -602,3 +602,27 @@ def test_upload_requires_dataset_name(auth_client):
         format="multipart",
     )
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_parse_and_ingest_returns_new_organism_ids_for_created_organisms():
+    from datasets.upload_parser import parse_and_ingest
+    from proteins.models import Organism
+
+    content = _file(_build_row(taxon_a="taxid:9606(human)"))
+    result = parse_and_ingest(content, dataset_name="DS")
+    org = Organism.objects.get(taxonomy_id="9606")
+    assert org.id in result["new_organism_ids"]
+
+
+@pytest.mark.django_db
+def test_parse_and_ingest_does_not_include_existing_organism_in_new_ids():
+    from datasets.upload_parser import parse_and_ingest
+    from proteins.models import Organism
+
+    # Pre-create the organism
+    Organism.objects.create(taxonomy_id="9606", name="human")
+
+    content = _file(_build_row(taxon_a="taxid:9606(human)"))
+    result = parse_and_ingest(content, dataset_name="DS")
+    assert result["new_organism_ids"] == []

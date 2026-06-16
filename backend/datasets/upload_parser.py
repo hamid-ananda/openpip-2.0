@@ -177,17 +177,18 @@ def _add_gene_name_aliases(protein: Protein, alias_col: str) -> None:
             protein.save(update_fields=["gene_name"])
 
 
-def _handle_taxon(protein: Protein, taxon_col: str) -> None:
-    """Find-or-create Organism and link to protein if not already linked."""
+def _handle_taxon(protein: Protein, taxon_col: str) -> int | None:
+    """Find-or-create Organism, link to protein, return organism.id if newly created."""
     parsed = _parse_taxon(taxon_col)
     if not parsed:
-        return
+        return None
     taxonomy_id, name = parsed
-    organism, _ = Organism.objects.get_or_create(
+    organism, created = Organism.objects.get_or_create(
         taxonomy_id=taxonomy_id,
         defaults={"name": name},
     )
     ProteinOrganism.objects.get_or_create(protein=protein, organism=organism)
+    return organism.id if created else None
 
 
 def _handle_dataset(
@@ -386,6 +387,7 @@ def parse_and_ingest(
     interactions_skipped = 0
     errors: list[dict] = []
     new_protein_ids: list[int] = []
+    new_organism_ids: list[int] = []
 
     text = file_bytes.decode("utf-8", errors="replace")
     reader = csv.reader(io.StringIO(text), delimiter="\t")
@@ -450,9 +452,13 @@ def parse_and_ingest(
                     _add_gene_name_aliases(protein_b, _safe_col(row, 5))
 
                 # ── Taxon (cols 9+10) ──────────────────────────────────────
-                _handle_taxon(protein_a, _safe_col(row, 9))
+                org_id = _handle_taxon(protein_a, _safe_col(row, 9))
+                if org_id is not None and org_id not in new_organism_ids:
+                    new_organism_ids.append(org_id)
                 if protein_b is not protein_a:
-                    _handle_taxon(protein_b, _safe_col(row, 10))
+                    org_id = _handle_taxon(protein_b, _safe_col(row, 10))
+                    if org_id is not None and org_id not in new_organism_ids:
+                        new_organism_ids.append(org_id)
 
                 # ── Dedup ──────────────────────────────────────────────────
                 if not _is_new_interaction(protein_a, protein_b):
@@ -522,6 +528,7 @@ def parse_and_ingest(
         "interactions_skipped": interactions_skipped,
         "errors": errors,
         "new_protein_ids": [] if dry_run else new_protein_ids,
+        "new_organism_ids": [] if dry_run else new_organism_ids,
     }
 
 
@@ -638,4 +645,5 @@ def parse_and_ingest_csv(
         "interactions_skipped": interactions_skipped,
         "errors": errors,
         "new_protein_ids": [] if dry_run else new_protein_ids,
+        "new_organism_ids": [],
     }
