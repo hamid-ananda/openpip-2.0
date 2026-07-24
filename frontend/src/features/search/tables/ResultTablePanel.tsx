@@ -7,7 +7,7 @@ import { ProteinSummaryPanel } from './ProteinSummaryPanel'
 import { EnrichmentTable } from '../enrichment/EnrichmentTable'
 import { SubcellularLocationTable } from '../enrichment/SubcellularLocationTable'
 import { TissueExpressionTable } from '../enrichment/TissueExpressionTable'
-import type { EnrichmentSource } from '../../../api/enrichment'
+import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
 import type { Protein } from '../../../types/api'
 
 type Tab = 'interactions' | 'interactors' | EnrichmentSource | 'subcellular' | 'tissue' | 'summary'
@@ -78,6 +78,12 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   )
 
   const geneNames = proteins.map((p) => p.protein_gene_name)
+
+  // Run enrichment in the background as soon as results are shown (this panel is
+  // always mounted, regardless of the active tab) so the enrichment tabs are
+  // already computed and cached by the time the user clicks one. A single
+  // g:Profiler call covers every source; EnrichmentTable reuses the same query.
+  useEnrichment(geneNames)
 
   const counts: Partial<Record<Tab, number>> = {
     interactions: interactions.length,
