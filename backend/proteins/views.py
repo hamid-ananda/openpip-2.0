@@ -13,12 +13,27 @@ class AutocompleteView(APIView):
         q = request.query_params.get("q", "").strip()
         if len(q) < 2:
             return Response([])
-        matching = (
-            Identifier.objects.filter(identifier__icontains=q)
+        limit = 20
+        # Rank prefix (starts-with) matches ahead of substring matches, each
+        # group ordered alphabetically, so the closest match stays on top —
+        # e.g. "TP5" surfaces "TP53" before substring hits like "ATP5*".
+        prefix = list(
+            Identifier.objects.filter(identifier__istartswith=q)
+            .order_by("identifier")
             .values_list("identifier", flat=True)
-            .distinct()[:20]
+            .distinct()[:limit]
         )
-        return Response(list(matching))
+        results = prefix
+        if len(results) < limit:
+            substring = list(
+                Identifier.objects.filter(identifier__icontains=q)
+                .exclude(identifier__istartswith=q)
+                .order_by("identifier")
+                .values_list("identifier", flat=True)
+                .distinct()[: limit - len(results)]
+            )
+            results = results + substring
+        return Response(results)
 
 
 class ProteinDetailView(APIView):

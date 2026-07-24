@@ -27,6 +27,19 @@ def test_autocomplete_returns_matching_gene_names(api_client):
 
 
 @pytest.mark.django_db
+def test_autocomplete_ranks_prefix_matches_first(api_client):
+    for name in ["ATP5A1", "ATP5B", "TP53", "TP53BP1"]:
+        p = ProteinFactory(gene_name=name)
+        i = IdentifierFactory(identifier=name, naming_convention="gene_name")
+        ProteinIdentifierFactory(protein=p, identifier=i)
+
+    data = api_client.get("/api/proteins/autocomplete?q=TP5").json()
+    # Prefix matches (TP53, TP53BP1) rank above substring matches (ATP5*)
+    assert data[0] == "TP53"
+    assert data.index("TP53BP1") < data.index("ATP5A1")
+
+
+@pytest.mark.django_db
 def test_autocomplete_case_insensitive(api_client):
     p = ProteinFactory(gene_name="BRCA1")
     i = IdentifierFactory(identifier="BRCA1", naming_convention="gene_name")
