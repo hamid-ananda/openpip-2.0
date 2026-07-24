@@ -1,4 +1,5 @@
 import type { Protein } from '../../../types/api'
+import { HpaSourceNote } from './SourceNote'
 
 interface TissueExpressionTableProps {
   proteins: Protein[]
@@ -70,6 +71,7 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
           ))}
         </tbody>
       </table>
+      <HpaSourceNote assay="tissue" />
     </div>
   )
 }

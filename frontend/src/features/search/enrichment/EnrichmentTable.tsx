@@ -1,4 +1,5 @@
 import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
+import { EnrichmentSourceNote } from './SourceNote'
 
 interface EnrichmentTableProps {
   geneNames: string[]
@@ -58,14 +59,18 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
 
   if (rows.length === 0) {
     return (
-      <p style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
-        No significant terms found (p &lt; 0.05)
-      </p>
+      <div>
+        <p style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
+          No significant terms found (p &lt; 0.05)
+        </p>
+        <EnrichmentSourceNote source={source} />
+      </div>
     )
   }
 
   return (
-    <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
+    <div>
+      <div style={{ overflowX: 'auto', background: 'var(--bg)' }}>
       <table style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--bg)' }}>
         <thead>
           <tr>
@@ -100,6 +105,8 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
           ))}
         </tbody>
       </table>
+      </div>
+      <EnrichmentSourceNote source={source} />
     </div>
   )
 }

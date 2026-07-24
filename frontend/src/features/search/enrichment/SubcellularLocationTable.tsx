@@ -1,4 +1,5 @@
 import type { Protein } from '../../../types/api'
+import { HpaSourceNote } from './SourceNote'
 
 interface SubcellularLocationTableProps {
   proteins: Protein[]
@@ -67,6 +68,7 @@ export function SubcellularLocationTable({ proteins }: SubcellularLocationTableP
           ))}
         </tbody>
       </table>
+      <HpaSourceNote assay="subcellular" />
     </div>
   )
 }
