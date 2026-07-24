@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -46,41 +46,82 @@ function SortIcon({ isSorted }: { isSorted: false | 'asc' | 'desc' }) {
   return <span style={{ marginLeft: 4, color: 'var(--border-strong)' }}>⇅</span>
 }
 
-const columns: ColumnDef<Interaction>[] = [
-  {
-    accessorFn: (row) => row.interactor_A.protein_gene_name,
-    id: 'interactorA',
-    header: 'Interactor A',
-  },
-  {
-    accessorFn: (row) => row.interactor_B.protein_gene_name,
-    id: 'interactorB',
-    header: 'Interactor B',
-  },
-  {
-    accessorKey: 'score',
-    header: 'Score',
-    cell: ({ getValue }) => {
-      const val = getValue<number | null>()
-      return (
-        <span style={{ display: 'block', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12 }}>
-          {val?.toFixed(2) ?? '—'}
-        </span>
-      )
+type Interactor = Interaction['interactor_A']
+
+function ncbiGeneUrl(entrezId: string | undefined, symbol: string): string {
+  // Prefer a direct Entrez Gene record when the ID is known; otherwise fall
+  // back to an NCBI Gene symbol search.
+  if (entrezId && entrezId.trim()) {
+    return `https://www.ncbi.nlm.nih.gov/gene/${entrezId.trim()}`
+  }
+  return `https://www.ncbi.nlm.nih.gov/gene/?term=${encodeURIComponent(symbol)}%5Bsym%5D`
+}
+
+function GeneLink({
+  interactor,
+  entrezById,
+}: {
+  interactor: Interactor
+  entrezById: Map<number, string>
+}) {
+  const name = interactor.protein_gene_name
+  if (!name) return <>—</>
+  return (
+    <a
+      href={ncbiGeneUrl(entrezById.get(interactor.protein_id), name)}
+      target="_blank"
+      rel="noreferrer"
+      style={{ color: 'var(--accent)', textDecoration: 'underline' }}
+    >
+      {name}
+    </a>
+  )
+}
+
+function buildColumns(entrezById: Map<number, string>): ColumnDef<Interaction>[] {
+  return [
+    {
+      accessorFn: (row) => row.interactor_A.protein_gene_name,
+      id: 'interactorA',
+      header: 'Interactor A',
+      cell: ({ row }) => (
+        <GeneLink interactor={row.original.interactor_A} entrezById={entrezById} />
+      ),
     },
-  },
-  {
-    accessorFn: (row) => row.interaction_category_array.highest_category_status,
-    id: 'category',
-    header: 'Category',
-    cell: ({ getValue }) => <CategoryBadge status={getValue<string>()} />,
-  },
-  {
-    accessorFn: (row) => row.dataset_array.map((d) => d.name).join(', '),
-    id: 'datasets',
-    header: 'Datasets',
-  },
-]
+    {
+      accessorFn: (row) => row.interactor_B.protein_gene_name,
+      id: 'interactorB',
+      header: 'Interactor B',
+      cell: ({ row }) => (
+        <GeneLink interactor={row.original.interactor_B} entrezById={entrezById} />
+      ),
+    },
+    {
+      accessorKey: 'score',
+      header: 'Score',
+      // Left-aligned to match the gene columns and the (left-aligned) header.
+      cell: ({ getValue }) => {
+        const val = getValue<number | null>()
+        return (
+          <span style={{ display: 'block', textAlign: 'left', fontFamily: 'var(--mono)', fontSize: 12 }}>
+            {val?.toFixed(2) ?? '—'}
+          </span>
+        )
+      },
+    },
+    {
+      accessorFn: (row) => row.interaction_category_array.highest_category_status,
+      id: 'category',
+      header: 'Category',
+      cell: ({ getValue }) => <CategoryBadge status={getValue<string>()} />,
+    },
+    {
+      accessorFn: (row) => row.dataset_array.map((d) => d.name).join(', '),
+      id: 'datasets',
+      header: 'Datasets',
+    },
+  ]
+}
 
 const TH_BASE: React.CSSProperties = {
   padding: '10px 16px',
@@ -96,8 +137,14 @@ const TH_BASE: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
-export function InteractionsTable({ interactions }: InteractionsTableProps) {
+export function InteractionsTable({ interactions, proteins }: InteractionsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
+
+  const entrezById = useMemo(
+    () => new Map(proteins.map((p) => [p.protein_id, p.protein_entrez_id])),
+    [proteins]
+  )
+  const columns = useMemo(() => buildColumns(entrezById), [entrezById])
 
   const table = useReactTable({
     data: interactions,
