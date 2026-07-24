@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useTheme } from './useTheme'
 
 interface TopBarProps {
@@ -28,13 +29,16 @@ export function TopBar({ shortTitle }: TopBarProps) {
   const word = shortTitle || 'openPIP'
 
   return (
-    <div
+    <Link
+      to="/"
+      aria-label={`${word} home`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: 10,
         flexShrink: 0,
         padding: '0 28px',
+        textDecoration: 'none',
       }}
     >
       {theme?.logoUrl ? (
@@ -57,6 +61,6 @@ export function TopBar({ shortTitle }: TopBarProps) {
       >
         {word}
       </span>
-    </div>
+    </Link>
   )
 }

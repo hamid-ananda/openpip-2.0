@@ -71,7 +71,7 @@ export function DocumentationPage() {
       <section>
         <h2 className="text-xl font-semibold mb-3 text-gray-900">Network Visualization</h2>
         <p className="text-gray-600 mb-3">
-          Results are displayed as an interactive network graph. Use the Layout button to switch
+          Results are displayed as an interactive network. Use the Layout button to switch
           between force-directed (Cola, CoSE), concentric, circle, and grid layouts. Click any node
           or edge to see details. Scroll to zoom, drag to pan.
         </p>

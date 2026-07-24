@@ -49,7 +49,7 @@ export function MiniNetworkGraph() {
           style={{ fontSize: 12, padding: '4px 12px' }}
           disabled={isLoading}
         >
-          {isLoading ? 'Loading…' : 'Refresh'}
+          {isLoading ? 'Loading…' : 'View another'}
         </button>
       </div>
 

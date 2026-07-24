@@ -45,7 +45,6 @@ function KindChip({ status }: { status: string }) {
 }
 
 export function DownloadPage() {
-  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const token = useAuthStore((s) => s.token)
   const { data: datasets, isLoading } = useDatasets()
   const { data: suppFiles } = usePublicFiles()
@@ -87,16 +86,8 @@ export function DownloadPage() {
               lineHeight: 1.6,
             }}
           >
-            Every dataset hosted on openPIP, available as PSI-MI tab, SIF, or CSV.
-            {!isLoggedIn && (
-              <span>
-                {' '}
-                <a href="/login" style={{ color: 'var(--primary)' }}>
-                  Sign in
-                </a>{' '}
-                to access download links.
-              </span>
-            )}
+            Every dataset hosted on openPIP, available as PSI-MI tab, SIF, or CSV, free to
+            download: no account required.
           </p>
         </div>
       </section>
@@ -109,50 +100,6 @@ export function DownloadPage() {
           />
         </section>
       )}
-
-      {/* Moratorium notice */}
-      <section style={{ padding: '0 80px 32px' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div
-            style={{
-              borderBottom: '3px solid var(--warn)',
-              padding: '18px 24px',
-              display: 'flex',
-              gap: 14,
-              alignItems: 'flex-start',
-            }}
-          >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: 'var(--warn)',
-                flexShrink: 0,
-                marginTop: 6,
-              }}
-            />
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 5 }}>
-                Publication moratorium
-              </div>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.65, margin: '0 0 10px', maxWidth: 680 }}>
-                Preliminary, unpublished CCSB Human Interactome data has a{' '}
-                <strong style={{ color: 'var(--text)', fontWeight: 600 }}>12-month moratorium</strong>{' '}
-                on global analysis. Small-scale use of up to{' '}
-                <strong style={{ color: 'var(--text)', fontWeight: 600 }}>10 interactions</strong>{' '}
-                is permitted.
-              </p>
-              <a
-                href="/about"
-                style={{ fontSize: 12, fontWeight: 500, color: 'var(--primary)', textDecoration: 'none' }}
-              >
-                Read full guidelines →
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Dataset table */}
       {(settings?.showDownloads ?? true) && (
@@ -226,39 +173,28 @@ export function DownloadPage() {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                    {isLoggedIn ? (
-                      <>
-                        {(['tab', 'sif', 'csv'] as const).map((fmt) => {
-                          const key = `${ds.id}-${fmt}`
-                          const busy = downloading === key
-                          return (
-                            <button
-                              key={fmt}
-                              className="op-btn"
-                              disabled={busy}
-                              onClick={() => handleDownload(ds.id, fmt)}
-                              style={{
-                                padding: '5px 10px',
-                                fontSize: 11,
-                                fontFamily: 'var(--mono)',
-                                textTransform: 'uppercase',
-                                opacity: busy ? 0.6 : 1,
-                                cursor: busy ? 'wait' : 'pointer',
-                              }}
-                            >
-                              {busy ? '…' : `.${fmt}`}
-                            </button>
-                          )
-                        })}
-                      </>
-                    ) : (
-                      <a
-                        href="/login"
-                        style={{ fontSize: 12, color: 'var(--text-soft)', textDecoration: 'none' }}
-                      >
-                        Sign in to download
-                      </a>
-                    )}
+                    {(['tab', 'sif', 'csv'] as const).map((fmt) => {
+                      const key = `${ds.id}-${fmt}`
+                      const busy = downloading === key
+                      return (
+                        <button
+                          key={fmt}
+                          className="op-btn"
+                          disabled={busy}
+                          onClick={() => handleDownload(ds.id, fmt)}
+                          style={{
+                            padding: '5px 10px',
+                            fontSize: 11,
+                            fontFamily: 'var(--mono)',
+                            textTransform: 'uppercase',
+                            opacity: busy ? 0.6 : 1,
+                            cursor: busy ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {busy ? '…' : `.${fmt}`}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               ))}
@@ -275,7 +211,7 @@ export function DownloadPage() {
       )}
 
       {/* Supplementary Files */}
-      {(settings?.showDownloadAll ?? true) && isLoggedIn && suppFiles && suppFiles.length > 0 && (
+      {(settings?.showDownloadAll ?? true) && suppFiles && suppFiles.length > 0 && (
         <section style={{ padding: '0 80px 64px' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto' }}>
             <div

@@ -65,7 +65,7 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
             }}
           >
             The protein{' '}
-            <span style={{ color: 'var(--primary)' }}>interaction graph</span>,
+            <span style={{ color: 'var(--primary)' }}>interaction network</span>,
             <br />
             made queryable.
           </h1>

@@ -19,7 +19,7 @@ const ACTION_CARDS = [
     title: 'Browse the atlas',
     desc: 'Pre-built views into HI-III, Lit-BM, HuRI and the literature.',
     accent: 'var(--accent)',
-    to: '/about',
+    to: '/search',
   },
   {
     icon: Download,
@@ -29,6 +29,35 @@ const ACTION_CARDS = [
     to: '/download',
   },
 ]
+
+/**
+ * Renders admin-editable homepage prose (mission / methods) from Site Settings.
+ * Both title and body are HTML authored in the admin rich-text editor; the
+ * section is omitted entirely when the admin has left both blank.
+ */
+function ContentSection({ title, body }: { title?: string | null; body?: string | null }) {
+  if (!title?.trim() && !body?.trim()) return null
+  return (
+    <section style={{ padding: '0 80px 40px' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+        <div className="op-card" style={{ padding: 32 }}>
+          {title?.trim() && (
+            <div
+              style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}
+              dangerouslySetInnerHTML={{ __html: title }}
+            />
+          )}
+          {body?.trim() && (
+            <div
+              style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--text-muted)' }}
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 export function HomePage() {
   const { data: settings } = useSettings()
@@ -43,6 +72,8 @@ export function HomePage() {
         interactions={counts?.interactions ?? 0}
         datasets={counts?.datasets ?? 0}
       />
+
+      <ContentSection title={settings?.missionTitle} body={settings?.missionText} />
 
       {/* Three ways to start */}
       <section style={{ padding: '40px 80px 80px' }}>
@@ -107,6 +138,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <ContentSection title={settings?.methodTitle} body={settings?.methodText} />
 
       {/* News + Cite */}
       <section style={{ padding: '0 80px 80px' }}>

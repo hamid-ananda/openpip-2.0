@@ -155,10 +155,18 @@ def test_download_returns_file_contents(auth_client, tmp_path):
 
 
 @pytest.mark.django_db
-def test_download_requires_auth(api_client, tmp_path):
+def test_download_public_file_allowed_for_anonymous(api_client, tmp_path):
     record = _make_file_record(tmp_path)
     response = api_client.get(f"/api/files/{record.pk}/download")
-    assert response.status_code == 401
+    assert response.status_code == 200
+    assert b"col1" in b"".join(response.streaming_content)
+
+
+@pytest.mark.django_db
+def test_download_hidden_file_blocked_for_anonymous(api_client, tmp_path):
+    record = _make_file_record(tmp_path, show=False)
+    response = api_client.get(f"/api/files/{record.pk}/download")
+    assert response.status_code == 403
 
 
 @pytest.mark.django_db
@@ -198,6 +206,11 @@ def test_public_list_returns_only_visible_files(user_auth_client, tmp_path):
 
 
 @pytest.mark.django_db
-def test_public_list_requires_auth(api_client):
+def test_public_list_allowed_for_anonymous(api_client, tmp_path):
+    _make_file_record(tmp_path, name="visible.tab", show=True)
+    _make_file_record(tmp_path, name="hidden.tab", show=False)
     response = api_client.get("/api/files/public")
-    assert response.status_code == 401
+    assert response.status_code == 200
+    names = [f["file_name"] for f in response.data]
+    assert "visible.tab" in names
+    assert "hidden.tab" not in names

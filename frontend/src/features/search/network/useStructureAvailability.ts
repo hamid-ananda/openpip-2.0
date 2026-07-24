@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { baseAccession } from './uniprot'
 
 interface RcsbSearchResponse {
   total_count: number
@@ -17,7 +18,7 @@ async function fetchBestPdbId(uniprotId: string): Promise<string | null> {
           attribute: 'rcsb_polymer_entity_container_identifiers.uniprot_ids',
           operator: 'in',
           negation: false,
-          value: [uniprotId],
+          value: [baseAccession(uniprotId)],
         },
       },
       return_type: 'entry',

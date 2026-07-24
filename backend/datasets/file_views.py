@@ -5,7 +5,7 @@ from django.conf import settings
 from django.http import Http404, StreamingHttpResponse
 from rest_framework import serializers, status
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -130,7 +130,9 @@ class FileDetailView(APIView):
 
 
 class FileDownloadView(APIView):
-    permission_classes = [IsAuthenticated]
+    # Public files are free to download without an account; non-public files
+    # (show=False) remain restricted to staff via the check below.
+    permission_classes = [AllowAny]
 
     def get(self, request, pk):
         try:
@@ -160,7 +162,7 @@ class FileDownloadView(APIView):
 class PublicFileListView(APIView):
     """Returns show=True files for the Downloads page."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         files = UploadFiles.objects.filter(show=True).order_by("-uploaded_at")

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { baseAccession } from './uniprot'
 
 export interface StructureViewerProps {
   uniprotId: string
@@ -10,7 +11,9 @@ export interface StructureViewerProps {
 type Status = 'loading' | 'ready' | 'error-import' | 'error-structure'
 
 async function fetchAlphaFoldCifUrl(uniprotId: string): Promise<string | null> {
-  const res = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${uniprotId}`)
+  const res = await fetch(
+    `https://alphafold.ebi.ac.uk/api/prediction/${baseAccession(uniprotId)}`
+  )
   if (!res.ok) return null
   const data = await res.json()
   return (data as Array<{ cifUrl?: string }>)?.[0]?.cifUrl ?? null
@@ -21,7 +24,7 @@ function pdbCifUrl(pdbId: string) {
 }
 
 function externalHref(source: 'alphafold' | 'pdb', uniprotId: string, pdbId: string | null) {
-  if (source === 'alphafold') return `https://alphafold.ebi.ac.uk/entry/${uniprotId}`
+  if (source === 'alphafold') return `https://alphafold.ebi.ac.uk/entry/${baseAccession(uniprotId)}`
   return pdbId ? `https://www.rcsb.org/structure/${pdbId}` : null
 }
 
