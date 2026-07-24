@@ -1,6 +1,8 @@
 import { useState, type CSSProperties } from 'react'
 import { buildLinks } from './externalLinks'
 import { useNavigate } from 'react-router-dom'
+import { useGeneAutocomplete } from '../../components/useGeneAutocomplete'
+import { GeneSuggestionList } from '../../components/GeneSuggestionList'
 import { useSearchStore } from './searchStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettings } from '../../api/settings'
@@ -183,6 +185,7 @@ function SidebarAccordion({ label, children, defaultOpen = true }: { label: stri
 export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProps) {
   const navigate = useNavigate()
   const [localQuery, setLocalQuery] = useState(term)
+  const ac = useGeneAutocomplete(localQuery, setLocalQuery, 'sidebar-gene')
 
   const scoreFilter = useSearchStore((s) => s.scoreFilter)
   const categoryFilter = useSearchStore((s) => s.categoryFilter)
@@ -298,7 +301,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             <input
               className="op-input"
               value={localQuery}
-              onChange={(e) => setLocalQuery(e.target.value)}
+              {...ac.inputProps}
               placeholder="Gene symbol or UniProt ID"
               style={{ paddingLeft: 32, fontFamily: 'var(--mono)', fontSize: 13 }}
             />
@@ -311,6 +314,15 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.5-3.5" />
             </svg>
+            {ac.showList && (
+              <GeneSuggestionList
+                idPrefix="sidebar-gene"
+                suggestions={ac.suggestions}
+                activeIndex={ac.activeIndex}
+                setActiveIndex={ac.setActiveIndex}
+                onSelect={ac.selectSuggestion}
+              />
+            )}
           </div>
           <button
             type="submit"

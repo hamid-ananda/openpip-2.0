@@ -1,64 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createElement } from 'react'
+import { MemoryRouter } from 'react-router-dom'
+import { describe, it, expect, vi } from 'vitest'
 import { SearchSidebar } from '../SearchSidebar'
-import { useSearchStore } from '../searchStore'
 
-vi.mock('../../../api/networks', () => ({
-  useSaveNetwork: () => ({ mutate: vi.fn(), isPending: false }),
+vi.mock('../../../api/proteins', () => ({
+  useAutocomplete: (q: string) => ({ data: q.length >= 2 ? ['BAD', 'BAK1', 'BAX'] : [] }),
 }))
 
-function wrap(ui: React.ReactElement) {
+function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
-    createElement(QueryClientProvider, { client: qc },
-      createElement(MemoryRouter, null, ui)
-    )
+  return (
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
-describe('SearchSidebar — tissue expression filter', () => {
-  beforeEach(() => {
-    useSearchStore.getState().reset()
-    vi.clearAllMocks()
-  })
-
-  it('renders the tissue expression dropdown enabled', () => {
-    wrap(<SearchSidebar term="BAD" visibleInteractionIds={[]} />)
-    const select = screen.getByRole('combobox', { name: /tissue expression/i })
-    expect(select).toBeTruthy()
-    expect((select as HTMLSelectElement).disabled).toBe(false)
-  })
-
-  it('defaults to "All tissues" (empty value)', () => {
-    wrap(<SearchSidebar term="BAD" visibleInteractionIds={[]} />)
-    const select = screen.getByRole('combobox', { name: /tissue expression/i }) as HTMLSelectElement
-    expect(select.value).toBe('')
-  })
-
-  it('lists tissue options including Liver and Whole Blood', () => {
-    wrap(<SearchSidebar term="BAD" visibleInteractionIds={[]} />)
-    expect(screen.getByRole('option', { name: /liver/i })).toBeTruthy()
-    expect(screen.getByRole('option', { name: /whole blood/i })).toBeTruthy()
-  })
-
-  it('selecting a tissue updates tissueFilter in the store', async () => {
-    const user = userEvent.setup()
-    wrap(<SearchSidebar term="BAD" visibleInteractionIds={[]} />)
-    const select = screen.getByRole('combobox', { name: /tissue expression/i })
-    await user.selectOptions(select, 'liver')
-    expect(useSearchStore.getState().tissueFilter).toBe('liver')
-  })
-
-  it('selecting "All tissues" resets tissueFilter to empty string', async () => {
-    useSearchStore.getState().setTissueFilter('liver')
-    const user = userEvent.setup()
-    wrap(<SearchSidebar term="BAD" visibleInteractionIds={[]} />)
-    const select = screen.getByRole('combobox', { name: /tissue expression/i })
-    await user.selectOptions(select, '')
-    expect(useSearchStore.getState().tissueFilter).toBe('')
+describe('SearchSidebar query autocomplete', () => {
+  it('suggests genes and fills the query input on select', () => {
+    render(<SearchSidebar term="" visibleInteractionIds={[]} />, { wrapper })
+    const input = screen.getByPlaceholderText(/Gene symbol or UniProt ID/i)
+    fireEvent.change(input, { target: { value: 'BA' } })
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'BAK1' }))
+    expect(input).toHaveValue('BAK1')
   })
 })
