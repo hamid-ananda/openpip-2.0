@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useLogout } from '../api/auth'
+import { useAuthStore } from '../store/authStore'
 import { useDarkMode } from '../store/darkModeStore'
 
 interface NavbarProps {
@@ -31,6 +32,7 @@ const linkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => 
 
 export function Navbar({ isLoggedIn }: NavbarProps) {
   const logout = useLogout()
+  const isAdmin = useAuthStore((s) => s.isAdmin)
   const { dark, toggle } = useDarkMode()
 
   return (
@@ -88,6 +90,11 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
         </button>
         {isLoggedIn ? (
           <>
+            {isAdmin && (
+              <NavLink to="/admin" style={linkStyle}>
+                Admin
+              </NavLink>
+            )}
             <NavLink to="/profile" style={linkStyle}>
               Profile
             </NavLink>

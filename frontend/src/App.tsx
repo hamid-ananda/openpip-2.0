@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Layout } from './components/Layout'
 import { ThemeProvider } from './components/ThemeProvider'
@@ -9,6 +9,7 @@ import { AdminAnnouncementPage } from './features/admin/AdminAnnouncementPage'
 import { AdminDataPage } from './features/admin/AdminDataPage'
 import { AdminFilePage } from './features/admin/AdminFilePage'
 import { AdminRoute } from './features/admin/AdminRoute'
+import { AdminLayout } from './features/admin/AdminLayout'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
@@ -53,20 +54,19 @@ const router = createBrowserRouter(
       { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'profile', element: <ProtectedRoute><ProfilePage /></ProtectedRoute> },
       {
-        path: 'admin/settings',
-        element: <AdminRoute><AdminSettingsPage /></AdminRoute>,
-      },
-      {
-        path: 'admin/announcement',
-        element: <AdminRoute><AdminAnnouncementPage /></AdminRoute>,
-      },
-      {
-        path: 'admin/data',
-        element: <AdminRoute><AdminDataPage /></AdminRoute>,
-      },
-      {
-        path: 'admin/files',
-        element: <AdminRoute><AdminFilePage /></AdminRoute>,
+        path: 'admin',
+        element: (
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        ),
+        children: [
+          { index: true, element: <Navigate to="settings" replace /> },
+          { path: 'settings', element: <AdminSettingsPage /> },
+          { path: 'announcement', element: <AdminAnnouncementPage /> },
+          { path: 'data', element: <AdminDataPage /> },
+          { path: 'files', element: <AdminFilePage /> },
+        ],
       },
     ],
   },
