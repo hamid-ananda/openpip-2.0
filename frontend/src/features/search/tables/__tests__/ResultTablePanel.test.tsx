@@ -23,7 +23,8 @@ describe('ResultTablePanel enrichment prefetch', () => {
     // Enrichment fires even though EnrichmentTable is not mounted yet, so the
     // enrichment tabs are cached by the time the user clicks one.
     expect(enrichmentSpy).toHaveBeenCalled()
-    const genes = enrichmentSpy.mock.calls.at(-1)![0]
+    const calls = enrichmentSpy.mock.calls
+    const genes = calls[calls.length - 1][0]
     expect(genes.length).toBeGreaterThan(0)
   })
 })
