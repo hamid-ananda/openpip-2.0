@@ -10,7 +10,7 @@ const ACTION_CARDS = [
   {
     icon: Search,
     title: 'Search by gene',
-    desc: 'Enter a UniProt or HGNC identifier - find every protein it touches.',
+    desc: 'Enter a UniProt or HGNC identifier: find every protein it touches.',
     accent: 'var(--primary)',
     to: '/search',
   },
@@ -24,7 +24,7 @@ const ACTION_CARDS = [
   {
     icon: Download,
     title: 'Bulk download',
-    desc: 'PSI-MI tab, SIF, CSV - pick your format and pull the whole dataset.',
+    desc: 'PSI-MI tab, SIF, CSV: pick your format and pull the whole dataset.',
     accent: 'var(--accent-2)',
     to: '/download',
   },

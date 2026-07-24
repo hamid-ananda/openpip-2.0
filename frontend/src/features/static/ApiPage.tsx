@@ -56,7 +56,7 @@ export function ApiPage() {
         API &amp; External Access
       </h1>
       <p className="text-gray-500 mb-8">
-        openPIP is fully open - no API key required. Use deep links, the REST API, the Python SDK,
+        openPIP is fully open, no API key required. Use deep links, the REST API, the Python SDK,
         or the PSICQUIC protocol.
       </p>
 
@@ -84,7 +84,7 @@ ${BASE}/protein/ENSG00000012048
       {/* ── 2. REST API ── */}
       <Section title="2. REST API">
         <p className="text-gray-600 mb-4 text-sm">
-          All read endpoints are public and CORS-enabled - callable from any browser or server.
+          All read endpoints are public and CORS-enabled, callable from any browser or server.
           Interactive docs with a live try-it-out console:{' '}
           <a
             href={`${BASE}/api/docs/`}
