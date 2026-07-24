@@ -183,6 +183,10 @@ def _handle_taxon(protein: Protein, taxon_col: str) -> int | None:
     if not parsed:
         return None
     taxonomy_id, name = parsed
+    existing = Organism.objects.filter(taxonomy_id=taxonomy_id).first()
+    if existing:
+        ProteinOrganism.objects.get_or_create(protein=protein, organism=existing)
+        return None
     organism, created = Organism.objects.get_or_create(
         taxonomy_id=taxonomy_id,
         defaults={"name": name},

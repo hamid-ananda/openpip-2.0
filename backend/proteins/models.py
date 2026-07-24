@@ -49,7 +49,7 @@ class ProteinIdentifier(models.Model):
 
 class Organism(models.Model):
     name = models.CharField(max_length=200)
-    taxonomy_id = models.CharField(max_length=100)
+    taxonomy_id = models.CharField(max_length=100, unique=True)
     scientific_name = models.CharField(max_length=200, null=True)
 
     class Meta:
