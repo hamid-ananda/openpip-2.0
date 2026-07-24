@@ -36,6 +36,19 @@ CLAUDE.md
 **/CLAUDE.md
 docs/superpowers/
 graphify-out/
+.superpowers/
+
+# Generated / runtime artifacts — never commit
+backend/staticfiles/
+backend/mediafiles/uploads/
+backend/mediafiles/logos/
+
+# Scratch / test artifacts
+test_upload.csv
+tests.txt
+
+# Reference papers (keep locally)
+docs/*.pdf
 
 # Other AI assistants
 .cursor/
