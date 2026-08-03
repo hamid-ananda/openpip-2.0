@@ -122,3 +122,14 @@ export interface Interaction {
     interaction_category_array: CategoryEntry[]
   }
 }
+
+/** An account listed in Settings → Accounts, for granting admin access. */
+export interface AdminUser {
+  id: number
+  username: string
+  email: string
+  isAdmin: boolean
+  /** Superusers cannot be revoked — is_staff also gates /django-admin/. */
+  isSuperuser: boolean
+  dateJoined: string
+}

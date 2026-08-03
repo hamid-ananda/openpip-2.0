@@ -1,3 +1,5 @@
+from django.contrib.auth import get_user_model
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -10,10 +12,13 @@ from datasets.models import Dataset
 from .models import AdminSettings, Announcement
 from .serializers import (
     AdminSettingsSerializer,
+    AdminUserSerializer,
     AnnouncementSerializer,
     InteractionCategorySerializer,
 )
 from interactions.models import InteractionCategory
+
+User = get_user_model()
 
 
 class AdminSettingsView(APIView):
@@ -73,6 +78,66 @@ class LogoUploadView(APIView):
             settings_obj.logo = None
             settings_obj.save()
         return Response({"detail": "Logo removed."})
+
+
+class AdminUserListView(APIView):
+    """Existing accounts an admin can pick from, admins listed first."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        qs = User.objects.all().order_by("-is_staff", "username")
+        search = request.query_params.get("search", "").strip()
+        if search:
+            qs = qs.filter(Q(username__icontains=search) | Q(email__icontains=search))
+        return Response(AdminUserSerializer(qs, many=True).data)
+
+
+class AdminUserDetailView(APIView):
+    """Grants or revokes admin access on an account that already exists.
+
+    Registration deliberately never confers it — /api/auth/register is
+    AllowAny, so promotion has to be an explicit act by a signed-in admin.
+
+    Revoking is guarded so the panel cannot be made unreachable from inside
+    itself. Self-revocation is refused, which also means the sole remaining
+    admin can never drop the last set of keys; superusers are refused too,
+    because is_staff gates /django-admin/ as well, so stripping it from them
+    would close the fallback route with it.
+    """
+
+    permission_classes = [IsAdminUser]
+
+    def patch(self, request, pk: int):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        is_admin = request.data.get("isAdmin")
+        if not isinstance(is_admin, bool):
+            return Response(
+                {"isAdmin": "Expected true or false."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_admin:
+            if user.pk == request.user.pk:
+                return Response(
+                    {"isAdmin": "You cannot revoke your own admin access."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if user.is_superuser:
+                return Response(
+                    {"isAdmin": "Superusers cannot have their admin access revoked."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Idempotent: re-applying the state an account already has is a no-op.
+        if user.is_staff != is_admin:
+            user.is_staff = is_admin
+            user.save(update_fields=["is_staff"])
+        return Response(AdminUserSerializer(user).data)
 
 
 class AnnouncementListView(APIView):

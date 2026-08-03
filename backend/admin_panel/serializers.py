@@ -1,6 +1,9 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import AdminSettings, Announcement
 from interactions.models import InteractionCategory
+
+User = get_user_model()
 
 
 class AdminSettingsSerializer(serializers.ModelSerializer):
@@ -152,6 +155,23 @@ class AnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Announcement
         fields = ["id", "title", "text", "date", "show", "showOnHomePage"]
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """A selectable account, plus whether it already holds admin access.
+
+    isSuperuser is exposed so the UI can grey out a revoke it knows the API
+    will refuse; AdminUserDetailView is what actually enforces that.
+    """
+
+    isAdmin = serializers.BooleanField(source="is_staff", read_only=True)
+    isSuperuser = serializers.BooleanField(source="is_superuser", read_only=True)
+    dateJoined = serializers.DateTimeField(source="date_joined", read_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "isAdmin", "isSuperuser", "dateJoined"]
+        read_only_fields = fields
 
 
 class InteractionCategorySerializer(serializers.ModelSerializer):

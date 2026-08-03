@@ -1,8 +1,11 @@
 import pytest
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from admin_panel.models import AdminSettings, Announcement
+
+User = get_user_model()
 
 
 @pytest.mark.django_db
@@ -477,3 +480,208 @@ def test_delete_interaction_category(auth_client):
     response = auth_client.delete(f"/api/interaction-categories/{cat.pk}")
     assert response.status_code == 204
     assert not InteractionCategory.objects.filter(pk=cat.pk).exists()
+
+
+# ── Granting admin access to an existing account ───────────────────────
+
+
+@pytest.mark.django_db
+def test_list_users_returns_admins_first(auth_client, regular_user):
+    response = auth_client.get("/api/admin/users")
+    assert response.status_code == 200
+    data = response.json()
+    usernames = [u["username"] for u in data]
+    assert usernames == ["admin", regular_user.username]
+    assert data[0]["isAdmin"] is True
+    assert data[0]["isSuperuser"] is True
+    assert data[1]["isAdmin"] is False
+
+
+@pytest.mark.django_db
+def test_list_users_filters_by_search(auth_client, regular_user):
+    response = auth_client.get("/api/admin/users?search=testus")
+    assert response.status_code == 200
+    assert [u["username"] for u in response.json()] == [regular_user.username]
+
+
+@pytest.mark.django_db
+def test_list_users_blocked_for_non_admin(user_auth_client):
+    assert user_auth_client.get("/api/admin/users").status_code == 403
+
+
+@pytest.mark.django_db
+def test_list_users_blocked_for_anonymous(api_client):
+    assert api_client.get("/api/admin/users").status_code == 401
+
+
+@pytest.mark.django_db
+def test_grant_admin_promotes_existing_user(auth_client, regular_user):
+    assert regular_user.is_staff is False
+    response = auth_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": True}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["isAdmin"] is True
+
+    regular_user.refresh_from_db()
+    assert regular_user.is_staff is True
+    # Promotion must not disturb the account's existing credentials.
+    assert regular_user.check_password("testpass123")
+
+
+@pytest.mark.django_db
+def test_promoted_user_can_reach_admin_endpoints(auth_client, api_client, regular_user):
+    auth_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": True}, format="json"
+    )
+    login = api_client.post(
+        "/api/auth/login",
+        {"username": regular_user.username, "password": "testpass123"},
+        format="json",
+    )
+    assert login.status_code == 200
+    assert login.json()["is_admin"] is True
+
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.json()['access']}")
+    assert api_client.get("/api/admin/announcements").status_code == 200
+
+
+@pytest.mark.django_db
+def test_grant_admin_is_idempotent(auth_client, admin_user):
+    response = auth_client.patch(
+        f"/api/admin/users/{admin_user.pk}", {"isAdmin": True}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["isAdmin"] is True
+
+
+@pytest.mark.django_db
+def test_revoke_admin_demotes_existing_admin(auth_client, regular_user):
+    regular_user.is_staff = True
+    regular_user.save(update_fields=["is_staff"])
+
+    response = auth_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": False}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["isAdmin"] is False
+
+    regular_user.refresh_from_db()
+    assert regular_user.is_staff is False
+    # Revoking admin access must not disable the account itself.
+    assert regular_user.is_active is True
+    assert regular_user.check_password("testpass123")
+
+
+@pytest.mark.django_db
+def test_revoked_user_loses_admin_endpoint_access(
+    auth_client, api_client, regular_user
+):
+    regular_user.is_staff = True
+    regular_user.save(update_fields=["is_staff"])
+    auth_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": False}, format="json"
+    )
+
+    login = api_client.post(
+        "/api/auth/login",
+        {"username": regular_user.username, "password": "testpass123"},
+        format="json",
+    )
+    assert login.status_code == 200
+    assert login.json()["is_admin"] is False
+
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.json()['access']}")
+    assert api_client.get("/api/admin/announcements").status_code == 403
+
+
+@pytest.mark.django_db
+def test_revoke_admin_is_idempotent(auth_client, regular_user):
+    response = auth_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": False}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["isAdmin"] is False
+
+
+@pytest.mark.django_db
+def test_cannot_revoke_own_admin_access(auth_client, admin_user):
+    """The sole remaining admin can therefore never drop the last set of keys."""
+    response = auth_client.patch(
+        f"/api/admin/users/{admin_user.pk}", {"isAdmin": False}, format="json"
+    )
+    assert response.status_code == 400
+    admin_user.refresh_from_db()
+    assert admin_user.is_staff is True
+
+
+@pytest.mark.django_db
+def test_cannot_revoke_a_superuser(auth_client, admin_user):
+    """is_staff also gates /django-admin/, so this would close the fallback."""
+    other = User.objects.create_superuser("root", "root@example.com", "rootpass123")
+    response = auth_client.patch(
+        f"/api/admin/users/{other.pk}", {"isAdmin": False}, format="json"
+    )
+    assert response.status_code == 400
+    other.refresh_from_db()
+    assert other.is_staff is True
+
+
+@pytest.mark.django_db
+def test_set_admin_rejects_non_boolean(auth_client, regular_user):
+    response = auth_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": "yes"}, format="json"
+    )
+    assert response.status_code == 400
+    regular_user.refresh_from_db()
+    assert regular_user.is_staff is False
+
+
+@pytest.mark.django_db
+def test_revoke_admin_rejects_non_admin(user_auth_client, regular_user):
+    response = user_auth_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": False}, format="json"
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_grant_admin_rejects_non_admin(user_auth_client, regular_user):
+    response = user_auth_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": True}, format="json"
+    )
+    assert response.status_code == 403
+    regular_user.refresh_from_db()
+    assert regular_user.is_staff is False
+
+
+@pytest.mark.django_db
+def test_grant_admin_rejects_anonymous(api_client, regular_user):
+    response = api_client.patch(
+        f"/api/admin/users/{regular_user.pk}", {"isAdmin": True}, format="json"
+    )
+    assert response.status_code == 401
+    regular_user.refresh_from_db()
+    assert regular_user.is_staff is False
+
+
+@pytest.mark.django_db
+def test_grant_admin_unknown_user_returns_404(auth_client):
+    response = auth_client.patch(
+        "/api/admin/users/99999", {"isAdmin": True}, format="json"
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_public_register_never_grants_admin(api_client):
+    """Guards the hole the promotion flow exists to avoid."""
+    response = api_client.post(
+        "/api/auth/register",
+        {"username": "plain", "email": "plain@example.com", "password": "pass1234"},
+        format="json",
+    )
+    assert response.status_code == 201
+    user = User.objects.get(username="plain")
+    assert user.is_staff is False
+    assert user.is_superuser is False

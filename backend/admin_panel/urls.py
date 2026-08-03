@@ -1,6 +1,8 @@
 from django.urls import path
 from .views import (
     AdminSettingsView,
+    AdminUserDetailView,
+    AdminUserListView,
     AnnouncementAdminDetailView,
     AnnouncementAdminView,
     AnnouncementListView,
@@ -15,6 +17,8 @@ urlpatterns = [
     path("settings/logo", LogoUploadView.as_view()),
     path("announcements", AnnouncementListView.as_view()),
     path("counts", CountsView.as_view()),
+    path("admin/users", AdminUserListView.as_view()),
+    path("admin/users/<int:pk>", AdminUserDetailView.as_view()),
     path("admin/announcements", AnnouncementAdminView.as_view()),
     path("admin/announcements/<int:pk>", AnnouncementAdminDetailView.as_view()),
     path("interaction-categories", InteractionCategoryListView.as_view()),
