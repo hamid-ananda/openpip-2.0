@@ -18,20 +18,56 @@ function mixWith(hex: string, target: number, amount: number): string {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
 }
 
-function darken(hex: string, factor: number): string {
-  const rgb = hexToRgb(hex)
-  if (!rgb) return hex
-  const [r, g, b] = rgb
-  const d = (c: number) => Math.round(c * (1 - factor))
-  return `rgb(${d(r)}, ${d(g)}, ${d(b)})`
+type Rgb = [number, number, number]
+
+function relativeLuminance([r, g, b]: Rgb): number {
+  const channel = (v: number) => {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
 }
 
-function lighten(hex: string, factor: number): string {
+function contrastRatio(a: Rgb, b: Rgb): number {
+  const [l1, l2] = [relativeLuminance(a), relativeLuminance(b)]
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
+}
+
+function shiftChannels(rgb: Rgb, factor: number, towardWhite: boolean): Rgb {
+  const shift = (c: number) =>
+    towardWhite ? Math.round(c + (255 - c) * factor) : Math.round(c * (1 - factor))
+  return [shift(rgb[0]), shift(rgb[1]), shift(rgb[2])]
+}
+
+/**
+ * Push the brand colour away from `background` until it is legible on it.
+ *
+ * Admins pick an arbitrary brand hex, and a fixed lighten/darken factor cannot
+ * serve all of them: a near-black brand (openPIP ships #0f172a) lightened by a
+ * flat 50% lands on a mid grey that fails against a tinted dark chip. Stepping
+ * until the ratio clears the target keeps the shade legible whatever the brand,
+ * and stops as soon as it does so the colour stays as close to brand as it can.
+ */
+function shadeForContrast(
+  hex: string,
+  background: Rgb,
+  targetRatio: number,
+  towardWhite: boolean
+): string {
   const rgb = hexToRgb(hex)
   if (!rgb) return hex
-  const [r, g, b] = rgb
-  const l = (c: number) => Math.round(c + (255 - c) * factor)
-  return `rgb(${l(r)}, ${l(g)}, ${l(b)})`
+
+  let result = rgb as Rgb
+  for (let factor = towardWhite ? 0.5 : 0.25; factor <= 0.95; factor += 0.05) {
+    result = shiftChannels(rgb as Rgb, factor, towardWhite)
+    if (contrastRatio(result, background) >= targetRatio) break
+  }
+  return `rgb(${result[0]}, ${result[1]}, ${result[2]})`
+}
+
+function parseRgbTriplet(value: string): Rgb {
+  const parts = value.match(/\d+/g)
+  return parts ? ([+parts[0], +parts[1], +parts[2]] as Rgb) : [0, 0, 0]
 }
 
 export function injectCSSVars(settings: AdminSettings): void {
@@ -43,10 +79,24 @@ export function injectCSSVars(settings: AdminSettings): void {
   const angle    = settings.gradientAngle    ?? 135
   const style    = settings.navStyle         || 'solid'
 
-  // Primary brand color + derived shades - dark mode needs lighter/darker inverted values
-  root.style.setProperty('--primary',      primary)
-  root.style.setProperty('--primary-soft', isDark ? mixWith(primary, 0, 0.14)   : mixWith(primary, 255, 0.14))
-  root.style.setProperty('--primary-deep', isDark ? lighten(primary, 0.50)      : darken(primary, 0.25))
+  // Primary brand color + derived shades.
+  //
+  // --primary-soft is a tinted *background* (chips, badges, selected rows). In
+  // dark mode it must sit above --surface (#11161f), not below it: mixing toward
+  // pure black put it at rgb(2,3,6) for the shipped #0f172a brand, darker than
+  // the surface it sits on, so chips were invisible. Mixing toward a lifted
+  // neutral gives a tint that reads whatever the brand's own lightness.
+  //
+  // --primary-deep is the readable *foreground* shade, and it is derived against
+  // --primary-soft because text on a chip is the tightest pairing of the two.
+  const softBackground = isDark ? mixWith(primary, 48, 0.2) : mixWith(primary, 255, 0.14)
+
+  root.style.setProperty('--primary', primary)
+  root.style.setProperty('--primary-soft', softBackground)
+  root.style.setProperty(
+    '--primary-deep',
+    shadeForContrast(primary, parseRgbTriplet(softBackground), 4.5, isDark)
+  )
 
   // Header background - solid, gradient, or light (white)
   let navBg: string

@@ -1,0 +1,11 @@
+{
+  "name": "openPIP",
+  "short_name": "openPIP",
+  "description": "The protein interaction network, made queryable.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "icons": [{ "src": "./favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }]
+}

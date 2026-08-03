@@ -5,6 +5,11 @@ interface TopBarProps {
   shortTitle: string
 }
 
+/**
+ * The mark shown when no logo has been uploaded, themed to the header colour.
+ * `public/favicon.svg` draws the same shape for the browser tab, where it can't
+ * read CSS variables; keep the two in step.
+ */
 function DefaultLogo() {
   return (
     <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
