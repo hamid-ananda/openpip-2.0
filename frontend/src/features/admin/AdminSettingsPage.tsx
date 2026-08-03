@@ -1,8 +1,24 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '../../api/settings'
 import { injectCSSVars } from '../../lib/theme'
+import { EXAMPLE_TYPES, normalizeExampleType } from '../../lib/exampleType'
 import type { AdminSettings } from '../../types/api'
 import { RichTextEditor } from '../../components/RichTextEditor'
+import { TEXT_GROUP_BY_ID } from '../../text'
+import { SiteTextFields } from './SiteTextFields'
+import { useSiteTextDrafts } from './useSiteTextDrafts'
+import {
+  settingsTabFromSearch,
+  settingsTabHint,
+  settingsTabLabel,
+  SETTINGS_TABS,
+} from './adminNav'
+import type { SettingsTabId } from './adminNav'
+import { useAdminDirty } from '../../store/adminDirty'
+import { useAdminUsers, useSetAdminAccess } from '../../api/adminUsers'
+import { useProfile } from '../../api/auth'
+import type { AdminUser } from '../../types/api'
 import {
   useInteractionCategories,
   useCreateCategory,
@@ -85,26 +101,105 @@ const PRESETS: Preset[] = [
 // ─────────────────────────────────────────────────────────
 // Field metadata
 // ─────────────────────────────────────────────────────────
-type TabId = 'global' | 'home' | 'search' | 'about' | 'faqs' | 'contact' | 'downloads'
+type TabId = SettingsTabId
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'global',    label: 'Global Settings' },
-  { id: 'home',      label: 'Home Page' },
-  { id: 'search',    label: 'Search' },
-  { id: 'about',     label: 'About' },
-  { id: 'faqs',      label: 'FAQs' },
-  { id: 'contact',   label: 'Contact' },
-  { id: 'downloads', label: 'Downloads' },
+/** Fields that only affect appearance — used for dirty-tracking and reset. */
+const COLOR_FIELDS: (keyof AdminSettings)[] = [
+  'navStyle',
+  'mainColorScheme',
+  'mainColorScheme2',
+  'gradientAngle',
+  'headerColorScheme',
+  'logoColorScheme',
+  'buttonColorScheme',
+  'queryNodeColor',
+  'interactorNodeColor',
+  'publishedEdgeColor',
+  'validatedEdgeColor',
+  'verifiedEdgeColor',
+  'literatureEdgeColor',
 ]
+
+interface TabConfig {
+  /** Settings columns edited on this tab. Drives the unsaved-changes marker. */
+  fields?: (keyof AdminSettings)[]
+  /** Text-registry group ids whose copy is edited on this tab. */
+  textGroups?: string[]
+}
+
+/**
+ * What each sidebar panel edits. A panel owns both the structured settings for
+ * its page and that page's editable copy, so an admin changing "the About page"
+ * never has to work out which of two editors a given string lives in.
+ *
+ * Not every page exposes its copy. Search and the protein browser are dense UI
+ * labelling that ships fixed; the API page's only deployment-specific content
+ * is its base URL, which follows Site URL. About, FAQs and Contact each keep
+ * the single rich-text block they have always had, and nothing more. Accounts
+ * offers the prose on the sign-in and registration pages but not the forms:
+ * "Password" and "Send reset link" are the words visitors expect.
+ *
+ * Keyed by tab id, so a panel added to the sidebar without a config here — or
+ * a config for a panel the sidebar dropped — fails to compile.
+ */
+const TAB_CONFIG: Record<TabId, TabConfig> = {
+  global: {
+    fields: ['title', 'shortTitle', 'url', 'version', 'footer', 'logoUrl'],
+    textGroups: ['nav'],
+  },
+  appearance: { fields: COLOR_FIELDS },
+  home: { textGroups: ['home'] },
+  search: {
+    fields: [
+      'example1', 'example2', 'example3',
+      'example1Type', 'example2Type', 'example3Type',
+    ],
+  },
+  downloads: {
+    fields: ['download', 'showDownloads', 'showDownloadAll'],
+    textGroups: ['downloads'],
+  },
+  about:         { fields: ['about'] },
+  documentation: { textGroups: ['documentation'] },
+  faqs:          { fields: ['faq'] },
+  contact:       { fields: ['contact'] },
+  accounts:      { textGroups: ['auth'] },
+}
+
+/** The panels, in the order the sidebar lists them. */
+const TABS = SETTINGS_TABS.map((tab) => ({ id: tab.id, ...TAB_CONFIG[tab.id] }))
+
+/** Every text key a tab is responsible for, so its dirty marker can be derived. */
+const TAB_TEXT_KEYS: Record<string, string[]> = Object.fromEntries(
+  TABS.map((tab) => [
+    tab.id,
+    // Tolerate an unknown group id: a renamed text group should drop its
+    // fields from the editor, not take the whole settings page down.
+    (tab.textGroups ?? []).flatMap((id) =>
+      (TEXT_GROUP_BY_ID[id]?.entries ?? []).map((e) => e.key)
+    ),
+  ])
+)
 
 // ─────────────────────────────────────────────────────────
 // Small reusable form primitives
 // ─────────────────────────────────────────────────────────
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({
+  children,
+  changed,
+  onRevert,
+}: {
+  children: React.ReactNode
+  /** Marks the field as edited-but-unsaved and shows a revert affordance. */
+  changed?: boolean
+  onRevert?: () => void
+}) {
   return (
     <span
       style={{
-        display: 'block',
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 8,
         fontSize: 12,
         fontWeight: 500,
         color: 'var(--text-muted)',
@@ -112,6 +207,25 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      {changed && onRevert && (
+        <button
+          type="button"
+          onClick={onRevert}
+          title="Revert this field to the last saved value"
+          style={{
+            fontSize: 10,
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            color: 'var(--primary)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font)',
+            textDecoration: 'underline',
+          }}
+        >
+          revert
+        </button>
+      )}
     </span>
   )
 }
@@ -259,18 +373,27 @@ function ColorInput({
 }
 
 // ─────────────────────────────────────────────────────────
-// Tabs
+// Panels
 // ─────────────────────────────────────────────────────────
 interface TabPanelProps {
+  id: TabId
   active: boolean
   children: React.ReactNode
 }
 
-function TabPanel({ active, children }: TabPanelProps) {
+function TabPanel({ id, active, children }: TabPanelProps) {
+  if (!active) return null
   return (
-    <div style={{ padding: '28px 32px', display: active ? 'block' : 'none' }} aria-hidden={!active}>
+    <section
+      id={`settings-panel-${id}`}
+      aria-label={settingsTabLabel(id)}
+      style={{ padding: '28px 32px' }}
+    >
+      {/* Mount only the visible panel. All ten at once is several hundred
+          inputs and a Quill instance each, which makes every keystroke crawl.
+          Form state lives in the parent, so unmounting loses no edits. */}
       {children}
-    </div>
+    </section>
   )
 }
 
@@ -548,6 +671,205 @@ function LogoUploadSection({ currentLogoUrl }: { currentLogoUrl?: string | null 
 }
 
 // ─────────────────────────────────────────────────────────
+// Admin access
+// ─────────────────────────────────────────────────────────
+
+/** Pulls a readable message out of a DRF error body ({detail} or per-field). */
+function serverErrorMessage(error: unknown): string {
+  const data = (error as { response?: { data?: Record<string, unknown> } })?.response?.data
+  if (data) {
+    if (typeof data.detail === 'string') return data.detail
+    const first = Object.values(data)[0]
+    if (typeof first === 'string') return first
+    if (Array.isArray(first) && typeof first[0] === 'string') return first[0]
+  }
+  return 'Could not change admin access.'
+}
+
+/**
+ * Why a revoke may be unavailable, or null when it is allowed. Mirrors the
+ * guards in AdminUserDetailView so the button explains itself rather than
+ * waiting for a 400.
+ */
+function revokeBlockedReason(user: AdminUser, currentUsername?: string): string | null {
+  if (user.username === currentUsername) return 'You cannot revoke your own admin access'
+  if (user.isSuperuser) return 'Superusers keep admin access'
+  return null
+}
+
+function UserRow({
+  user,
+  currentUsername,
+  busy,
+  onSetAdmin,
+}: {
+  user: AdminUser
+  currentUsername?: string
+  busy: boolean
+  onSetAdmin: (isAdmin: boolean) => void
+}) {
+  const blocked = user.isAdmin ? revokeBlockedReason(user, currentUsername) : null
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '8px 10px',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 13, fontWeight: 500 }}>{user.username}</span>
+        {user.isAdmin && (
+          <span
+            style={{
+              marginLeft: 8,
+              fontSize: 10,
+              fontWeight: 600,
+              padding: '2px 7px',
+              borderRadius: 999,
+              color: 'var(--success)',
+              border: '1px solid var(--success)',
+            }}
+          >
+            admin
+          </span>
+        )}
+        <span
+          style={{
+            display: 'block',
+            fontSize: 11,
+            color: 'var(--text-soft)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {user.email}
+        </span>
+      </span>
+
+      <button
+        type="button"
+        className="op-btn"
+        style={{
+          padding: '4px 10px',
+          fontSize: 11,
+          ...(user.isAdmin && !blocked
+            ? { color: 'var(--danger)', borderColor: 'var(--danger)' }
+            : {}),
+        }}
+        disabled={busy || Boolean(blocked)}
+        title={blocked ?? undefined}
+        onClick={() => onSetAdmin(!user.isAdmin)}
+      >
+        {user.isAdmin ? 'Revoke admin' : 'Grant admin'}
+      </button>
+    </div>
+  )
+}
+
+function AdminAccessSection() {
+  const [search, setSearch] = useState('')
+  const [done, setDone] = useState<string | null>(null)
+  const [pendingId, setPendingId] = useState<number | null>(null)
+  const { data: users = [], isLoading } = useAdminUsers(search)
+  const { data: profile } = useProfile()
+  const { mutate: setAdminAccess, error, reset } = useSetAdminAccess()
+
+  const clearFeedback = () => {
+    setDone(null)
+    reset()
+  }
+
+  const handleSetAdmin = (user: AdminUser, isAdmin: boolean) => {
+    clearFeedback()
+    setPendingId(user.id)
+    setAdminAccess(
+      { userId: user.id, isAdmin },
+      {
+        onSuccess: (updated) => {
+          setDone(
+            updated.isAdmin
+              ? `“${updated.username}” now has admin access.`
+              : `Admin access removed from “${updated.username}”.`
+          )
+        },
+        onSettled: () => setPendingId(null),
+      }
+    )
+  }
+
+  return (
+    <div style={{ maxWidth: 480 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: '0 0 14px' }}>
+        Grant or revoke admin access on an existing account. Registering never
+        confers it, so this is the only way in. You cannot revoke your own
+        access, and superusers always keep theirs.
+      </p>
+
+      <label style={{ display: 'block', marginBottom: 10 }}>
+        <FieldLabel>Find a user</FieldLabel>
+        <TextInput
+          value={search}
+          onChange={(v) => {
+            setSearch(v)
+            clearFeedback()
+          }}
+          placeholder="Search by username or email…"
+        />
+      </label>
+
+      <div
+        role="group"
+        aria-label="Accounts"
+        style={{
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          maxHeight: 260,
+          overflowY: 'auto',
+          marginBottom: 12,
+        }}
+      >
+        {isLoading ? (
+          <p style={{ fontSize: 12, color: 'var(--text-soft)', padding: '10px' }}>
+            Loading accounts…
+          </p>
+        ) : users.length === 0 ? (
+          <p style={{ fontSize: 12, color: 'var(--text-soft)', padding: '10px' }}>
+            No accounts match “{search}”.
+          </p>
+        ) : (
+          users.map((user) => (
+            <UserRow
+              key={user.id}
+              user={user}
+              currentUsername={profile?.username}
+              busy={pendingId === user.id}
+              onSetAdmin={(isAdmin) => handleSetAdmin(user, isAdmin)}
+            />
+          ))
+        )}
+      </div>
+
+      {error && (
+        <p role="alert" style={{ fontSize: 12, color: 'var(--danger)', margin: 0 }}>
+          {serverErrorMessage(error)}
+        </p>
+      )}
+
+      {done && (
+        <p role="status" style={{ fontSize: 12, color: 'var(--success)', margin: 0 }}>
+          {done}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
 // Interaction category table
 // ─────────────────────────────────────────────────────────
 function CategoryTable() {
@@ -754,15 +1076,62 @@ function seedDefaults(s: AdminSettings): AdminSettings {
 }
 
 function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
-  const { mutate: update, isPending, isSuccess, isError } = useUpdateSettings()
+  const {
+    mutate: update,
+    isPending: savingSettings,
+    isSuccess: settingsSaved,
+    isError: settingsFailed,
+    reset: resetMutation,
+  } = useUpdateSettings()
+  const text = useSiteTextDrafts()
+  const [saved, setSaved] = useState<AdminSettings>(() => seedDefaults(initialSettings))
   const [form, setForm] = useState<AdminSettings>(() => seedDefaults(initialSettings))
-  const [activeTab, setActiveTab] = useState<TabId>('global')
+  const [searchParams] = useSearchParams()
+  const activeTab: TabId = settingsTabFromSearch(searchParams.toString())
 
   const set = useCallback(<K extends keyof AdminSettings>(field: K, value: AdminSettings[K]) => {
     setForm((f) => ({ ...f, [field]: value }))
   }, [])
 
-  // Live preview: apply CSS vars immediately as the admin adjusts any visual setting
+  const changedFields = useMemo(
+    () =>
+      (Object.keys(form) as (keyof AdminSettings)[]).filter(
+        (key) => (form[key] ?? '') !== (saved[key] ?? '')
+      ),
+    [form, saved]
+  )
+  const settingsDirty = changedFields.length > 0
+  // The two halves of the form save through different endpoints, but the admin
+  // sees one Save button, so dirtiness is counted across both.
+  const dirtyCount = changedFields.length + text.pending.length
+  const isDirty = dirtyCount > 0
+  const isPending = savingSettings || text.isPending
+  const isSuccess = (settingsSaved || text.isSuccess) && !isDirty
+  const isError = settingsFailed || text.isError
+
+  const { pendingKeys } = text
+  const dirtyTabs = useMemo(() => {
+    const marked = new Set<TabId>()
+    for (const tab of TABS) {
+      const hasFieldEdit = (tab.fields ?? []).some((field) => changedFields.includes(field))
+      const hasTextEdit = TAB_TEXT_KEYS[tab.id].some((key) => pendingKeys.has(key))
+      if (hasFieldEdit || hasTextEdit) marked.add(tab.id)
+    }
+    return marked
+  }, [changedFields, pendingKeys])
+
+  // Publish the markers to the sidebar, which lists the panels and so is the
+  // only place an edit left on another panel can be seen from here.
+  const setDirtyTabs = useAdminDirty((s) => s.setDirtyTabs)
+  useEffect(() => {
+    setDirtyTabs(TABS.filter((t) => dirtyTabs.has(t.id)).map((t) => t.id))
+  }, [dirtyTabs, setDirtyTabs])
+  // Leaving the form drops its edits; the markers must not outlive them.
+  useEffect(() => () => setDirtyTabs([]), [setDirtyTabs])
+
+  // Live preview: apply CSS vars immediately as the admin adjusts any visual
+  // setting, then put the *saved* theme back when this form unmounts. Without
+  // the cleanup, abandoning the page left an unsaved theme applied site-wide.
   useEffect(() => {
     injectCSSVars(form)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -773,9 +1142,56 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
     form.publishedEdgeColor, form.validatedEdgeColor, form.verifiedEdgeColor, form.literatureEdgeColor,
   ])
 
+  const savedRef = useRef(saved)
+  useEffect(() => {
+    savedRef.current = saved
+  }, [saved])
+  useEffect(() => () => injectCSSVars(savedRef.current), [])
+
+  // Warn before a browser navigation would drop unsaved edits.
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
+  // Let the success banner fade instead of sitting there indefinitely.
+  const resetTextMutation = text.resetMutation
+  useEffect(() => {
+    if (!isSuccess) return
+    const timer = setTimeout(() => {
+      resetMutation()
+      resetTextMutation()
+    }, 4000)
+    return () => clearTimeout(timer)
+  }, [isSuccess, resetMutation, resetTextMutation])
+
+  const urlError =
+    form.url && !/^https?:\/\/\S+$/i.test(form.url.trim())
+      ? 'Enter a full URL starting with http:// or https://'
+      : ''
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    update(form)
+    if (urlError) return
+    // Two independent writes: skip the settings PUT when only copy changed, so
+    // editing one label doesn't rewrite every settings column.
+    if (settingsDirty) {
+      update(form, { onSuccess: (updated) => setSaved(seedDefaults(updated)) })
+    }
+    text.save()
+  }
+
+  const handleDiscard = () => {
+    if (!window.confirm('Discard all unsaved changes?')) return
+    setForm(saved)
+    text.discard()
+    resetMutation()
+    text.resetMutation()
   }
 
   const handleResetColors = () => {
@@ -783,62 +1199,59 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
     setForm((f) => ({ ...f, ...DEFAULT_COLORS }))
   }
 
+  const revertField = useCallback(
+    (field: keyof AdminSettings) => setForm((f) => ({ ...f, [field]: saved[field] })),
+    [saved]
+  )
+
+  const colorsDirty = changedFields.some((f) => COLOR_FIELDS.includes(f))
+
+  /** The editable copy belonging to a tab, rendered under its settings. */
+  const pageText = (tabId: TabId) => {
+    const groupIds = TABS.find((t) => t.id === tabId)?.textGroups ?? []
+    if (groupIds.length === 0) return null
+    // Rendering before the overrides land would briefly show customized copy as
+    // empty, which reads as "nothing is set here".
+    if (text.isLoading) {
+      return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading page text…</p>
+    }
+    return groupIds.map((groupId) => (
+      <SiteTextFields
+        key={groupId}
+        group={TEXT_GROUP_BY_ID[groupId]}
+        drafts={text.drafts}
+        overrides={text.overrides}
+        onChange={text.setDraft}
+        onRevert={text.revertDraft}
+      />
+    ))
+  }
+
   return (
     <form onSubmit={handleSubmit}>
-      {/* Tab bar */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 2,
-          padding: '0 20px',
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--surface)',
-        }}
-      >
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '14px 16px',
-              fontSize: 13,
-              fontWeight: 500,
-              color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-muted)',
-              background: 'transparent',
-              border: 'none',
-              borderBottom: `2px solid ${activeTab === tab.id ? 'var(--primary)' : 'transparent'}`,
-              cursor: 'pointer',
-              marginBottom: -1,
-              fontFamily: 'var(--font)',
-              transition: 'color .15s',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
       {/* ── GLOBAL SETTINGS ── */}
-      <TabPanel active={activeTab === 'global'}>
+      <TabPanel id="global" active={activeTab === 'global'}>
         <Section title="Site identity">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div>
-              <FieldLabel>Site Title</FieldLabel>
+              <FieldLabel changed={changedFields.includes('title')} onRevert={() => revertField('title')}>Site Title</FieldLabel>
               <TextInput value={form.title ?? ''} onChange={(v) => set('title', v)} />
             </div>
             <div>
-              <FieldLabel>Short Title</FieldLabel>
+              <FieldLabel changed={changedFields.includes('shortTitle')} onRevert={() => revertField('shortTitle')}>Short Title</FieldLabel>
               <TextInput value={form.shortTitle ?? ''} onChange={(v) => set('shortTitle', v)} />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <FieldLabel>Site URL</FieldLabel>
+              <FieldLabel changed={changedFields.includes('url')} onRevert={() => revertField('url')}>Site URL</FieldLabel>
               <TextInput value={form.url ?? ''} onChange={(v) => set('url', v)} placeholder="https://…" />
+              {urlError && (
+                <p style={{ fontSize: 11, color: 'var(--danger)', margin: '5px 0 0' }}>{urlError}</p>
+              )}
             </div>
             <div>
-              <FieldLabel>Version</FieldLabel>
+              <FieldLabel changed={changedFields.includes('version')} onRevert={() => revertField('version')}>Version</FieldLabel>
               <TextInput value={form.version ?? ''} onChange={(v) => set('version', v)} placeholder="2.0" />
             </div>
           </div>
@@ -849,26 +1262,15 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
         </Section>
 
         <Section title="Footer">
-          <FieldLabel>Footer HTML</FieldLabel>
+          <FieldLabel changed={changedFields.includes('footer')} onRevert={() => revertField('footer')}>Footer HTML</FieldLabel>
           <RichTextEditor value={form.footer ?? ''} onChange={(v) => set('footer', v)} rows={3} />
         </Section>
 
-        <Section title="Administration">
-          <a
-            href="/register"
-            className="op-btn"
-            style={{ textDecoration: 'none', display: 'inline-flex' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <line x1="19" y1="8" x2="19" y2="14" />
-              <line x1="22" y1="11" x2="16" y2="11" />
-            </svg>
-            Register new admin
-          </a>
-        </Section>
+        {pageText('global')}
+      </TabPanel>
 
+      {/* ── APPEARANCE ── */}
+      <TabPanel id="appearance" active={activeTab === 'appearance'}>
         {/* Preset themes */}
         <Section title="Themes">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -998,76 +1400,6 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           angle={form.gradientAngle ?? 135}
           header={form.navStyle === 'light' ? 'var(--text)' : (form.headerColorScheme ?? '#ffffff')}
         />
-      </TabPanel>
-
-      {/* ── HOME PAGE ── */}
-      <TabPanel active={activeTab === 'home'}>
-        <Section title="Top section">
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel>Top Section Title</FieldLabel>
-            <TextInput value={form.missionTitle ?? ''} onChange={(v) => set('missionTitle', v)} placeholder="HTML allowed, e.g. <h4>Our Mission</h4>" />
-          </div>
-          <div>
-            <FieldLabel>Top Section Text</FieldLabel>
-            <RichTextEditor value={form.missionText ?? ''} onChange={(v) => set('missionText', v)} />
-          </div>
-        </Section>
-
-        <Section title="Bottom section">
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel>Bottom Section Title</FieldLabel>
-            <TextInput value={form.methodTitle ?? ''} onChange={(v) => set('methodTitle', v)} placeholder="HTML allowed, e.g. <h4>Methods</h4>" />
-          </div>
-          <div>
-            <FieldLabel>Bottom Section Text</FieldLabel>
-            <RichTextEditor value={form.methodText ?? ''} onChange={(v) => set('methodText', v)} />
-          </div>
-        </Section>
-      </TabPanel>
-
-      {/* ── SEARCH ── */}
-      <TabPanel active={activeTab === 'search'}>
-        <Section title="Search examples">
-          {([1, 2, 3] as const).map((n) => {
-            const proteinsKey = `example${n}` as 'example1' | 'example2' | 'example3'
-            const typeKey = `example${n}Type` as 'example1Type' | 'example2Type' | 'example3Type'
-            return (
-              <div key={n} style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <FieldLabel>Example {n}</FieldLabel>
-                  <select
-                    value={form[typeKey] ?? 'query-query'}
-                    onChange={(e) => set(typeKey, e.target.value)}
-                    style={{
-                      fontSize: 12,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--border-strong)',
-                      background: 'var(--surface)',
-                      color: 'var(--text)',
-                      fontFamily: 'var(--font)',
-                      cursor: 'pointer',
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="query-query">query-query</option>
-                    <option value="query-interactor">query-interactor</option>
-                    <option value="all">all</option>
-                  </select>
-                </div>
-                <TextareaInput
-                  value={form[proteinsKey] ?? ''}
-                  onChange={(v) => set(proteinsKey, v)}
-                  rows={5}
-                  mono
-                />
-                <p style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 4 }}>
-                  One protein symbol per line.
-                </p>
-              </div>
-            )
-          })}
-        </Section>
 
         <Section title="Node colors">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1097,6 +1429,61 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             }}
           />
         </Section>
+      </TabPanel>
+
+      {/* ── HOME PAGE ── */}
+      <TabPanel id="home" active={activeTab === 'home'}>
+        {/* The mission and methods blocks used to be settings columns edited
+            here. They are site-text keys now, so they arrive with the rest of
+            the page's copy below rather than in a separate pair of forms. */}
+        {pageText('home')}
+      </TabPanel>
+
+      {/* ── SEARCH ── */}
+      <TabPanel id="search" active={activeTab === 'search'}>
+        <Section title="Search examples">
+          {([1, 2, 3] as const).map((n) => {
+            const proteinsKey = `example${n}` as 'example1' | 'example2' | 'example3'
+            const typeKey = `example${n}Type` as 'example1Type' | 'example2Type' | 'example3Type'
+            return (
+              <div key={n} style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <FieldLabel>Example {n}</FieldLabel>
+                  <select
+                    value={normalizeExampleType(form[typeKey])}
+                    onChange={(e) => set(typeKey, e.target.value)}
+                    style={{
+                      fontSize: 12,
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      fontFamily: 'var(--font)',
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    {EXAMPLE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <TextareaInput
+                  value={form[proteinsKey] ?? ''}
+                  onChange={(v) => set(proteinsKey, v)}
+                  rows={5}
+                  mono
+                />
+                <p style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 4 }}>
+                  One protein symbol per line.
+                </p>
+              </div>
+            )
+          })}
+        </Section>
 
         <Section title="Interaction categories">
           <p style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 12 }}>
@@ -1104,10 +1491,11 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           </p>
           <CategoryTable />
         </Section>
+
       </TabPanel>
 
       {/* ── ABOUT ── */}
-      <TabPanel active={activeTab === 'about'}>
+      <TabPanel id="about" active={activeTab === 'about'}>
         <Section title="About page content">
           <RichTextEditor
             value={form.about ?? ''}
@@ -1116,10 +1504,16 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             rows={16}
           />
         </Section>
+
+      </TabPanel>
+
+      {/* ── DOCUMENTATION ── */}
+      <TabPanel id="documentation" active={activeTab === 'documentation'}>
+        {pageText('documentation')}
       </TabPanel>
 
       {/* ── FAQS ── */}
-      <TabPanel active={activeTab === 'faqs'}>
+      <TabPanel id="faqs" active={activeTab === 'faqs'}>
         <Section title="FAQ page content">
           <RichTextEditor
             value={form.faq ?? ''}
@@ -1128,10 +1522,11 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             rows={16}
           />
         </Section>
+
       </TabPanel>
 
       {/* ── CONTACT ── */}
-      <TabPanel active={activeTab === 'contact'}>
+      <TabPanel id="contact" active={activeTab === 'contact'}>
         <Section title="Contact page intro text">
           <RichTextEditor
             value={form.contact ?? ''}
@@ -1140,10 +1535,20 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             rows={10}
           />
         </Section>
+
+      </TabPanel>
+
+      {/* ── ACCOUNTS ── */}
+      <TabPanel id="accounts" active={activeTab === 'accounts'}>
+        <Section title="Admin access">
+          <AdminAccessSection />
+        </Section>
+
+        {pageText('accounts')}
       </TabPanel>
 
       {/* ── DOWNLOADS ── */}
-      <TabPanel active={activeTab === 'downloads'}>
+      <TabPanel id="downloads" active={activeTab === 'downloads'}>
         <Section title="Visibility">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {(
@@ -1176,9 +1581,13 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             rows={12}
           />
         </Section>
+
+        {pageText('downloads')}
       </TabPanel>
 
-      {/* Footer bar */}
+      {/* Save bar. Sticks to the bottom of the card: with the panels reachable
+          from the sidebar rather than a strip above the form, some of them are
+          long enough that Save would otherwise scroll out of reach. */}
       <div
         style={{
           display: 'flex',
@@ -1187,16 +1596,29 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           padding: '16px 32px',
           borderTop: '1px solid var(--border)',
           background: 'var(--surface-2)',
+          flexWrap: 'wrap',
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 5,
         }}
       >
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || !isDirty || Boolean(urlError)}
           className="op-btn primary"
           style={{ padding: '9px 20px' }}
         >
-          {isPending ? 'Saving…' : 'Save Settings'}
+          {isPending
+            ? 'Saving…'
+            : isDirty
+              ? `Save ${dirtyCount} change${dirtyCount === 1 ? '' : 's'}`
+              : 'Save Settings'}
         </button>
+        {isDirty && (
+          <button type="button" className="op-btn" onClick={handleDiscard} disabled={isPending}>
+            Discard changes
+          </button>
+        )}
         <button
           type="button"
           className="op-btn"
@@ -1205,6 +1627,11 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
         >
           Reset colors
         </button>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {isDirty
+            ? `${dirtyCount} unsaved change${dirtyCount === 1 ? '' : 's'}${colorsDirty ? ' (theme previewed live)' : ''}`
+            : 'No unsaved changes'}
+        </span>
         {isSuccess && (
           <span style={{ fontSize: 13, color: 'var(--success)', fontWeight: 500 }}>
             ✓ Settings saved
@@ -1225,6 +1652,8 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
 // ─────────────────────────────────────────────────────────
 export function AdminSettingsPage() {
   const { data: settings, isLoading } = useSettings()
+  const [searchParams] = useSearchParams()
+  const activeTab = settingsTabFromSearch(searchParams.toString())
 
   if (isLoading) {
     return (
@@ -1235,19 +1664,39 @@ export function AdminSettingsPage() {
   }
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 80px' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 48px' }}>
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
+        {/* The sidebar says which panel is open; the heading says it again in
+            the content column, where the eye lands after clicking. */}
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '.08em',
+            color: 'var(--text-soft)',
+            marginBottom: 6,
+          }}
+        >
+          Site Settings
+        </div>
         <h1
           style={{
             fontSize: 28,
             fontWeight: 600,
             letterSpacing: '-.02em',
-            margin: '0 0 24px',
+            margin: '0 0 6px',
             color: 'var(--text)',
           }}
         >
-          Site Settings
+          {settingsTabLabel(activeTab)}
         </h1>
+        <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 24px', maxWidth: 640 }}>
+          {settingsTabHint(activeTab)}.
+          {/* Only panels that edit copy have empty-means-default fields. */}
+          {(TAB_CONFIG[activeTab].textGroups ?? []).length > 0 &&
+            ' Leave a text field empty to use the wording openPIP ships with, shown as grey placeholder text.'}
+        </p>
         {settings && (
           <div className="op-card" style={{ overflow: 'hidden' }}>
             <SettingsForm initialSettings={settings} />

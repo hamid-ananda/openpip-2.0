@@ -7,6 +7,8 @@ import { useSearchStore } from './searchStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettings } from '../../api/settings'
 import { useSaveNetwork } from '../../api/networks'
+import { useText } from '../../text'
+import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
 import {
   formatSIF,
   formatInteractionsCSV,
@@ -22,12 +24,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   Validated: 'var(--huri-lit)',
   Verified: 'var(--color-edge-verified)',
   Literature: 'var(--literature)',
-}
-
-function toFilterMode(type: string | undefined): 'None' | 'query_query' | 'query_interactor' {
-  if (type === 'query-query') return 'query_query'
-  if (type === 'query-interactor') return 'query_interactor'
-  return 'None'
 }
 
 // Keys match tissue_expression_array field names in the search result
@@ -111,18 +107,18 @@ function LayoutIcon({ value }: { value: LayoutName }) {
   )
 }
 
-const LAYOUT_OPTIONS: { value: LayoutName; label: string }[] = [
-  { value: 'cola',       label: 'Force-directed (Cola)' },
-  { value: 'cose',       label: 'Force-directed (CoSE)' },
-  { value: 'concentric', label: 'Concentric'            },
-  { value: 'circle',     label: 'Circle'                },
-  { value: 'grid',       label: 'Grid'                  },
+const LAYOUT_OPTIONS: { value: LayoutName; textKey: string }[] = [
+  { value: 'cola',       textKey: 'search.layout.cola'       },
+  { value: 'cose',       textKey: 'search.layout.cose'       },
+  { value: 'concentric', textKey: 'search.layout.concentric' },
+  { value: 'circle',     textKey: 'search.layout.circle'     },
+  { value: 'grid',       textKey: 'search.layout.grid'       },
 ]
 
-const FILTER_MODE_OPTIONS: { label: string; value: 'None' | 'query_query' | 'query_interactor' }[] = [
-  { label: 'None', value: 'None' },
-  { label: 'Query-Query', value: 'query_query' },
-  { label: 'Query-Interactor', value: 'query_interactor' },
+const FILTER_MODE_OPTIONS: { textKey: string; value: 'None' | 'query_query' | 'query_interactor' }[] = [
+  { textKey: 'search.filterMode.none', value: 'None' },
+  { textKey: 'search.filterMode.queryQuery', value: 'query_query' },
+  { textKey: 'search.filterMode.queryInteractor', value: 'query_interactor' },
 ]
 
 interface SearchSidebarProps {
@@ -186,6 +182,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   const navigate = useNavigate()
   const [localQuery, setLocalQuery] = useState(term)
   const ac = useGeneAutocomplete(localQuery, setLocalQuery, 'sidebar-gene')
+  const t = useText()
 
   const scoreFilter = useSearchStore((s) => s.scoreFilter)
   const categoryFilter = useSearchStore((s) => s.categoryFilter)
@@ -221,7 +218,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   async function handleSaveNetwork() {
     setSaveError('')
     if (!saveName.trim()) {
-      setSaveError('Name is required')
+      setSaveError(t('search.save.nameRequired'))
       return
     }
     try {
@@ -244,7 +241,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
         setSaveSuccess(false)
       }, 1500)
     } catch {
-      setSaveError('Failed to save. Try again.')
+      setSaveError(t('search.save.failed'))
     }
   }
 
@@ -264,20 +261,20 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
 
   const downloadActions: { label: string; onClick: () => void }[] = isLoggedIn
     ? [
-        { label: 'SIF', onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif') },
-        { label: 'Interactions CSV', onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins), 'Interactions', 'csv') },
-        { label: 'Interactors CSV', onClick: () => handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv') },
-        { label: 'FASTA', onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta') },
-        { label: 'PSI-MI', onClick: () => handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv') },
-        { label: 'Direct Download (GZ)', onClick: () => setModal('directDownload') },
+        { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif') },
+        { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins), 'Interactions', 'csv') },
+        { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv') },
+        { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta') },
+        { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv') },
+        { label: t('search.download.direct'), onClick: () => setModal('directDownload') },
       ]
     : [
-        { label: `SIF${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `Interactions CSV${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `Interactors CSV${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `FASTA${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `PSI-MI${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `Direct Download (GZ)${lockIcon}`, onClick: () => setModal('downloadAuth') },
+        { label: `${t('search.download.sif')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
+        { label: `${t('search.download.interactionsCsv')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
+        { label: `${t('search.download.interactorsCsv')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
+        { label: `${t('search.download.fasta')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
+        { label: `${t('search.download.psimi')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
+        { label: `${t('search.download.direct')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
       ]
 
   return (
@@ -295,14 +292,14 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
 
       {/* Query */}
       <div>
-        <label style={sectionLabelStyle}>Query</label>
+        <label style={sectionLabelStyle}>{t('search.sidebar.query')}</label>
         <form onSubmit={handleSubmit}>
           <div style={{ position: 'relative' }}>
             <input
               className="op-input"
               value={localQuery}
               {...ac.inputProps}
-              placeholder="Gene symbol or UniProt ID"
+              placeholder={t('search.sidebar.queryPlaceholder')}
               style={{ paddingLeft: 32, fontFamily: 'var(--mono)', fontSize: 13 }}
             />
             <svg
@@ -329,20 +326,20 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             className="op-btn primary"
             style={{ width: '100%', justifyContent: 'center', marginTop: 8, fontSize: 13, padding: '8px' }}
           >
-            Search
+            {t('search.sidebar.searchButton')}
           </button>
         </form>
 
         {searchExamples.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 10 }}>
             <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-muted)', opacity: 0.55, textTransform: 'uppercase', paddingBottom: 2 }}>
-              Examples
+              {t('search.sidebar.examples')}
             </span>
             {searchExamples.map((ex, i) => {
               const genes = (ex.proteins ?? '').split('\n').map((g) => g.trim()).filter(Boolean)
               const preview = genes.slice(0, 2).join(', ') + (genes.length > 2 ? '…' : '')
               const query = genes.join(',')
-              const typeLabel = ex.type ?? 'all'
+              const typeLabel = normalizeExampleType(ex.type)
               return (
                 <button
                   key={i}
@@ -372,7 +369,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
 
       {/* Confidence score */}
       <div>
-        <label style={sectionLabelStyle}>Min. confidence score</label>
+        <label style={sectionLabelStyle}>{t('search.sidebar.score')}</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <input
             type="range"
@@ -394,13 +391,13 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {foundSummary && (
             <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-              <span style={{ fontWeight: 600, color: '#16a34a' }}>Found: </span>
+              <span style={{ fontWeight: 600, color: '#16a34a' }}>{t('search.sidebar.found')} </span>
               <span style={{ color: '#16a34a' }}>{foundSummary.split('<br>').join(', ')}</span>
             </div>
           )}
           {unfoundSummary && (
             <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-              <span style={{ fontWeight: 600, color: '#e11d48' }}>Not found: </span>
+              <span style={{ fontWeight: 600, color: '#e11d48' }}>{t('search.sidebar.notFound')} </span>
               <span style={{ color: '#e11d48' }}>{unfoundSummary.split('<br>').join(', ')}</span>
             </div>
           )}
@@ -410,7 +407,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
       {/* Interaction sources */}
       {hasCategories && (
         <div>
-          <label style={sectionLabelStyle}>Interaction sources</label>
+          <label style={sectionLabelStyle}>{t('search.sidebar.sources')}</label>
           {Object.entries(categoryFilter).map(([name, checked]) => (
             <label
               key={name}
@@ -446,10 +443,10 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
       {/* Tool sections - only shown once a search has been performed */}
       {term && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={sectionLabelStyle}>Tools</span>
+          <span style={sectionLabelStyle}>{t('search.sidebar.tools')}</span>
 
-          <SidebarAccordion label="Layout">
-            {LAYOUT_OPTIONS.map(({ value, label }) => (
+          <SidebarAccordion label={t('search.sidebar.layout')}>
+            {LAYOUT_OPTIONS.map(({ value, textKey }) => (
               <label
                 key={value}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', fontSize: 13, cursor: 'pointer', color: 'var(--text)' }}
@@ -463,13 +460,13 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                   style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
                 <LayoutIcon value={value} />
-                {label}
+                {t(textKey)}
               </label>
             ))}
           </SidebarAccordion>
 
-          <SidebarAccordion label="Filter mode">
-            {FILTER_MODE_OPTIONS.map(({ label, value }) => (
+          <SidebarAccordion label={t('search.sidebar.filterMode')}>
+            {FILTER_MODE_OPTIONS.map(({ textKey, value }) => (
               <label
                 key={value}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', fontSize: 13, cursor: 'pointer', color: 'var(--text)' }}
@@ -482,14 +479,14 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                   onChange={() => setFilterMode(value)}
                   style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
-                {label}
+                {t(textKey)}
               </label>
             ))}
           </SidebarAccordion>
 
           {/* Tissue expression */}
           <div>
-            <label htmlFor="tissue-filter" style={sectionLabelStyle}>Tissue expression</label>
+            <label htmlFor="tissue-filter" style={sectionLabelStyle}>{t('search.sidebar.tissue')}</label>
             <select
               id="tissue-filter"
               className="op-input"
@@ -497,7 +494,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
               onChange={(e) => setTissueFilter(e.target.value)}
               style={{ fontSize: 13 }}
             >
-              <option value="">All tissues</option>
+              <option value="">{t('search.sidebar.allTissues')}</option>
               {TISSUES.map((t) => (
                 <option key={t} value={t}>
                   {t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
@@ -506,18 +503,18 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             </select>
           </div>
 
-          <SidebarAccordion label="Summary">
+          <SidebarAccordion label={t('search.sidebar.summary')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
               <div>
-                <span style={{ fontWeight: 500, color: 'var(--text)' }}>Proteins: </span>
+                <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.proteins')} </span>
                 <span style={{ color: 'var(--text-muted)' }}>{allProteins.length}</span>
               </div>
               <div>
-                <span style={{ fontWeight: 500, color: 'var(--text)' }}>Interactions: </span>
+                <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.interactions')} </span>
                 <span style={{ color: 'var(--text-muted)' }}>{allInteractions.length}</span>
               </div>
               <div>
-                <span style={{ fontWeight: 500, color: 'var(--text)' }}>Avg. node degree: </span>
+                <span style={{ fontWeight: 500, color: 'var(--text)' }}>{t('search.summary.avgDegree')} </span>
                 <span style={{ color: 'var(--text-muted)' }}>
                   {allProteins.length > 0
                     ? ((2 * allInteractions.length) / allProteins.length).toFixed(2)
@@ -527,7 +524,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             </div>
           </SidebarAccordion>
 
-          <SidebarAccordion label="Download" defaultOpen={false}>
+          <SidebarAccordion label={t('search.sidebar.download')} defaultOpen={false}>
             {downloadActions.map(({ label, onClick }) => (
               <button
                 key={label}
@@ -553,9 +550,9 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             ))}
           </SidebarAccordion>
 
-          <SidebarAccordion label="External links" defaultOpen={false}>
+          <SidebarAccordion label={t('search.sidebar.externalLinks')} defaultOpen={false}>
             {allProteins.length === 0 ? (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No proteins loaded.</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('search.sidebar.noProteins')}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {buildLinks(allProteins, queryProteinIds).map((link) =>
@@ -593,7 +590,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                   className="op-btn"
                   style={{ width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }}
                 >
-                  Save Network
+                  {t('search.save.button')}
                 </button>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -601,7 +598,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                     className="op-input"
                     value={saveName}
                     onChange={(e) => setSaveName(e.target.value)}
-                    placeholder="Network name"
+                    placeholder={t('search.save.placeholder')}
                     style={{ fontSize: 12 }}
                     autoFocus
                   />
@@ -609,7 +606,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                     <div style={{ fontSize: 11, color: 'var(--warn)' }}>{saveError}</div>
                   )}
                   {saveSuccess && (
-                    <div style={{ fontSize: 11, color: 'var(--success, #22c55e)' }}>Saved!</div>
+                    <div style={{ fontSize: 11, color: 'var(--success, #22c55e)' }}>{t('search.save.success')}</div>
                   )}
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
@@ -618,7 +615,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                       className="op-btn"
                       style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '6px' }}
                     >
-                      Cancel
+                      {t('search.save.cancel')}
                     </button>
                     <button
                       type="button"
@@ -627,7 +624,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
                       className="op-btn primary"
                       style={{ flex: 1, justifyContent: 'center', fontSize: 11, padding: '6px' }}
                     >
-                      {isSaving ? '…' : 'Save'}
+                      {isSaving ? '…' : t('search.save.confirm')}
                     </button>
                   </div>
                 </div>

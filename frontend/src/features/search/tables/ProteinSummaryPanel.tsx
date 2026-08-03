@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStructureAvailability } from '../network/useStructureAvailability'
 import { StructureViewer } from '../network/StructureViewer'
 import type { Protein, Interaction } from '../../../types/api'
+import { useText } from '../../../text'
 
 interface Props {
   protein: Protein
@@ -35,6 +36,7 @@ const STYLES = `
 `
 
 export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: Props) {
+  const t = useText()
   const [seqCopied, setSeqCopied] = useState(false)
   const [structureSource, setStructureSource] = useState<'alphafold' | 'pdb'>('alphafold')
   const [prevProteinId, setPrevProteinId] = useState(protein.protein_id)
@@ -148,7 +150,7 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
           </div>
 
           {/* Identifiers */}
-          <div style={SECTION}>Identifiers</div>
+          <div style={SECTION}>{t('search.panel.identifiers')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
             {ids.map(({ label, value, href }) => (
               <div key={label} style={{
@@ -170,11 +172,11 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
           </div>
 
           {/* Interaction counts */}
-          <div style={SECTION}>Interactions</div>
+          <div style={SECTION}>{t('search.panel.interactions')}</div>
           <div style={{ display: 'flex', gap: 12 }}>
             {[
-              { label: 'In this network', value: interactionsInNetwork },
-              { label: 'In database', value: protein.number_of_interactions_in_database },
+              { label: t('search.panel.inNetwork'), value: interactionsInNetwork },
+              { label: t('search.panel.inDatabase'), value: protein.number_of_interactions_in_database },
             ].map(({ label, value }) => (
               <div key={label} style={{
                 background: 'var(--surface)', border: '1px solid var(--border)',
@@ -189,7 +191,7 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
           {/* Description */}
           {protein.protein_description && (
             <>
-              <div style={SECTION}>Description</div>
+              <div style={SECTION}>{t('search.panel.description')}</div>
               <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.7, margin: 0 }}>
                 {protein.protein_description}
               </p>
@@ -199,7 +201,7 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
           {/* Annotations */}
           {annotations.length > 0 && (
             <>
-              <div style={SECTION}>Annotations</div>
+              <div style={SECTION}>{t('search.panel.annotations')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {annotations.map(([key, value]) => (
                   <div key={key}>
@@ -218,19 +220,22 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
           {/* Top tissue expression */}
           {topTissues.length > 0 && (
             <>
-              <div style={SECTION}>Top Tissue Expression</div>
+              <div style={SECTION}>{t('search.panel.topTissue')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {topTissues.map(({ tissue, score }) => (
                   <div key={tissue} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 160, fontSize: 12, color: 'var(--text)', textAlign: 'right', flexShrink: 0, textTransform: 'capitalize' }}>
                       {tissue}
                     </div>
-                    <div style={{ flex: 1, height: 10, background: 'var(--surface)', borderRadius: 5, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    {/* --surface would vanish against the surrounding surface, and
+                        --primary keeps the admin's raw brand hex in dark mode. Only
+                        --primary-deep is derived per theme, so it reads in both. */}
+                    <div style={{ flex: 1, height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
                       <div style={{
                         height: '100%',
                         width: `${Math.max(2, (score / maxTissueScore) * 100)}%`,
-                        background: 'var(--primary)',
-                        borderRadius: 5,
+                        background: 'var(--primary-deep)',
+                        borderRadius: 4,
                       }} />
                     </div>
                     <div style={{ width: 42, fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', fontFamily: 'var(--mono)', flexShrink: 0 }}>
@@ -245,7 +250,7 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
           {/* Subcellular locations */}
           {subcellularLocs.length > 0 && (
             <>
-              <div style={SECTION}>Subcellular Location</div>
+              <div style={SECTION}>{t('search.panel.subcellular')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {subcellularLocs.map(({ location, status }) => (
                   <span key={location} style={{
@@ -266,7 +271,7 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
           {protein.protein_sequence && (
             <>
               <div style={{ ...SECTION, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Sequence</span>
+                <span>{t('search.panel.sequence')}</span>
                 <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-soft)', textTransform: 'none', letterSpacing: 0 }}>
                   {protein.protein_sequence.length} aa
                 </span>
@@ -296,7 +301,7 @@ export function ProteinSummaryPanel({ protein, interactions, isQueryProtein }: P
           )}
 
           {/* External links */}
-          <div style={SECTION}>External Databases</div>
+          <div style={SECTION}>{t('search.panel.externalDatabases')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', paddingBottom: 24 }}>
             {links.map(({ label, href, fav }) => (
               <a key={label} href={href} target="_blank" rel="noreferrer" style={{

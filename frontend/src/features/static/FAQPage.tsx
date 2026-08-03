@@ -1,7 +1,9 @@
 import { useSettings } from '../../api/settings'
+import { useText } from '../../text'
 
 export function FAQPage() {
   const { data: settings, isLoading } = useSettings()
+  const t = useText()
 
   if (isLoading) {
     return (
@@ -22,7 +24,7 @@ export function FAQPage() {
           color: 'var(--text)',
         }}
       >
-        Frequently Asked Questions
+        {t('faq.title')}
       </h1>
       {settings?.faq ? (
         <div
@@ -31,7 +33,7 @@ export function FAQPage() {
         />
       ) : (
         <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-          No FAQ content has been set. Add content in Admin → FAQs.
+          {t('faq.empty')}
         </p>
       )}
     </div>

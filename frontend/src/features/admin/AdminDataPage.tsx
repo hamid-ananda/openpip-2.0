@@ -1428,7 +1428,7 @@ export function AdminDataPage() {
   const { data: datasets, isLoading } = useDatasets()
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 80px' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 48px' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>

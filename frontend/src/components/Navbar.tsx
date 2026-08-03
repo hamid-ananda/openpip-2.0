@@ -2,19 +2,21 @@ import { NavLink } from 'react-router-dom'
 import { useLogout } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
 import { useDarkMode } from '../store/darkModeStore'
+import { useText } from '../text'
 
 interface NavbarProps {
   isLoggedIn: boolean
 }
 
 const publicLinks = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/search', label: 'Search', end: false },
-  { to: '/download', label: 'Downloads', end: false },
-  { to: '/developer', label: 'API', end: false },
-  { to: '/about', label: 'About', end: false },
-  { to: '/faq', label: 'FAQ', end: false },
-  { to: '/contact', label: 'Contact', end: false },
+  { to: '/', textKey: 'nav.home', end: true },
+  { to: '/search', textKey: 'nav.search', end: false },
+  { to: '/proteins', textKey: 'nav.proteins', end: false },
+  { to: '/download', textKey: 'nav.downloads', end: false },
+  { to: '/developer', textKey: 'nav.api', end: false },
+  { to: '/about', textKey: 'nav.about', end: false },
+  { to: '/faq', textKey: 'nav.faq', end: false },
+  { to: '/contact', textKey: 'nav.contact', end: false },
 ]
 
 const linkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
@@ -34,11 +36,12 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
   const logout = useLogout()
   const isAdmin = useAuthStore((s) => s.isAdmin)
   const { dark, toggle } = useDarkMode()
+  const t = useText()
 
   return (
     <nav
       style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap' }}
-      aria-label="Main navigation"
+      aria-label={t('nav.ariaLabel')}
     >
       <div
         style={{
@@ -52,7 +55,7 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
       >
         {publicLinks.map((link) => (
           <NavLink key={link.to} to={link.to} style={linkStyle} end={link.end}>
-            {link.label}
+            {t(link.textKey)}
           </NavLink>
         ))}
       </div>
@@ -68,7 +71,7 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
       >
         <button
           onClick={toggle}
-          aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={dark ? t('nav.themeToLight') : t('nav.themeToDark')}
           style={{
             width: 32,
             height: 32,
@@ -92,11 +95,11 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
           <>
             {isAdmin && (
               <NavLink to="/admin" style={linkStyle}>
-                Admin
+                {t('nav.admin')}
               </NavLink>
             )}
             <NavLink to="/profile" style={linkStyle}>
-              Profile
+              {t('nav.profile')}
             </NavLink>
             <button
               onClick={() => logout.mutate()}
@@ -114,13 +117,13 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
                 transition: 'opacity .15s',
               }}
             >
-              Logout
+              {t('nav.logout')}
             </button>
           </>
         ) : (
           <>
             <NavLink to="/login" style={linkStyle}>
-              Login
+              {t('nav.login')}
             </NavLink>
             <NavLink
               to="/register"
@@ -137,7 +140,7 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
                 display: 'inline-block',
               }}
             >
-              Register
+              {t('nav.register')}
             </NavLink>
           </>
         )}

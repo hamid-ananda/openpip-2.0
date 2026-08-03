@@ -28,6 +28,14 @@ describe('InteractorsTable', () => {
     expect(interactorBadges.length).toBe(1)
   })
 
+  it('links gene names out to NCBI Gene via the Entrez ID', () => {
+    render(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />, { wrapper })
+    // BAD → Entrez 572
+    const badLink = screen.getByRole('link', { name: 'BAD' })
+    expect(badLink).toHaveAttribute('href', 'https://www.ncbi.nlm.nih.gov/gene/572')
+    expect(badLink).toHaveAttribute('target', '_blank')
+  })
+
   it('renders UniProt links for each protein', () => {
     render(<InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />, { wrapper })
     // BAD → Q92934

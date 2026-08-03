@@ -383,7 +383,7 @@ export function AdminAnnouncementPage() {
   }
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 80px' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 48px' }}>
       <style>{QUILL_STYLE}</style>
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
         {/* ── Header ── */}

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForgotPassword } from '../../api/auth'
+import { useText } from '../../text'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
+  const t = useText()
   const { mutate, isPending, isSuccess, error } = useForgotPassword()
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -69,7 +71,7 @@ export function ForgotPasswordPage() {
               required
               className="op-input"
               style={{ margin: '6px 0 20px' }}
-              placeholder="you@example.com"
+              placeholder={t('auth.forgot.emailPlaceholder')}
             />
 
             {error && (
@@ -84,7 +86,7 @@ export function ForgotPasswordPage() {
               className="op-btn primary"
               style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: 14 }}
             >
-              {isPending ? 'Sending…' : 'Send reset link'}
+              {isPending ? t('auth.forgot.submitting') : t('auth.forgot.submit')}
             </button>
           </form>
         )}

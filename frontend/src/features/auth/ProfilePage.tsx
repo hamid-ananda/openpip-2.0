@@ -1,14 +1,10 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useProfile, useLogout } from '../../api/auth'
 import { useSavedNetworks, useDeleteNetwork } from '../../api/networks'
-import { Settings, Megaphone, Database, Folder } from 'lucide-react'
+import { useText } from '../../text'
 
-const ADMIN_LINKS = [
-  { to: '/admin/settings',      label: 'Site Settings',       icon: Settings,  desc: 'Colors, titles, footer, logo' },
-  { to: '/admin/announcement',  label: 'Announcements',       icon: Megaphone, desc: 'Manage homepage notices' },
-  { to: '/admin/data',          label: 'Data Manager',        icon: Database,  desc: 'Datasets and database stats' },
-  { to: '/admin/files',         label: 'File Manager',        icon: Folder,    desc: 'Upload supplementary files' },
-]
+// The admin shortcuts that used to sit here were a second, partial copy of the
+// admin sidebar. Admins reach the same screens from the Admin link in the nav.
 
 export function ProfilePage() {
   const navigate = useNavigate()
@@ -16,6 +12,7 @@ export function ProfilePage() {
   const { mutate: logout, isPending } = useLogout()
   const { data: networks, isLoading: networksLoading } = useSavedNetworks()
   const { mutate: deleteNetwork } = useDeleteNetwork()
+  const t = useText()
 
   if (isLoading) {
     return (
@@ -87,9 +84,9 @@ export function ProfilePage() {
             }}
           >
             <div>
-              <div style={{ fontSize: 11, color: 'var(--text-soft)', marginBottom: 2 }}>Role</div>
+              <div style={{ fontSize: 11, color: 'var(--text-soft)', marginBottom: 2 }}>{t('auth.profile.role')}</div>
               <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
-                {profile?.is_admin ? 'Administrator' : 'Registered user'}
+                {profile?.is_admin ? t('auth.profile.roleAdmin') : t('auth.profile.roleUser')}
               </div>
             </div>
           </div>
@@ -111,9 +108,9 @@ export function ProfilePage() {
           </div>
 
           {networksLoading ? (
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('auth.profile.loading')}</div>
           ) : !networks || networks.length === 0 ? (
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No saved networks yet.</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('auth.profile.noNetworks')}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {networks.map((net) => (
@@ -172,70 +169,6 @@ export function ProfilePage() {
           )}
         </div>
 
-        {/* Admin Settings section */}
-        {profile?.is_admin && (
-          <div className="op-card" style={{ padding: 28, marginBottom: 20 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 500,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '.08em',
-                marginBottom: 16,
-              }}
-            >
-              Admin Settings
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {ADMIN_LINKS.map(({ to, label, icon: Icon, desc }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 14px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border)',
-                    background: 'var(--surface)',
-                    textDecoration: 'none',
-                    transition: 'all .15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--primary)'
-                    e.currentTarget.style.background = 'var(--primary-soft)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border)'
-                    e.currentTarget.style.background = 'var(--surface)'
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: 'var(--surface-2)',
-                      color: 'var(--text-muted)',
-                      display: 'grid',
-                      placeItems: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={16} aria-hidden />
-                  </span>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{label}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{desc}</div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Sign out */}
         <button
           onClick={() => logout(undefined, { onSuccess: () => navigate('/') })}
@@ -243,7 +176,7 @@ export function ProfilePage() {
           className="op-btn"
           style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
         >
-          {isPending ? 'Signing out…' : 'Sign out'}
+          {isPending ? t('auth.profile.signingOut') : t('auth.profile.signOut')}
         </button>
       </div>
     </div>

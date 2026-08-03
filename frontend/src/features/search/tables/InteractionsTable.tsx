@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import type { Interaction, Protein } from '../../../types/api'
+import { ncbiGeneUrl } from './ncbi'
 
 interface InteractionsTableProps {
   interactions: Interaction[]
@@ -47,15 +48,6 @@ function SortIcon({ isSorted }: { isSorted: false | 'asc' | 'desc' }) {
 }
 
 type Interactor = Interaction['interactor_A']
-
-function ncbiGeneUrl(entrezId: string | undefined, symbol: string): string {
-  // Prefer a direct Entrez Gene record when the ID is known; otherwise fall
-  // back to an NCBI Gene symbol search.
-  if (entrezId && entrezId.trim()) {
-    return `https://www.ncbi.nlm.nih.gov/gene/${entrezId.trim()}`
-  }
-  return `https://www.ncbi.nlm.nih.gov/gene/?term=${encodeURIComponent(symbol)}%5Bsym%5D`
-}
 
 function GeneLink({
   interactor,

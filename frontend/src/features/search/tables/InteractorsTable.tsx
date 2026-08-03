@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,6 +7,7 @@ import {
 } from '@tanstack/react-table'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import type { Protein } from '../../../types/api'
+import { ncbiGeneUrl } from './ncbi'
 
 interface InteractorsTableProps {
   proteins: Protein[]
@@ -25,16 +25,18 @@ function buildColumns(queryProteinIds: number[]): ColumnDef<Protein>[] {
     {
       accessorKey: 'protein_gene_name',
       header: 'Gene Name',
-      cell: ({ getValue }) => {
+      cell: ({ row, getValue }) => {
         const name = getValue<string>()
         if (!name) return '—'
         return (
-          <Link
-            to={`/protein/${encodeURIComponent(name)}`}
-            style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}
+          <a
+            href={ncbiGeneUrl(row.original.protein_entrez_id, name)}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 500 }}
           >
             {name}
-          </Link>
+          </a>
         )
       },
     },

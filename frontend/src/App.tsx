@@ -63,6 +63,9 @@ const router = createBrowserRouter(
         children: [
           { index: true, element: <Navigate to="settings" replace /> },
           { path: 'settings', element: <AdminSettingsPage /> },
+          // Text editing now lives inside each page's settings tab; keep the
+          // old link working for anyone who bookmarked it.
+          { path: 'text', element: <Navigate to="/admin/settings" replace /> },
           { path: 'announcement', element: <AdminAnnouncementPage /> },
           { path: 'data', element: <AdminDataPage /> },
           { path: 'files', element: <AdminFilePage /> },

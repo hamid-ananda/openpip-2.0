@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStructureAvailability } from './network/useStructureAvailability'
 import { StructureViewer } from './network/StructureViewer'
 import type { Protein, Interaction } from '../../types/api'
+import { useText } from '../../text'
 
 const SECTION = {
   fontSize: 11,
@@ -32,6 +33,7 @@ export function NodeInfoPanel({
   onRemove,
 }: NodeInfoPanelProps) {
   const navigate = useNavigate()
+  const t = useText()
   const gene = protein.protein_gene_name || protein.protein_uniprot_id || '-'
 
   const [viewerOpen, setViewerOpen] = useState(false)
@@ -97,7 +99,7 @@ export function NodeInfoPanel({
         </div>
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('search.panel.close')}
           style={{
             background: 'none',
             border: 'none',
@@ -116,7 +118,7 @@ export function NodeInfoPanel({
       {uniprotId && (
         <div style={{ marginTop: 12 }}>
           <button
-            aria-label="3D Structure"
+            aria-label={t('search.panel.structure')}
             onClick={() => setViewerOpen((v) => !v)}
             style={{
               width: '100%',
@@ -196,7 +198,7 @@ export function NodeInfoPanel({
       )}
 
       {/* Actions */}
-      <div style={SECTION}>Actions</div>
+      <div style={SECTION}>{t('search.panel.actions')}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <button
           className="op-btn"
@@ -221,7 +223,7 @@ export function NodeInfoPanel({
       </div>
 
       {/* Links */}
-      <div style={SECTION}>Links</div>
+      <div style={SECTION}>{t('search.panel.links')}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
         {ncbiId && (
           <a
@@ -311,7 +313,7 @@ export function NodeInfoPanel({
       </div>
 
       {/* Interaction counts */}
-      <div style={SECTION}>Number of Interactions</div>
+      <div style={SECTION}>{t('search.panel.interactionCount')}</div>
       <div
         style={{
           fontSize: 13,
@@ -333,7 +335,7 @@ export function NodeInfoPanel({
       {/* Description */}
       {protein.protein_description && (
         <>
-          <div style={SECTION}>Description</div>
+          <div style={SECTION}>{t('search.panel.description')}</div>
           <p style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>
             {protein.protein_description}
           </p>

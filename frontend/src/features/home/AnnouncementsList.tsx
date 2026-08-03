@@ -1,16 +1,19 @@
 import type { Announcement } from '../../types/api'
+import { useText } from '../../text'
 
 interface AnnouncementsListProps {
   announcements: Announcement[]
 }
 
 export function AnnouncementsList({ announcements }: AnnouncementsListProps) {
+  const t = useText()
+
   return (
     <div data-testid="announcements">
       <div style={{ overflow: 'hidden auto', maxHeight: 300 }}>
         {announcements.length === 0 ? (
           <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 0' }}>
-            No announcements.
+            {t('home.news.empty')}
           </p>
         ) : (
           announcements.map((a, i) => (

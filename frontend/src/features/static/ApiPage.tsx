@@ -1,4 +1,6 @@
-const BASE = 'https://openpip.usask.ca/v2'
+import { useText, parsePipeList } from '../../text'
+import { useSettings } from '../../api/settings'
+import { apiBase } from '../../lib/apiBase'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -50,21 +52,20 @@ function EndpointRow({ method, path, desc }: { method: string; path: string; des
 }
 
 export function ApiPage() {
+  const t = useText()
+  const { data: settings } = useSettings()
+  const BASE = apiBase(settings?.url)
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-main)' }}>
-        API &amp; External Access
+        {t('api.title')}
       </h1>
-      <p className="text-gray-500 mb-8">
-        openPIP is fully open, no API key required. Use deep links, the REST API, the Python SDK,
-        or the PSICQUIC protocol.
-      </p>
+      <p className="text-gray-500 mb-8">{t('api.intro')}</p>
 
       {/* ── 1. Deep links ── */}
-      <Section title="1. Deep links">
-        <p className="text-gray-600 mb-3 text-sm">
-          Link directly to a search or protein page from any website. No code needed.
-        </p>
+      <Section title={t('api.deepLinks.heading')}>
+        <p className="text-gray-600 mb-3 text-sm">{t('api.deepLinks.body')}</p>
         <Code>{`
 # Search by gene name or UniProt ID
 ${BASE}/search/BRCA1
@@ -75,17 +76,14 @@ ${BASE}/protein/BRCA1
 ${BASE}/protein/P38398
 ${BASE}/protein/ENSG00000012048
         `}</Code>
-        <p className="text-gray-500 text-sm">
-          Example "View in openPIP" button:
-        </p>
+        <p className="text-gray-500 text-sm">{t('api.deepLinks.buttonNote')}</p>
         <Code>{`<a href="${BASE}/protein/BRCA1">View BRCA1 in openPIP</a>`}</Code>
       </Section>
 
       {/* ── 2. REST API ── */}
-      <Section title="2. REST API">
+      <Section title={t('api.rest.heading')}>
         <p className="text-gray-600 mb-4 text-sm">
-          All read endpoints are public and CORS-enabled, callable from any browser or server.
-          Interactive docs with a live try-it-out console:{' '}
+          {t('api.rest.body')}{' '}
           <a
             href={`${BASE}/api/docs/`}
             target="_blank"
@@ -97,17 +95,17 @@ ${BASE}/protein/ENSG00000012048
           </a>
         </p>
 
-        <h3 className="font-medium text-gray-800 mb-2 text-sm">Public endpoints</h3>
+        <h3 className="font-medium text-gray-800 mb-2 text-sm">{t('api.rest.endpointsHeading')}</h3>
         <div className="mb-6">
-          <EndpointRow method="GET" path="/api/search?q=BRCA1" desc="Search proteins by gene name, UniProt ID, or Ensembl ID. Comma-separate for multi-protein." />
-          <EndpointRow method="GET" path="/api/proteins/{identifier}" desc="Full protein detail including description, identifiers, and interaction count." />
-          <EndpointRow method="GET" path="/api/counts" desc="Total proteins, interactions, and datasets in the database." />
-          <EndpointRow method="GET" path="/api/datasets" desc="List all published interaction datasets." />
-          <EndpointRow method="GET" path="/api/datasets/{id}/download" desc="Download a dataset file (PSI-MI TAB format)." />
-          <EndpointRow method="GET" path="/api/announcements" desc="Site announcements." />
+          <EndpointRow method="GET" path="/api/search?q=BRCA1" desc={t('api.rest.searchDesc')} />
+          <EndpointRow method="GET" path="/api/proteins/{identifier}" desc={t('api.rest.proteinDesc')} />
+          <EndpointRow method="GET" path="/api/counts" desc={t('api.rest.countsDesc')} />
+          <EndpointRow method="GET" path="/api/datasets" desc={t('api.rest.datasetsDesc')} />
+          <EndpointRow method="GET" path="/api/datasets/{id}/download" desc={t('api.rest.datasetDownloadDesc')} />
+          <EndpointRow method="GET" path="/api/announcements" desc={t('api.rest.announcementsDesc')} />
         </div>
 
-        <h3 className="font-medium text-gray-800 mb-2 text-sm">JavaScript (browser or Node)</h3>
+        <h3 className="font-medium text-gray-800 mb-2 text-sm">{t('api.rest.jsHeading')}</h3>
         <Code>{`
 // Search
 const res = await fetch('${BASE}/api/search?q=BRCA1');
@@ -131,7 +129,7 @@ const { proteins, interactions } = await (
 ).json();
         `}</Code>
 
-        <h3 className="font-medium text-gray-800 mb-2 text-sm">Python (requests)</h3>
+        <h3 className="font-medium text-gray-800 mb-2 text-sm">{t('api.rest.pythonHeading')}</h3>
         <Code>{`
 import requests
 
@@ -147,7 +145,7 @@ r = requests.get(f'{BASE}/api/proteins/P38398')
 print(r.json()['protein_description'][:80])
         `}</Code>
 
-        <h3 className="font-medium text-gray-800 mb-2 text-sm">curl</h3>
+        <h3 className="font-medium text-gray-800 mb-2 text-sm">{t('api.rest.curlHeading')}</h3>
         <Code>{`
 curl '${BASE}/api/search?q=BRCA1' | python3 -m json.tool
 curl '${BASE}/api/proteins/BRCA1'
@@ -156,10 +154,8 @@ curl '${BASE}/api/counts'
       </Section>
 
       {/* ── 3. Python SDK ── */}
-      <Section title="3. Python SDK">
-        <p className="text-gray-600 mb-3 text-sm">
-          A typed Python SDK for use in scripts, Jupyter notebooks, and pipelines.
-        </p>
+      <Section title={t('api.sdk.heading')}>
+        <p className="text-gray-600 mb-3 text-sm">{t('api.sdk.body')}</p>
         <Code>{`
 pip install openpip        # coming to PyPI - for now: pip install -e cli/
         `}</Code>
@@ -187,21 +183,11 @@ tab = client.psicquic('BRCA1')                         # PSI-MI TAB 2.5
       </Section>
 
       {/* ── 4. PSICQUIC ── */}
-      <Section title="4. PSICQUIC">
-        <p className="text-gray-600 mb-3 text-sm">
-          openPIP implements the{' '}
-          <a
-            href="https://psicquic.github.io/"
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-            style={{ color: 'var(--color-main)' }}
-          >
-            PSICQUIC standard
-          </a>
-          , the same protocol used by BioGRID, IntAct, and STRING. Any tool written for those
-          databases works with openPIP using the same syntax.
-        </p>
+      <Section title={t('api.psicquic.heading')}>
+        <p
+          className="text-gray-600 mb-3 text-sm"
+          dangerouslySetInnerHTML={{ __html: t('api.psicquic.body') }}
+        />
         <Code>{`
 # Base URL
 ${BASE}/psicquic/rest/query
@@ -212,39 +198,26 @@ curl '${BASE}/psicquic/rest/query?q=idA:P38398&format=json'
 curl '${BASE}/psicquic/rest/query?q=taxidA:9606&maxResults=100&format=tab25'
         `}</Code>
 
-        <h3 className="font-medium text-gray-800 mb-2 text-sm">MIQL query syntax</h3>
+        <h3 className="font-medium text-gray-800 mb-2 text-sm">{t('api.psicquic.miqlHeading')}</h3>
         <div className="text-sm">
-          {[
-            ['BRCA1', 'Any interaction involving BRCA1'],
-            ['idA:P38398', 'Interactions where interactor A is P38398'],
-            ['idB:P04637', 'Interactions where interactor B is P04637'],
-            ['id:P38398', 'Either interactor is P38398'],
-            ['taxidA:9606', 'Interactor A is Homo sapiens (NCBI taxon 9606)'],
-            ['*', 'All interactions'],
-          ].map(([q, desc]) => (
-            <div key={q} className="flex gap-4 py-1.5 border-b border-gray-100">
+          {parsePipeList(t('api.psicquic.miqlRows')).map(({ term, description }) => (
+            <div key={term} className="flex gap-4 py-1.5 border-b border-gray-100">
               <code
                 className="px-2 py-0.5 rounded text-xs w-44 shrink-0"
                 style={{ background: 'var(--color-surface, #f3f4f6)' }}
               >
-                {q}
+                {term}
               </code>
-              <span className="text-gray-500">{desc}</span>
+              <span className="text-gray-500">{description}</span>
             </div>
           ))}
         </div>
       </Section>
 
       {/* ── 5. Cite ── */}
-      <Section title="5. Citing openPIP">
-        <p className="text-gray-600 text-sm">
-          If you use openPIP in your research, please cite:
-        </p>
-        <Code>{`
-Helmy M. et al. openPIP: an open-source human protein interaction
-database and analysis platform. J. Mol. Biol. (2022).
-https://doi.org/10.1016/j.jmb.2022.167481
-        `}</Code>
+      <Section title={t('api.cite.heading')}>
+        <p className="text-gray-600 text-sm">{t('api.cite.body')}</p>
+        <Code>{t('api.cite.reference')}</Code>
       </Section>
     </div>
   )

@@ -2,24 +2,13 @@ import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useRegister } from '../../api/auth'
 import { useAuthStore } from '../../store/authStore'
+import { useText } from '../../text'
 
 const BENEFITS = [
-  {
-    title: 'Bulk downloads',
-    desc: 'Pull every dataset in PSI-MI tab, SIF, or CSV format.',
-  },
-  {
-    title: 'API access',
-    desc: 'A personal key for the search and protein endpoints.',
-  },
-  {
-    title: 'Saved queries',
-    desc: 'Bookmark gene neighborhoods and share them with collaborators.',
-  },
-  {
-    title: 'Update digests',
-    desc: 'Get notified when a dataset you cite is revised.',
-  },
+  { titleKey: 'auth.register.benefit1.title', descKey: 'auth.register.benefit1.desc' },
+  { titleKey: 'auth.register.benefit2.title', descKey: 'auth.register.benefit2.desc' },
+  { titleKey: 'auth.register.benefit3.title', descKey: 'auth.register.benefit3.desc' },
+  { titleKey: 'auth.register.benefit4.title', descKey: 'auth.register.benefit4.desc' },
 ]
 
 function PasswordStrength({ password }: { password: string }) {
@@ -53,6 +42,7 @@ export function RegisterPage() {
   const { mutate: register, isPending, isSuccess, error } = useRegister()
   const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '' })
   const [localError, setLocalError] = useState('')
+  const t = useText()
 
   if (isLoggedIn) return <Navigate to="/" replace />
 
@@ -60,7 +50,7 @@ export function RegisterPage() {
     e.preventDefault()
     setLocalError('')
     if (form.password !== form.confirm) {
-      setLocalError('Passwords do not match.')
+      setLocalError(t('auth.register.mismatch'))
       return
     }
     register({ username: form.username, email: form.email, password: form.password })
@@ -95,13 +85,13 @@ export function RegisterPage() {
             </svg>
           </div>
           <h2 style={{ fontSize: 22, fontWeight: 600, margin: '0 0 8px', color: 'var(--text)' }}>
-            Account created
+            {t('auth.register.success.title')}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 24 }}>
-            Your account is ready. Sign in to access datasets and the API.
+            {t('auth.register.success.body')}
           </p>
           <Link to="/login" className="op-btn primary" style={{ justifyContent: 'center' }}>
-            Sign in now
+            {t('auth.register.success.cta')}
           </Link>
         </div>
       </div>
@@ -137,17 +127,17 @@ export function RegisterPage() {
               color: 'var(--text)',
             }}
           >
-            Create your account
+            {t('auth.register.title')}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 28px' }}>
-            Free for academic and non-commercial use.
+            {t('auth.register.subtitle')}
           </p>
 
           <form onSubmit={handleSubmit}>
             <label
               style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', display: 'block' }}
             >
-              Username
+              {t('auth.register.username')}
             </label>
             <input
               type="text"
@@ -161,14 +151,14 @@ export function RegisterPage() {
             <label
               style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', display: 'block' }}
             >
-              Email
+              {t('auth.register.email')}
             </label>
             <input
               type="email"
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               required
-              placeholder="you@university.edu"
+              placeholder={t('auth.register.emailPlaceholder')}
               className="op-input"
               style={{ margin: '6px 0 14px' }}
             />
@@ -176,7 +166,7 @@ export function RegisterPage() {
             <label
               style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', display: 'block' }}
             >
-              Password
+              {t('auth.register.password')}
             </label>
             <input
               type="password"
@@ -191,7 +181,7 @@ export function RegisterPage() {
             <label
               style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', display: 'block' }}
             >
-              Confirm password
+              {t('auth.register.confirm')}
             </label>
             <input
               type="password"
@@ -204,7 +194,7 @@ export function RegisterPage() {
 
             {(localError || error) && (
               <p style={{ color: 'var(--danger)', fontSize: 13, margin: '0 0 14px' }}>
-                {localError || 'Registration failed. Please try again.'}
+                {localError || t('auth.register.error')}
               </p>
             )}
 
@@ -214,7 +204,7 @@ export function RegisterPage() {
               className="op-btn primary"
               style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: 14 }}
             >
-              {isPending ? 'Creating account…' : 'Create account'}
+              {isPending ? t('auth.register.submitting') : t('auth.register.submit')}
             </button>
 
             <div
@@ -228,7 +218,7 @@ export function RegisterPage() {
               }}
             >
               <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              OR
+              {t('auth.divider')}
               <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             </div>
 
@@ -237,17 +227,17 @@ export function RegisterPage() {
               className="op-btn"
               style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
             >
-              Continue with ORCID
+              {t('auth.register.orcid')}
             </button>
           </form>
 
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--text-muted)' }}>
-            Already have an account?{' '}
+            {t('auth.register.existingPrompt')}{' '}
             <Link
               to="/login"
               style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}
             >
-              Sign in
+              {t('auth.register.existingLink')}
             </Link>
           </p>
         </div>
@@ -275,7 +265,7 @@ export function RegisterPage() {
               marginBottom: 16,
             }}
           >
-            What you unlock
+            {t('auth.register.benefitsEyebrow')}
           </div>
           <h2
             style={{
@@ -287,11 +277,11 @@ export function RegisterPage() {
               color: 'var(--text)',
             }}
           >
-            One key for the whole interactome.
+            {t('auth.register.benefitsHeading')}
           </h2>
-          {BENEFITS.map(({ title, desc }, i) => (
+          {BENEFITS.map(({ titleKey, descKey }, i) => (
             <div
-              key={title}
+              key={titleKey}
               style={{
                 display: 'flex',
                 gap: 14,
@@ -326,9 +316,9 @@ export function RegisterPage() {
               </span>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2, color: 'var(--text)' }}>
-                  {title}
+                  {t(titleKey)}
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>{desc}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t(descKey)}</div>
               </div>
             </div>
           ))}

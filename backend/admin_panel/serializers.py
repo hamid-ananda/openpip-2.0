@@ -1,9 +1,32 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import AdminSettings, Announcement
+from .models import AdminSettings, Announcement, SiteText
 from interactions.models import InteractionCategory
 
 User = get_user_model()
+
+
+class SiteTextMirrorField(serializers.CharField):
+    """Read-only view of one site_text override, exposed on /api/settings.
+
+    The home-page prose these fields describe moved into the site_text table in
+    migration 0006, but the legacy settings payload advertises them and
+    tests/parity/test_catalog_parity.py asserts they are present, so they stay
+    on the response. Writes go through /api/settings/text instead.
+    """
+
+    def __init__(self, text_key: str, **kwargs):
+        self.text_key = text_key
+        kwargs["read_only"] = True
+        super().__init__(**kwargs)
+
+    def get_attribute(self, instance):
+        # The value comes from site_text, not from the settings row, but DRF
+        # still needs a non-None attribute to hand to to_representation.
+        return instance
+
+    def to_representation(self, value) -> str:
+        return self.parent.home_prose().get(self.text_key, "")
 
 
 class AdminSettingsSerializer(serializers.ModelSerializer):
@@ -17,18 +40,10 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     homePage = serializers.CharField(
         source="home_page", allow_null=True, allow_blank=True, required=False
     )
-    missionTitle = serializers.CharField(
-        source="mission_title", allow_null=True, allow_blank=True, required=False
-    )
-    missionText = serializers.CharField(
-        source="mission_text", allow_null=True, allow_blank=True, required=False
-    )
-    methodTitle = serializers.CharField(
-        source="method_title", allow_null=True, allow_blank=True, required=False
-    )
-    methodText = serializers.CharField(
-        source="method_text", allow_null=True, allow_blank=True, required=False
-    )
+    missionTitle = SiteTextMirrorField("home.mission.heading")
+    missionText = SiteTextMirrorField("home.mission.body")
+    methodTitle = SiteTextMirrorField("home.methods.heading")
+    methodText = SiteTextMirrorField("home.methods.body")
     mainColorScheme = serializers.CharField(
         source="main_color_scheme", allow_null=True, allow_blank=True, required=False
     )
@@ -143,10 +158,55 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
             "example3Type",
         ]
 
+    #: Legacy payload field → the site_text key that now backs it.
+    HOME_PROSE_KEYS = {
+        "home.mission.heading",
+        "home.mission.body",
+        "home.methods.heading",
+        "home.methods.body",
+    }
+
+    def home_prose(self) -> dict[str, str]:
+        """The home-page prose overrides, fetched once per serialization."""
+        if not hasattr(self, "_home_prose"):
+            self._home_prose = dict(
+                SiteText.objects.filter(
+                    key__in=self.HOME_PROSE_KEYS, locale="en"
+                ).values_list("key", "value")
+            )
+        return self._home_prose
+
     def get_logoUrl(self, obj):
         if not obj.logo:
             return None
         return obj.logo.url
+
+
+class SiteTextSerializer(serializers.ModelSerializer):
+    updatedAt = serializers.DateTimeField(source="updated_at", read_only=True)
+
+    class Meta:
+        model = SiteText
+        fields = ["key", "locale", "value", "updatedAt"]
+
+
+class SiteTextWriteSerializer(serializers.Serializer):
+    """Validates one entry of a bulk site-text write.
+
+    A blank or null value is meaningful: it clears the override so the shipped
+    default takes over again.
+    """
+
+    key = serializers.CharField(max_length=200)
+    value = serializers.CharField(
+        allow_blank=True, allow_null=True, required=False, trim_whitespace=False
+    )
+
+    def validate_key(self, value: str) -> str:
+        key = value.strip()
+        if not key:
+            raise serializers.ValidationError("Key must not be blank.")
+        return key
 
 
 class AnnouncementSerializer(serializers.ModelSerializer):

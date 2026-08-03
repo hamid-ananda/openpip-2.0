@@ -1,15 +1,11 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { screen } from '@testing-library/react'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { useSearchStore } from '../../searchStore'
 import { OverlaySystem } from '../OverlaySystem'
+import { renderWithProviders } from '../../../../test/renderWithProviders'
 
 function wrap() {
-  return render(
-    <MemoryRouter>
-      <OverlaySystem />
-    </MemoryRouter>
-  )
+  return renderWithProviders(<OverlaySystem />)
 }
 
 describe('OverlaySystem', () => {

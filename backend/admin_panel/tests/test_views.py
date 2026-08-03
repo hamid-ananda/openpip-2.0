@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
-from admin_panel.models import AdminSettings, Announcement
+from admin_panel.models import AdminSettings, Announcement, SiteText
 
 User = get_user_model()
 
@@ -372,7 +372,7 @@ def test_get_settings_exposes_example_fields(api_client):
         example_2="BAD\nBAK1",
         example_2_type="query-interactor",
         example_3="BAD",
-        example_3_type="all",
+        example_3_type="None",
     )
     response = api_client.get("/api/settings")
     assert response.status_code == 200
@@ -380,7 +380,7 @@ def test_get_settings_exposes_example_fields(api_client):
     assert data["example1"] == "BAD\nBAK1\nMCL1"
     assert data["example1Type"] == "query-query"
     assert data["example2Type"] == "query-interactor"
-    assert data["example3Type"] == "all"
+    assert data["example3Type"] == "None"
 
 
 @pytest.mark.django_db
@@ -480,6 +480,139 @@ def test_delete_interaction_category(auth_client):
     response = auth_client.delete(f"/api/interaction-categories/{cat.pk}")
     assert response.status_code == 204
     assert not InteractionCategory.objects.filter(pk=cat.pk).exists()
+
+
+# ─────────────────────────────────────────────────────────
+# Site text overrides
+# ─────────────────────────────────────────────────────────
+@pytest.mark.django_db
+def test_get_site_text_returns_only_overrides(api_client):
+    SiteText.objects.create(key="home.hero.headline", value="Custom headline")
+    response = api_client.get("/api/settings/text")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["locale"] == "en"
+    assert data["text"] == {"home.hero.headline": "Custom headline"}
+
+
+@pytest.mark.django_db
+def test_get_site_text_is_empty_when_nothing_overridden(api_client):
+    response = api_client.get("/api/settings/text")
+    assert response.status_code == 200
+    assert response.json()["text"] == {}
+
+
+@pytest.mark.django_db
+def test_get_site_text_filters_by_locale(api_client):
+    SiteText.objects.create(key="nav.home", locale="en", value="Home")
+    SiteText.objects.create(key="nav.home", locale="fr", value="Accueil")
+    assert api_client.get("/api/settings/text").json()["text"] == {"nav.home": "Home"}
+    fr = api_client.get("/api/settings/text?locale=fr").json()
+    assert fr["locale"] == "fr"
+    assert fr["text"] == {"nav.home": "Accueil"}
+
+
+@pytest.mark.django_db
+def test_get_site_text_rejects_bad_locale(api_client):
+    response = api_client.get("/api/settings/text?locale=not-a-locale-at-all")
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_put_site_text_requires_admin(user_auth_client):
+    response = user_auth_client.put(
+        "/api/settings/text",
+        {"entries": [{"key": "nav.home", "value": "Start"}]},
+        format="json",
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_put_site_text_upserts_as_admin(auth_client):
+    response = auth_client.put(
+        "/api/settings/text",
+        {"entries": [{"key": "nav.home", "value": "Start"}]},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["text"] == {"nav.home": "Start"}
+
+    # Second write to the same key updates rather than duplicating.
+    response = auth_client.put(
+        "/api/settings/text",
+        {"entries": [{"key": "nav.home", "value": "Beginning"}]},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["text"] == {"nav.home": "Beginning"}
+    assert SiteText.objects.filter(key="nav.home", locale="en").count() == 1
+
+
+@pytest.mark.django_db
+def test_put_site_text_null_value_clears_override(auth_client):
+    SiteText.objects.create(key="nav.home", value="Start")
+    response = auth_client.put(
+        "/api/settings/text",
+        {"entries": [{"key": "nav.home", "value": None}]},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["text"] == {}
+    assert not SiteText.objects.filter(key="nav.home").exists()
+
+
+@pytest.mark.django_db
+def test_put_site_text_blank_value_is_kept_as_override(auth_client):
+    """Blanking a label is a deliberate choice, distinct from clearing it."""
+    response = auth_client.put(
+        "/api/settings/text",
+        {"entries": [{"key": "nav.home", "value": ""}]},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["text"] == {"nav.home": ""}
+    assert SiteText.objects.filter(key="nav.home").exists()
+
+
+@pytest.mark.django_db
+def test_put_site_text_writes_to_requested_locale(auth_client):
+    response = auth_client.put(
+        "/api/settings/text?locale=fr",
+        {"entries": [{"key": "nav.home", "value": "Accueil"}]},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["locale"] == "fr"
+    assert SiteText.objects.get(key="nav.home").locale == "fr"
+
+
+@pytest.mark.django_db
+def test_put_site_text_rejects_non_list_payload(auth_client):
+    response = auth_client.put("/api/settings/text", {"entries": {}}, format="json")
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_put_site_text_rejects_blank_key(auth_client):
+    response = auth_client.put(
+        "/api/settings/text",
+        {"entries": [{"key": "   ", "value": "x"}]},
+        format="json",
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_put_site_text_preserves_multiline_html(auth_client):
+    html = "<h3>Title</h3>\n<p>Body with  spacing</p>\n"
+    response = auth_client.put(
+        "/api/settings/text",
+        {"entries": [{"key": "about.intro", "value": html}]},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["text"]["about.intro"] == html
 
 
 # ── Granting admin access to an existing account ───────────────────────

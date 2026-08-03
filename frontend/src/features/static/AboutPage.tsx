@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useSettings } from '../../api/settings'
+import { useText, parseLines } from '../../text'
 
 const ExternalLink = ({ href, children }: { href: string; children: ReactNode }) => (
   <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
@@ -58,8 +59,106 @@ const tdStyle: CSSProperties = {
   lineHeight: 1.5,
 }
 
+const rowHeadStyle: CSSProperties = {
+  ...tdStyle,
+  fontWeight: 500,
+  color: 'var(--text-muted)',
+  background: 'var(--surface-2)',
+}
+
+const VECTOR_ROWS: string[][] = [
+  ['Fusion', 'Gal4-DB (aa 1-147)', 'Gal4-AD (aa 768-881)', 'Gal4-AD (aa 768-881)', 'Gal4-AD (aa 768-881)'],
+  ['Fusion location', 'N-term', 'N-term', 'N-term', 'C-term'],
+  [
+    'Promoter',
+    'Truncated ADH1 promoter (-701 to +1)',
+    'Truncated ADH1 promoter (-701 to +1)',
+    'Truncated ADH1 promoter (-410 to +1)',
+    'Truncated ADH1 promoter (-410 to +1)',
+  ],
+  ['Yeast replication ori', 'CEN', 'CEN', '2micron', '2micron'],
+  ['Linker', 'SRSNQ', 'GGSNQ', 'ICMAYPYDVPDYASLGGHMAMEAPS', 'VDGTA'],
+  ['Terminator', 'ADH1 Term', 'ADH1 Term', 'ADH1 Term', 'ADH1 Term'],
+  ['Selection marker', 'AmpR', 'AmpR', 'AmpR', 'AmpR'],
+]
+
+const VECTOR_HEADERS = ['Name', 'pDEST-DB', 'pDEST-AD-CHY2', 'pDEST-QZ213', 'pDEST-AD-AR68']
+
+const ASSAY_HEADERS = ['Assay version', 'DB vector', 'AD vector', 'DB yeast strain', 'AD yeast strain']
+
+const ASSAY_ROWS: string[][] = [
+  ['0', 'pDEST-DB', 'pDEST-AD-CHY2', 'MaV203', 'MaV103'],
+  ['1', 'pDEST-DB', 'pDEST-AD-CHY2', 'Y8930', 'Y8800'],
+  ['2', 'pDEST-DB', 'pDEST-QZ213', 'Y8930', 'Y8800'],
+  ['3', 'pDEST-DB', 'pDEST-AD-AR68', 'Y8930', 'Y8800'],
+]
+
+/** A heading + prose block. Renders nothing when the admin has blanked both. */
+function Block({
+  heading,
+  body,
+  level = 2,
+}: {
+  heading: string
+  body?: string
+  level?: 2 | 3
+}) {
+  if (!heading.trim() && !body?.trim()) return null
+  const Heading = level === 2 ? 'h2' : 'h3'
+  const headingStyle = level === 2 ? h2Style : h3Style
+  return (
+    <>
+      {heading.trim() && <Heading style={headingStyle}>{heading}</Heading>}
+      {body?.trim() && <p style={pStyle}>{body}</p>}
+    </>
+  )
+}
+
+/** A heading + HTML-bodied block, for copy that needs inline links. */
+function HtmlBlock({ heading, html, level = 3 }: { heading: string; html: string; level?: 2 | 3 }) {
+  if (!heading.trim() && !html.trim()) return null
+  const Heading = level === 2 ? 'h2' : 'h3'
+  const headingStyle = level === 2 ? h2Style : h3Style
+  return (
+    <>
+      {heading.trim() && <Heading style={headingStyle}>{heading}</Heading>}
+      {html.trim() && <p style={pStyle} dangerouslySetInnerHTML={{ __html: html }} />}
+    </>
+  )
+}
+
+function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={tableStyle}>
+        <thead>
+          <tr>
+            {headers.map((h) => (
+              <th key={h} style={thStyle}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row[0]}>
+              {row.map((cell, j) => (
+                <td key={j} style={j === 0 ? rowHeadStyle : tdStyle}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export function AboutPage() {
   const { data: settings, isLoading } = useSettings()
+  const t = useText()
 
   if (isLoading) {
     return (
@@ -76,10 +175,29 @@ export function AboutPage() {
     )
   }
 
+  const vectorTableHtml = t('about.vectorTable.html')
+  const assayTableHtml = t('about.assayTable.html')
+
+  const usefulLinks: { labelKey: string; descKey: string; to?: string; href?: string }[] = [
+    { labelKey: 'about.links.search.label', descKey: 'about.links.search.desc', to: '/search' },
+    { labelKey: 'about.links.downloads.label', descKey: 'about.links.downloads.desc', to: '/download' },
+    { labelKey: 'about.links.docs.label', descKey: 'about.links.docs.desc', to: '/documentation' },
+    { labelKey: 'about.links.developer.label', descKey: 'about.links.developer.desc', to: '/developer' },
+    { labelKey: 'about.links.swagger.label', descKey: 'about.links.swagger.desc', href: '/v2/api/docs/' },
+    { labelKey: 'about.links.schema.label', descKey: 'about.links.schema.desc', href: '/v2/api/schema/' },
+    {
+      labelKey: 'about.links.psicquic.label',
+      descKey: 'about.links.psicquic.desc',
+      href: '/v2/psicquic/rest/query?q=BRCA1&format=tab25',
+    },
+    { labelKey: 'about.links.faq.label', descKey: 'about.links.faq.desc', to: '/faq' },
+    { labelKey: 'about.links.contact.label', descKey: 'about.links.contact.desc', to: '/contact' },
+  ]
+
   return (
     <div style={{ maxWidth: 820, margin: '0 auto', padding: '48px 32px 80px' }}>
       <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-.02em', color: 'var(--text)', margin: '0 0 32px' }}>
-        About {settings?.title ?? 'openPIP'}
+        {t('about.title', { title: settings?.title ?? 'openPIP' })}
       </h1>
 
       {settings?.about ? (
@@ -88,412 +206,135 @@ export function AboutPage() {
           dangerouslySetInnerHTML={{ __html: settings.about }}
         />
       ) : (
-        <p style={pStyle}>
-          openPIP is an open-source protein interaction platform.
-        </p>
+        <p style={pStyle}>{t('about.fallbackIntro')}</p>
       )}
 
       {/* ── Proteome-scale efforts ── */}
-      <h2 style={h2Style}>CCSB Proteome-scale efforts</h2>
-
-      <h3 style={h3Style}>HI-I-05</h3>
-      <p style={pStyle}>
-        Our first iteration at mapping the human protein interactome (Rual et al Nature 2005) screened a
-        space (Space I) of ~8,000 ORFs corresponding to ~7,000 genes, and identified ~2,700 high-quality
-        binary PPIs. This search space represents ~12% of the complete search space, assuming a total of
-        ~20,000 protein-coding genes.
-      </p>
-
-      <h3 style={h3Style}>HI-II-14</h3>
-      <p style={pStyle}>
-        The second phase of the human interactome mapping project (Rolland et al Cell 2014) generated a
-        dataset of ~14,000 binary PPIs following two screens of a matrix of ~13,000 x 13,000 proteins
-        (Space II). This search space covers ~42% of the complete search space, a more than 3 fold
-        increase with respect to our first attempt.
-      </p>
-
-      <h3 style={h3Style}>HuRI</h3>
-      <p style={pStyle}>
-        In the third phase of the project (Luck et al under review, BioRxiv) the human ORF collection
-        being screened has been expanded to ~17,500 unique genes (Space III) and covers ~77% of the
-        complete search space. ~53,000 PPIs identified from screening space III nine times with three
-        variations of the Y2H assay are provided for search and download. This dataset is also referred
-        to as HI-III-19.
-      </p>
-
-      <h3 style={h3Style}>HI-union</h3>
-      <p style={pStyle}>
-        HI-union is an aggregate of all PPIs identified in HI-I-05, HI-II-14, HuRI, Venkatesan-09,
-        Yu-11, Yang-16, and Test space screens-19 (see below) transcript and protein identifiers for
-        each interaction.
-      </p>
+      <Block heading={t('about.proteomeScale.heading')} />
+      <Block heading={t('about.hi105.heading')} body={t('about.hi105.body')} level={3} />
+      <Block heading={t('about.hi214.heading')} body={t('about.hi214.body')} level={3} />
+      <Block heading={t('about.huri.heading')} body={t('about.huri.body')} level={3} />
+      <Block heading={t('about.hiUnion.heading')} body={t('about.hiUnion.body')} level={3} />
 
       {/* ── Other efforts ── */}
-      <h2 style={h2Style}>Other CCSB protein interaction mapping efforts</h2>
-
-      <h3 style={h3Style}>Venkatesan-09</h3>
-      <p style={pStyle}>
-        To estimate the coverage and size of the human interactome (Venkatesan et al Nature Methods
-        2009), four Y2H screens were performed on a set of ~1,800 DB-X fusion proteins (or baits,
-        representing ~1,700 unique genes) against ~1,800 AD-Y proteins (or preys, representing ~1,800
-        unique genes), corresponding to ~10% of the available genes and ~1% of the full search space.
-        This dataset contains ~200 high-quality binary PPIs.
-      </p>
-
-      <h3 style={h3Style}>Yu-11</h3>
-      <p style={pStyle}>
-        To develop a novel Stitch-seq interactome mapping protocol, a Y2H screen was carried out inside
-        Space II (Yu et al Nature Methods 2011). Stitch-seq combines PCR stitching with next-generation
-        sequencing, and increases the efficiency and cost effectiveness of Y2H screening. The resulting
-        dataset contains ~1,200 PPIs among proteins encoded by ~1,100 human genes.
-      </p>
-
-      <h3 style={h3Style}>Yang-16</h3>
-      <p style={pStyle}>
-        To assess the extent to which different protein isoforms generated by alternative splicing from
-        the same gene perform different functions within the cell, we have successfully cloned multiple
-        isoforms for 161 genes and screened those for PPIs against all human ORFs from space II (Yang et
-        al Cell 2016). ~700 PPIs have been identified.
-      </p>
-
-      <h3 style={h3Style}>Test space screens-19</h3>
-      <p style={pStyle}>
-        To develop, optimize, and benchmark improvements to the mapping pipeline and variations of the
-        Y2H assay, independent, reciprocal screens on a search space of ~1,800 x ~1,800 genes were
-        completed, constituting ~1% of the full search space. In total, 1,159 PPIs have been identified
-        in these screens and those have been published as part of the paper describing HuRI.
-      </p>
+      <Block heading={t('about.otherEfforts.heading')} />
+      <Block
+        heading={t('about.venkatesan09.heading')}
+        body={t('about.venkatesan09.body')}
+        level={3}
+      />
+      <Block heading={t('about.yu11.heading')} body={t('about.yu11.body')} level={3} />
+      <Block heading={t('about.yang16.heading')} body={t('about.yang16.body')} level={3} />
+      <Block heading={t('about.testSpace.heading')} body={t('about.testSpace.body')} level={3} />
 
       {/* ── Literature ── */}
-      <h2 style={h2Style}>Literature</h2>
-
-      <h3 style={h3Style}>Lit-BM</h3>
-      <p style={pStyle}>
-        Previously published work (Rolland et al Cell 2014) identified that a subset of the curated
-        interactions from the scientific literature that have at least two pieces of experimental evidence
-        (two different methods or two different papers) of which at least one stems from a binary protein
-        interaction detection assay (Literature binary multiple = Lit-BM) retested at comparable rates in
-        protein interaction detection assays compared to interactions identified in the CCSB screening
-        efforts. Binary PPIs with only one piece of experimental evidence retested at significantly lower
-        rate. Here, we provide an updated set of all PPIs in Lit-BM that we obtained from filtering and
-        classifying PPIs from the Mentha resource. Details of the filtering and classification are
-        described in the HuRI paper.
-      </p>
+      <Block heading={t('about.literature.heading')} />
+      <Block heading={t('about.litbm.heading')} body={t('about.litbm.body')} level={3} />
 
       {/* ── Screening pipeline ── */}
-      <h2 style={h2Style}>Description of the Y2H screening pipeline</h2>
-      <p style={pStyle}>
-        Details on our screening, pairwise test, and validation protocols are available as part of the
-        HuRI paper and previously published protocols (Choi et al Methods Mol Biol 2018, Dreze et al
-        Methods Enzymol 2010). Briefly, ORFs from the hORFeome collection were transferred into
-        DNA-binding (DB) and activation domain (AD) Y2H destination vectors (see below). The vectors
-        were consequently used to transform yeast strains (see below). Strong DB autoactivators were
-        removed prior to screening. Yeast strains with 1,000 different AD-ORFs were pooled and mated
-        with a single DB-ORF yeast strain. Growing yeast colonies were picked and sequenced to identify
-        likely interacting pairs (First Pass Pairs = FiPPs). FiPPs were consequently individually tested
-        in quadruplicate in a Y2H pairwise test and sequence confirmed resulting in a dataset of verified
-        PPIs. A random subset of these verified PPIs are selected and tested in orthogonal protein
-        interaction detection assays along with sets of known PPIs (positive control) and random pairs of
-        proteins (negative control) to test for the quality of the identified PPIs. If found to be of
-        high biophysical quality, the dataset is considered as validated and as such meets our criteria
-        for publication. Of note, validation controls for the biophysical quality of the identified
-        interactions. Dissecting the functional relevance of a given PPI requires extensive experimental
-        follow-up.
-      </p>
+      <Block heading={t('about.pipeline.heading')} body={t('about.pipeline.body')} />
 
-      {/* ── Vector details table ── */}
-      <h3 style={h3Style}>Vector details</h3>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Name</th>
-              <th style={thStyle}>pDEST-DB</th>
-              <th style={thStyle}>pDEST-AD-CHY2</th>
-              <th style={thStyle}>pDEST-QZ213</th>
-              <th style={thStyle}>pDEST-AD-AR68</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--surface-2)' }}>Fusion</td>
-              <td style={tdStyle}>Gal4-DB (aa 1-147)</td>
-              <td style={tdStyle}>Gal4-AD (aa 768-881)</td>
-              <td style={tdStyle}>Gal4-AD (aa 768-881)</td>
-              <td style={tdStyle}>Gal4-AD (aa 768-881)</td>
-            </tr>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--surface-2)' }}>Fusion location</td>
-              <td style={tdStyle}>N-term</td>
-              <td style={tdStyle}>N-term</td>
-              <td style={tdStyle}>N-term</td>
-              <td style={tdStyle}>C-term</td>
-            </tr>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--surface-2)' }}>Promoter</td>
-              <td style={tdStyle}>Truncated ADH1 promoter (-701 to +1)</td>
-              <td style={tdStyle}>Truncated ADH1 promoter (-701 to +1)</td>
-              <td style={tdStyle}>Truncated ADH1 promoter (-410 to +1)</td>
-              <td style={tdStyle}>Truncated ADH1 promoter (-410 to +1)</td>
-            </tr>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--surface-2)' }}>Yeast replication ori</td>
-              <td style={tdStyle}>CEN</td>
-              <td style={tdStyle}>CEN</td>
-              <td style={tdStyle}>2micron</td>
-              <td style={tdStyle}>2micron</td>
-            </tr>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--surface-2)' }}>Linker</td>
-              <td style={tdStyle}>SRSNQ</td>
-              <td style={tdStyle}>GGSNQ</td>
-              <td style={tdStyle}>ICMAYPYDVPDYASLGGHMAMEAPS</td>
-              <td style={tdStyle}>VDGTA</td>
-            </tr>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--surface-2)' }}>Terminator</td>
-              <td style={tdStyle}>ADH1 Term</td>
-              <td style={tdStyle}>ADH1 Term</td>
-              <td style={tdStyle}>ADH1 Term</td>
-              <td style={tdStyle}>ADH1 Term</td>
-            </tr>
-            <tr>
-              <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-muted)', background: 'var(--surface-2)' }}>Selection marker</td>
-              <td style={tdStyle}>AmpR</td>
-              <td style={tdStyle}>AmpR</td>
-              <td style={tdStyle}>AmpR</td>
-              <td style={tdStyle}>AmpR</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {/* ── Vector details ── */}
+      {t('about.vectorTable.heading').trim() && (
+        <h3 style={h3Style}>{t('about.vectorTable.heading')}</h3>
+      )}
+      {vectorTableHtml.trim() ? (
+        <div style={{ overflowX: 'auto' }} dangerouslySetInnerHTML={{ __html: vectorTableHtml }} />
+      ) : (
+        <DataTable headers={VECTOR_HEADERS} rows={VECTOR_ROWS} />
+      )}
 
-      {/* ── Y2H assay versions table ── */}
-      <h3 style={h3Style}>Y2H assay versions</h3>
-      <p style={pStyle}>
-        Combinations of different yeast strains and vectors result in different Y2H assay versions as
-        described in the table below.
-      </p>
-      <p style={pStyle}>
-        Assay version 0 was used to generate the datasets HI-I-05 and Venkatesan-09. Assay version 1
-        was used to generate HI-II-14, Yu-11, Yang-16, some of the test space screens, and the screens
-        1-3 of HuRI. Assay version 2 was used to generate screens 4-6 and some test space screens and
-        assay version 3 for screens 7-9 of HuRI and some test space screens.
-      </p>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Assay version</th>
-              <th style={thStyle}>DB vector</th>
-              <th style={thStyle}>AD vector</th>
-              <th style={thStyle}>DB yeast strain</th>
-              <th style={thStyle}>AD yeast strain</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              ['0', 'pDEST-DB', 'pDEST-AD-CHY2', 'MaV203', 'MaV103'],
-              ['1', 'pDEST-DB', 'pDEST-AD-CHY2', 'Y8930', 'Y8800'],
-              ['2', 'pDEST-DB', 'pDEST-QZ213', 'Y8930', 'Y8800'],
-              ['3', 'pDEST-DB', 'pDEST-AD-AR68', 'Y8930', 'Y8800'],
-            ].map((row) => (
-              <tr key={row[0]}>
-                {row.map((cell, j) => (
-                  <td key={j} style={{ ...tdStyle, fontFamily: j === 0 ? 'var(--mono)' : undefined }}>{cell}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* ── Y2H assay versions ── */}
+      {t('about.assayTable.heading').trim() && (
+        <h3 style={h3Style}>{t('about.assayTable.heading')}</h3>
+      )}
+      {t('about.assayTable.intro').trim() && <p style={pStyle}>{t('about.assayTable.intro')}</p>}
+      {t('about.assayTable.note').trim() && <p style={pStyle}>{t('about.assayTable.note')}</p>}
+      {assayTableHtml.trim() ? (
+        <div style={{ overflowX: 'auto' }} dangerouslySetInnerHTML={{ __html: assayTableHtml }} />
+      ) : (
+        <DataTable headers={ASSAY_HEADERS} rows={ASSAY_ROWS} />
+      )}
 
-      {/* ── Search options ── */}
-      <h2 style={h2Style}>Search options</h2>
-      <p style={pStyle}>
-        By default the search function of the web portal will return all query proteins with their
-        interaction partners and all interactions between these proteins that have been identified in any
-        of the PPI datasets described above. The results can be limited to interactions between query
-        proteins and between query proteins and their interaction partners only. For larger queries and
-        for cases when there is no need to display the results as network, the results can be directly
-        retrieved as a data file.
-      </p>
-
-      {/* ── Filter options ── */}
-      <h2 style={h2Style}>Filter options</h2>
-
-      <h3 style={h3Style}>Confidence Score</h3>
-      <p style={pStyle}>
-        This score is intended to rank human binary protein-protein interactions (PPIs) identified in
-        systematic screens at CCSB based on their biophysical quality. A random subset of PPIs (~5%)
-        from all Y2H screens are tested in orthogonal binary PPI detection assays, such as MAPPIT and
-        GPCA, to demonstrate the high overall quality of each screen prior to release. The confidence
-        score can be used to further prioritize interactions for experimental follow-up wherever needed.
-        The score is based on information from the Y2H experiments and retest rates of specific subsets
-        of PPIs in MAPPIT and GPCA. The score is the output of a statistical model of the MAPPIT and
-        GPCA tests, which corrects for lower retest rates as a result of differences in the experimental
-        detectability of PPIs rather than differences in their biophysical quality (see HuRI paper on
-        detectability of PPIs).
-      </p>
-      <p style={pStyle}>
-        Specifically, the probability of a PPI testing positive in GPCA/MAPPIT data is modeled as being
-        composed of two components, formulated as the regularized product of two logistic functions, both
-        with the same input features. The first component represents the probability of a pair to be a
-        false positive, the second represents the probability to test positive for a real interaction.
-        This second component is constrained by data from testing PPIs found in Y2H which have
-        additional independent literature evidence. The confidence score is calculated as the first
-        component, scaled to an estimate of the overall precision of the dataset, obtained using the
-        procedure described in Venkatesan et al Nature Methods 2009. The six features of a PPI used are:
-        the number of screens in which it was detected; the number of different versions of the Y2H
-        assay in which it was detected; the strength of growth of the yeast; whether the interaction
-        between proteins X and Y was detected with both combinations of DNA-binding domain (DB) and
-        activation domain (AD) fusions, i.e. DB-X with AD-Y and DB-Y with AD-X; the number of
-        interaction partners of the two proteins; and the length of the ORF.
-      </p>
-
-      <h3 style={h3Style}>Interaction status</h3>
-      <p style={pStyle}>
-        The results can also be restricted to either only show PPIs from CCSB or from the literature.
-        The user can choose to display tissue expression levels and levels of tissue specific expression
-        of nodes in the network in combination with the selection of a tissue (see below).
-      </p>
-
-      <h3 style={h3Style}>Tissue expression</h3>
-      <p style={pStyle}>
-        One or multiple tissues can be selected to filter the protein interaction data for proteins that
-        are expressed in at least one of the selected tissues. Only interactions between the expressed
-        proteins will be displayed. By default, expression abundance levels will be represented on the
-        network by increasing the node size. Specificity of expression is indicated by varying the
-        intensity of the color of the nodes (only applicable to cases where a single tissue has been
-        selected). The tissue gene expression data has been extracted from the GTEx portal and has been
-        processed and normalized as described in Paulson et al BMC Bioinformatics 2017. The preferential
-        expression of a given gene in a given tissue was calculated as described in Sonawane et al Cell
-        Reports 2017. More details are also provided in the HuRI paper.
-      </p>
-
-      {/* ── Export options ── */}
-      <h2 style={h2Style}>Export options</h2>
-      <p style={pStyle}>
-        The network can be exported to Cytoscape by clicking the little orange network icon in the
-        bottom left corner of the network browser, if Cytoscape is installed and running. The proteins
-        displayed in the network can directly be exported as list into a variety of external resources to
-        calculate functional enrichments and perform other network-related searches.
-      </p>
-
-      {/* ── Save options ── */}
-      <h2 style={h2Style}>Save options</h2>
-      <p style={pStyle}>
-        The search results can be saved as image (if a network was displayed) or in various text file
-        formats as lists of proteins and interactions. Furthermore, the web portal offers to users the
-        possibility to create an account. If the user is logged in, an extra Save button will appear on
-        the results page allowing the user to save the search result and the exact network representation
-        or session that the user generated. Later, the user can select a saved network/session and reload
-        it into the network browser for further manipulation. Of note, users need to login first prior to
-        performing a search or the search results will be lost.
-      </p>
-
-      {/* ── Requirements ── */}
-      <h2 style={h2Style}>Requirements to run the HuRI portal</h2>
-      <p style={pStyle}>
-        The web browser must be configured to accept cookies and JavaScript must be enabled.
-      </p>
+      {/* ── Options ── */}
+      <Block heading={t('about.searchOptions.heading')} body={t('about.searchOptions.body')} />
+      <Block heading={t('about.filterOptions.heading')} />
+      <Block
+        heading={t('about.confidenceScore.heading')}
+        body={t('about.confidenceScore.body')}
+        level={3}
+      />
+      {t('about.confidenceScore.body2').trim() && (
+        <p style={pStyle}>{t('about.confidenceScore.body2')}</p>
+      )}
+      <Block
+        heading={t('about.interactionStatus.heading')}
+        body={t('about.interactionStatus.body')}
+        level={3}
+      />
+      <Block
+        heading={t('about.tissueExpression.heading')}
+        body={t('about.tissueExpression.body')}
+        level={3}
+      />
+      <Block heading={t('about.exportOptions.heading')} body={t('about.exportOptions.body')} />
+      <Block heading={t('about.saveOptions.heading')} body={t('about.saveOptions.body')} />
+      <Block heading={t('about.requirements.heading')} body={t('about.requirements.body')} />
 
       {/* ── Programmatic access ── */}
-      <h2 style={h2Style}>Programmatic Access</h2>
-      <p style={pStyle}>
-        openPIP provides several ways to access its data programmatically. All read endpoints are
-        public and require no API key.
-      </p>
-
-      <h3 style={h3Style}>REST API &amp; interactive docs</h3>
-      <p style={pStyle}>
-        A full REST API is available at{' '}
-        <ExternalLink href="/v2/api/docs/">/v2/api/docs/</ExternalLink>. Endpoints cover protein
-        search, protein detail, interaction data, dataset listings, and file downloads. All responses
-        are JSON and CORS-enabled for use from any browser or server.
-      </p>
-
-      <h3 style={h3Style}>Deep links</h3>
-      <p style={pStyle}>
-        Other websites can link directly to a search or protein page using stable URLs:
-      </p>
-      <div style={{ background: 'var(--surface-2)', borderRadius: 6, padding: '10px 16px', fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text)', marginBottom: 12 }}>
-        /v2/search/BRCA1<br />
-        /v2/search/BRCA1,TP53<br />
-        /v2/protein/BRCA1<br />
-        /v2/protein/P38398
-      </div>
-
-      <h3 style={h3Style}>Python SDK &amp; CLI</h3>
-      <p style={pStyle}>
-        A Python package (<code style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>openpip</code>)
-        provides a typed SDK for use in scripts and Jupyter notebooks, as well as a command-line
-        interface for searching, downloading, and exporting interaction networks.
-      </p>
-
-      <h3 style={h3Style}>PSICQUIC</h3>
-      <p style={pStyle}>
-        openPIP implements the{' '}
-        <ExternalLink href="https://psicquic.github.io/">PSICQUIC standard</ExternalLink>, the same
-        protocol used by BioGRID and IntAct. Any tool or script written for those databases can query
-        openPIP at{' '}
-        <ExternalLink href="/v2/psicquic/rest/query?q=BRCA1&format=tab25">
-          /v2/psicquic/rest/query
-        </ExternalLink>{' '}
-        using identical MIQL syntax.
-      </p>
-
-      <p style={pStyle}>
-        Full documentation with copy-paste code examples is on the{' '}
-        <Link to="/developer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-          API &amp; External Access
-        </Link>{' '}
-        page.
-      </p>
+      <Block heading={t('about.programmatic.heading')} body={t('about.programmatic.body')} />
+      <HtmlBlock heading={t('about.restApi.heading')} html={t('about.restApi.body')} />
+      <Block heading={t('about.deepLinks.heading')} body={t('about.deepLinks.body')} level={3} />
+      {t('about.deepLinks.examples').trim() && (
+        <div style={{ background: 'var(--surface-2)', borderRadius: 6, padding: '10px 16px', fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text)', marginBottom: 12 }}>
+          {parseLines(t('about.deepLinks.examples')).map((url) => (
+            <div key={url}>{url}</div>
+          ))}
+        </div>
+      )}
+      <HtmlBlock heading={t('about.sdk.heading')} html={t('about.sdk.body')} />
+      <HtmlBlock heading={t('about.psicquic.heading')} html={t('about.psicquic.body')} />
+      {t('about.programmatic.footer').trim() && (
+        <p style={pStyle} dangerouslySetInnerHTML={{ __html: t('about.programmatic.footer') }} />
+      )}
 
       {/* ── Useful links ── */}
-      <h2 style={h2Style}>Useful Links</h2>
-
+      <Block heading={t('about.usefulLinks.heading')} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginBottom: 8 }}>
-        {[
-          { label: 'Search', desc: 'Search proteins and interactions', to: '/search' },
-          { label: 'Downloads', desc: 'Download full interaction datasets', to: '/download' },
-          { label: 'Documentation', desc: 'How to use the web interface', to: '/documentation' },
-          { label: 'API & External Access', desc: 'REST API, SDK, PSICQUIC, code examples', to: '/developer' },
-          { label: 'Interactive API Docs', desc: 'Swagger UI - try every endpoint live', href: '/v2/api/docs/' },
-          { label: 'OpenAPI Schema', desc: 'Machine-readable schema (JSON/YAML)', href: '/v2/api/schema/' },
-          { label: 'PSICQUIC Endpoint', desc: 'Standard PPI query interface', href: '/v2/psicquic/rest/query?q=BRCA1&format=tab25' },
-          { label: 'FAQ', desc: 'Frequently asked questions', to: '/faq' },
-          { label: 'Contact', desc: 'Get in touch with the team', to: '/contact' },
-        ].map(({ label, desc, to, href }) => (
-          <div key={label} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px' }}>
+        {usefulLinks.map(({ labelKey, descKey, to, href }) => (
+          <div key={labelKey} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px' }}>
             {to ? (
-              <Link to={to} style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>{label}</Link>
+              <Link to={to} style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+                {t(labelKey)}
+              </Link>
             ) : (
-              <ExternalLink href={href!}><span style={{ fontWeight: 600, fontSize: 14 }}>{label}</span></ExternalLink>
+              <ExternalLink href={href!}>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{t(labelKey)}</span>
+              </ExternalLink>
             )}
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>{desc}</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+              {t(descKey)}
+            </p>
           </div>
         ))}
       </div>
 
       {/* ── Acknowledgments ── */}
-      <h2 style={h2Style}>Acknowledgments</h2>
-      <p style={pStyle}>
-        CCSB interactome mapping and ORFeome cloning efforts are supported by federal grants from the
-        National Human Genome Research Institute of NIH, the Ellison Foundation, the Dana-Farber Cancer
-        Institute Strategic Initiative, the Canada Excellence Research Chairs program, and the Canadian
-        Institutes of Health Research.
-      </p>
+      <Block
+        heading={t('about.acknowledgments.heading')}
+        body={t('about.acknowledgments.body')}
+      />
 
       {/* ── Footer metadata ── */}
       {(settings?.version || settings?.url) && (
         <div style={{ marginTop: 48, paddingTop: 20, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-soft)' }}>
-          {settings.version && <span>Version {settings.version}</span>}
-          {settings.version && settings.url && <span> · </span>}
-          {settings.url && (
-            <ExternalLink href={settings.url}>{settings.url}</ExternalLink>
+          {settings.version && (
+            <span>
+              {t('about.versionPrefix')} {settings.version}
+            </span>
           )}
+          {settings.version && settings.url && <span> · </span>}
+          {settings.url && <ExternalLink href={settings.url}>{settings.url}</ExternalLink>}
         </div>
       )}
     </div>

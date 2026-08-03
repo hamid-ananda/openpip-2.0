@@ -32,5 +32,5 @@ export const settingsFixture: AdminSettings = {
   example3: 'BAD\nBAK1\nMCL1',
   example1Type: 'query-query',
   example2Type: 'query-interactor',
-  example3Type: 'all',
+  example3Type: 'None',
 }

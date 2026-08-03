@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Modal } from './Modal'
 import { useAuthStore } from '../../../store/authStore'
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+import { BASE_URL } from '../../../api/client'
 
 export function DirectDownloadModal({ onClose }: { onClose: () => void }) {
   const token = useAuthStore((s) => s.token)

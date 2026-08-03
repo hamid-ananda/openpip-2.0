@@ -1,7 +1,9 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? `${import.meta.env.BASE_URL}api`
+// Single source of truth for the API root. Falls back to the app's deploy base
+// (`VITE_BASE`, e.g. `/v2/`) so raw-fetch callers stay on the same prefix as axios.
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? `${import.meta.env.BASE_URL}api`
 
 export const apiClient = axios.create({ baseURL: BASE_URL })
 

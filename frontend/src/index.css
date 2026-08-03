@@ -223,6 +223,12 @@ p { text-wrap: pretty; }
   font-variant-numeric: tabular-nums;
 }
 
+/* Highlights a run of words in the theme colour. Available to admins inside
+   editable copy (e.g. the home hero headline). */
+.op-accent {
+  color: var(--primary);
+}
+
 /* ─────────────────────────────────────────────────────────
    Animations
    ───────────────────────────────────────────────────────── */

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useResetPassword } from '../../api/auth'
+import { useText } from '../../text'
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
+  const t = useText()
   const uid = searchParams.get('uid') ?? ''
   const token = searchParams.get('token') ?? ''
 
@@ -18,11 +20,11 @@ export function ResetPasswordPage() {
     e.preventDefault()
     setValidationError('')
     if (password.length < 8) {
-      setValidationError('Password must be at least 8 characters.')
+      setValidationError(t('auth.reset.tooShort'))
       return
     }
     if (password !== confirm) {
-      setValidationError('Passwords do not match.')
+      setValidationError(t('auth.reset.mismatch'))
       return
     }
     mutate({ uid, token, password })
@@ -128,7 +130,7 @@ export function ResetPasswordPage() {
               required
               className="op-input"
               style={{ margin: '6px 0 16px' }}
-              placeholder="At least 8 characters"
+              placeholder={t('auth.reset.placeholder')}
             />
 
             <label
@@ -159,7 +161,7 @@ export function ResetPasswordPage() {
               className="op-btn primary"
               style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: 14 }}
             >
-              {isPending ? 'Saving…' : 'Set new password'}
+              {isPending ? t('auth.reset.submitting') : t('auth.reset.submit')}
             </button>
           </form>
         )}

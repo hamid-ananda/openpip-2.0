@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link, Navigate } from 'react-router-dom'
 import { useLogin } from '../../api/auth'
 import { useAuthStore } from '../../store/authStore'
+import { useText } from '../../text'
 
 /* Static network preview for the gradient panel */
 const LOGIN_NODES = [
@@ -69,6 +70,7 @@ export function LoginPage() {
   const { mutate: login, isPending, error } = useLogin()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const t = useText()
 
   if (isLoggedIn) return <Navigate to="/" replace />
 
@@ -105,10 +107,10 @@ export function LoginPage() {
               color: 'var(--text)',
             }}
           >
-            Sign in
+            {t('auth.login.title')}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 28px' }}>
-            Access verified datasets and bulk downloads.
+            {t('auth.login.subtitle')}
           </p>
 
           <form onSubmit={handleSubmit}>
@@ -116,7 +118,7 @@ export function LoginPage() {
               htmlFor="login-username"
               style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', display: 'block' }}
             >
-              Username
+              {t('auth.login.username')}
             </label>
             <input
               id="login-username"
@@ -133,13 +135,13 @@ export function LoginPage() {
                 htmlFor="login-password"
                 style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}
               >
-                Password
+                {t('auth.login.password')}
               </label>
               <Link
                 to="/forgot-password"
                 style={{ fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }}
               >
-                Forgot?
+                {t('auth.login.forgot')}
               </Link>
             </div>
             <input
@@ -154,7 +156,7 @@ export function LoginPage() {
 
             {error && (
               <p style={{ color: 'var(--danger)', fontSize: 13, margin: '0 0 16px' }}>
-                Invalid username or password.
+                {t('auth.login.error')}
               </p>
             )}
 
@@ -164,7 +166,7 @@ export function LoginPage() {
               className="op-btn primary"
               style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: 14 }}
             >
-              {isPending ? 'Signing in…' : 'Sign in'}
+              {isPending ? t('auth.login.submitting') : t('auth.login.submit')}
             </button>
 
             <div
@@ -178,7 +180,7 @@ export function LoginPage() {
               }}
             >
               <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              OR
+              {t('auth.divider')}
               <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             </div>
 
@@ -187,17 +189,17 @@ export function LoginPage() {
               className="op-btn"
               style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
             >
-              Continue with ORCID
+              {t('auth.login.orcid')}
             </button>
           </form>
 
           <p style={{ textAlign: 'center', marginTop: 28, fontSize: 13, color: 'var(--text-muted)' }}>
-            New to openPIP?{' '}
+            {t('auth.login.newPrompt')}{' '}
             <Link
               to="/register"
               style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}
             >
-              Create an account
+              {t('auth.login.newLink')}
             </Link>
           </p>
         </div>
@@ -236,7 +238,7 @@ export function LoginPage() {
               marginBottom: 12,
             }}
           >
-            76,563 interactions, one query away
+            {t('auth.login.panelEyebrow')}
           </div>
           <div
             style={{
@@ -247,10 +249,10 @@ export function LoginPage() {
               maxWidth: 420,
             }}
           >
-            "openPIP is the fastest way to walk a neighborhood of the human interactome."
+            {t('auth.login.panelQuote')}
           </div>
           <div style={{ fontSize: 13, opacity: 0.7, marginTop: 12 }}>
-            - Helmy Lab, VIDO
+            {t('auth.login.panelAttribution')}
           </div>
         </div>
       </div>

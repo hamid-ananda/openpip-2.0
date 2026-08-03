@@ -6,6 +6,8 @@ import { useSettings } from '../../api/settings'
 import { useGeneAutocomplete } from '../../components/useGeneAutocomplete'
 import { GeneSuggestionList } from '../../components/GeneSuggestionList'
 import { useSearchStore } from '../search/searchStore'
+import { useText } from '../../text'
+import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
 
 interface HeroSectionProps {
   shortTitle: string
@@ -14,18 +16,13 @@ interface HeroSectionProps {
   datasets: number
 }
 
-function toFilterMode(type: string | undefined): 'None' | 'query_query' | 'query_interactor' {
-  if (type === 'query-query') return 'query_query'
-  if (type === 'query-interactor') return 'query_interactor'
-  return 'None'
-}
-
 export function HeroSection({ shortTitle, proteins, interactions, datasets }: HeroSectionProps) {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const { data: settings } = useSettings()
   const setFilterMode = useSearchStore((s) => s.setFilterMode)
   const ac = useGeneAutocomplete(query, setQuery, 'hero-gene')
+  const t = useText()
 
   const searchExamples = [
     { proteins: settings?.example1, type: settings?.example1Type },
@@ -66,12 +63,8 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
               fontWeight: 600,
               color: 'var(--text)',
             }}
-          >
-            The protein{' '}
-            <span style={{ color: 'var(--primary)' }}>interaction network</span>,
-            <br />
-            made queryable.
-          </h1>
+            dangerouslySetInnerHTML={{ __html: t('home.hero.headline') }}
+          />
 
           <p
             style={{
@@ -82,8 +75,7 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
               maxWidth: 540,
             }}
           >
-            Search proteins across verified interactions from the CCSB Human
-            Interactome, visualized, filterable, and ready to export.
+            {t('home.hero.subhead')}
           </p>
 
           <form onSubmit={handleSearch} style={{ display: 'flex', marginBottom: 36 }}>
@@ -92,10 +84,10 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
                 type="text"
                 value={query}
                 {...ac.inputProps}
-                placeholder="Search by gene names, e.g. BAD, BCL2L1"
+                placeholder={t('home.hero.searchPlaceholder')}
                 className="op-input"
                 style={{ borderRadius: '8px 0 0 8px', borderRight: 'none', width: '100%' }}
-                aria-label="Search proteins and interactions"
+                aria-label={t('home.hero.searchLabel')}
               />
               {ac.showList && (
                 <GeneSuggestionList
@@ -117,13 +109,13 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
                 fontSize: 14,
               }}
             >
-              Search
+              {t('home.hero.searchButton')}
             </button>
           </form>
 
           {searchExamples.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-soft)', letterSpacing: '.04em', textTransform: 'uppercase' }}>Try:</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-soft)', letterSpacing: '.04em', textTransform: 'uppercase' }}>{t('home.hero.examplesLabel')}</span>
               {searchExamples.map((ex, i) => {
                 const genes = (ex.proteins ?? '').split('\n').map((g) => g.trim()).filter(Boolean)
                 const preview = genes.slice(0, 2).join(', ') + (genes.length > 2 ? '…' : '')
@@ -159,7 +151,10 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
                   >
                     {preview}
                     <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font)' }}>
-                      {ex.type ?? 'all'}
+                      {/* Legacy rows spell the unfiltered case as "all" or
+                          leave it null; the filter is called None everywhere
+                          else in the UI, so the chip says None too. */}
+                      {normalizeExampleType(ex.type)}
                     </span>
                   </button>
                 )

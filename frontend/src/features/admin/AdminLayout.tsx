@@ -1,74 +1,142 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { ADMIN_NAV, settingsTabFromSearch } from './adminNav'
+import type { AdminNavItem } from './adminNav'
+import { useAdminDirty } from '../../store/adminDirty'
 
 /**
- * Shared shell for the admin section. Adds a sub-navigation bar so admins can
- * discover and move between the managers — previously each admin page was only
- * reachable by typing its URL, so "how do I update the news / home page" was
- * unclear. Labels spell out what each manager controls.
+ * Shell for the admin section: one categorized sidebar on the left, the current
+ * screen on the right.
+ *
+ * The sidebar lists the Site Settings panels alongside News, Datasets and Files
+ * — they were two separate navigations before, and the settings half was a
+ * horizontal tab strip that had outgrown the width available to it.
  */
-const ADMIN_TABS = [
-  { to: '/admin/settings', label: 'Site Settings', hint: 'Home page, About, FAQ, theme, colors' },
-  { to: '/admin/announcement', label: 'News', hint: 'Homepage announcements' },
-  { to: '/admin/data', label: 'Datasets', hint: 'Import and manage interaction data' },
-  { to: '/admin/files', label: 'Files', hint: 'Downloadable supplementary files' },
-]
-
-const tabStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => ({
-  padding: '14px 14px',
-  fontSize: 13,
-  fontWeight: 500,
-  color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-  borderBottom: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
-  textDecoration: 'none',
-  marginBottom: -1,
-  whiteSpace: 'nowrap',
-})
-
 export function AdminLayout() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const dirtyTabs = useAdminDirty((s) => s.tabs)
+
+  const onSettings = location.pathname.startsWith('/admin/settings')
+  const activeTab = onSettings ? settingsTabFromSearch(location.search) : null
+
+  const isCurrent = (item: AdminNavItem) =>
+    item.tab ? onSettings && item.tab === activeTab : location.pathname.startsWith(item.to)
+
+  /**
+   * Settings edits live in the form's own state, so a link that unmounts it
+   * throws them away. Moving between settings panels is safe — same component.
+   */
+  const handleClick = (e: React.MouseEvent, item: AdminNavItem) => {
+    e.preventDefault()
+    const leavingForm = onSettings && !item.tab && dirtyTabs.length > 0
+    if (leavingForm && !window.confirm('Leave Site Settings? Unsaved changes will be lost.')) return
+    // replace: moving between panels shouldn't stack up history entries.
+    navigate(item.to, { replace: Boolean(item.tab) && onSettings })
+  }
+
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100%' }}>
-      <div
+    <div
+      style={{
+        background: 'var(--bg)',
+        minHeight: '100%',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(200px, 240px) minmax(0, 1fr)',
+        alignItems: 'start',
+      }}
+    >
+      <nav
+        aria-label="Admin sections"
         style={{
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--surface)',
           position: 'sticky',
           top: 56,
-          zIndex: 20,
+          maxHeight: 'calc(100vh - 56px)',
+          overflowY: 'auto',
+          borderRight: '1px solid var(--border)',
+          background: 'var(--surface)',
+          padding: '20px 12px 32px',
         }}
       >
-        <nav
-          aria-label="Admin sections"
+        <div
           style={{
-            maxWidth: 1280,
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            padding: '0 80px',
-            overflowX: 'auto',
+            fontSize: 11,
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '.08em',
+            color: 'var(--text-soft)',
+            padding: '0 10px 14px',
           }}
         >
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '.08em',
-              color: 'var(--text-soft)',
-              marginRight: 18,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Admin
-          </span>
-          {ADMIN_TABS.map((t) => (
-            <NavLink key={t.to} to={t.to} title={t.hint} style={tabStyle}>
-              {t.label}
-            </NavLink>
-          ))}
-        </nav>
+          Admin
+        </div>
+
+        {ADMIN_NAV.map((section) => (
+          <div key={section.title} style={{ marginBottom: 18 }}>
+            <h2
+              id={`admin-nav-${section.title.toLowerCase()}`}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '.06em',
+                color: 'var(--text-soft)',
+                margin: '0 0 6px',
+                padding: '0 10px',
+              }}
+            >
+              {section.title}
+            </h2>
+            <ul
+              aria-labelledby={`admin-nav-${section.title.toLowerCase()}`}
+              style={{ listStyle: 'none', margin: 0, padding: 0 }}
+            >
+              {section.items.map((item) => {
+                const current = isCurrent(item)
+                const dirty = item.tab ? dirtyTabs.includes(item.tab) : false
+                return (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      title={item.hint}
+                      onClick={(e) => handleClick(e, item)}
+                      aria-current={current ? 'page' : undefined}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '7px 10px',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        fontWeight: current ? 600 : 500,
+                        color: current ? 'var(--primary)' : 'var(--text-muted)',
+                        background: current ? 'var(--surface-2)' : 'transparent',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {item.label}
+                      {dirty && (
+                        <span
+                          aria-label="has unsaved changes"
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: 'var(--primary)',
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <div style={{ minWidth: 0 }}>
+        <Outlet />
       </div>
-      <Outlet />
     </div>
   )
 }

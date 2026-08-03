@@ -1,3 +1,5 @@
+import re
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework.views import APIView
@@ -9,16 +11,20 @@ from rest_framework import status
 from proteins.models import Protein
 from interactions.models import Interaction
 from datasets.models import Dataset
-from .models import AdminSettings, Announcement
+from .models import AdminSettings, Announcement, SiteText
 from .serializers import (
     AdminSettingsSerializer,
     AdminUserSerializer,
     AnnouncementSerializer,
     InteractionCategorySerializer,
+    SiteTextWriteSerializer,
 )
 from interactions.models import InteractionCategory
 
 User = get_user_model()
+
+DEFAULT_LOCALE = "en"
+LOCALE_RE = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$")
 
 
 class AdminSettingsView(APIView):
@@ -78,6 +84,70 @@ class LogoUploadView(APIView):
             settings_obj.logo = None
             settings_obj.save()
         return Response({"detail": "Logo removed."})
+
+
+class SiteTextView(APIView):
+    """Read and write admin overrides for user-facing copy.
+
+    GET is public and returns only the keys an admin has overridden; the
+    frontend merges them over its own registry of defaults. PUT is an admin
+    bulk upsert where a null (or omitted) value deletes the override, letting
+    the shipped default take over again. An empty string is kept as a real
+    override so an admin can deliberately blank a label.
+    """
+
+    def get_permissions(self):
+        if self.request.method == "PUT":
+            return [IsAdminUser()]
+        return [AllowAny()]
+
+    def _locale(self, request) -> str | None:
+        locale = request.query_params.get("locale") or DEFAULT_LOCALE
+        if not LOCALE_RE.match(locale):
+            return None
+        return locale
+
+    def get(self, request):
+        locale = self._locale(request)
+        if locale is None:
+            return Response(
+                {"detail": "Invalid locale."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        rows = SiteText.objects.filter(locale=locale).values_list("key", "value")
+        return Response({"locale": locale, "text": dict(rows)})
+
+    def put(self, request):
+        locale = self._locale(request)
+        if locale is None:
+            return Response(
+                {"detail": "Invalid locale."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        entries = request.data.get("entries")
+        if not isinstance(entries, list):
+            return Response(
+                {"detail": "Expected a list under 'entries'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = SiteTextWriteSerializer(data=entries, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        to_clear = []
+        for entry in serializer.validated_data:
+            key = entry["key"]
+            value = entry.get("value")
+            if value is None:
+                to_clear.append(key)
+            else:
+                SiteText.objects.update_or_create(
+                    key=key, locale=locale, defaults={"value": value}
+                )
+        if to_clear:
+            SiteText.objects.filter(locale=locale, key__in=to_clear).delete()
+
+        rows = SiteText.objects.filter(locale=locale).values_list("key", "value")
+        return Response({"locale": locale, "text": dict(rows)})
 
 
 class AdminUserListView(APIView):

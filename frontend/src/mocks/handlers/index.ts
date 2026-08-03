@@ -1,4 +1,5 @@
 import { settingsHandlers } from './settings'
+import { siteTextHandlers } from './siteText'
 import { announcementsHandlers } from './announcements'
 import { countsHandlers } from './counts'
 import { authHandlers } from './auth'
@@ -14,6 +15,7 @@ import { interactionCategoryHandlers } from './interactionCategories'
 
 export const handlers = [
   ...settingsHandlers,
+  ...siteTextHandlers,
   ...announcementsHandlers,
   ...countsHandlers,
   ...authHandlers,

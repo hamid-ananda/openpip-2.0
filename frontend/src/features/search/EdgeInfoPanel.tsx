@@ -1,4 +1,5 @@
 import type { Interaction } from '../../types/api'
+import { useText } from '../../text'
 
 // PSI-MI experiment type code → human-readable label (subset covering common codes)
 const EXPERIMENT_TYPES: Record<string, string> = {
@@ -51,6 +52,7 @@ export interface EdgeInfoPanelProps {
 }
 
 export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
+  const t = useText()
   const geneA = interaction.interactor_A.protein_gene_name || interaction.interactor_A.protein_uniprot_id
   const geneB = interaction.interactor_B.protein_gene_name || interaction.interactor_B.protein_uniprot_id
   const { highest_category_status } = interaction.interaction_category_array
@@ -123,7 +125,7 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
         </div>
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('search.panel.close')}
           style={{
             background: 'none',
             border: 'none',
@@ -142,7 +144,7 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
       {/* Score */}
       {interaction.score !== null && interaction.score !== undefined && (
         <>
-          <div style={SECTION}>Confidence Score</div>
+          <div style={SECTION}>{t('search.edge.score')}</div>
           <div style={{ fontSize: 13, color: 'var(--text)' }}>
             {interaction.score.toFixed(4)}
           </div>
@@ -152,7 +154,7 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
       {/* Datasets */}
       {hasDatasets && (
         <>
-          <div style={SECTION}>Datasets</div>
+          <div style={SECTION}>{t('search.edge.datasets')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {interaction.dataset_array.map((ds, i) => (
               <div key={i} style={{ fontSize: 12, color: 'var(--text)' }}>
@@ -180,7 +182,7 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
       {/* Experiments */}
       {hasExperiments && (
         <>
-          <div style={SECTION}>Experiments</div>
+          <div style={SECTION}>{t('search.edge.experiments')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {experiments.map((exp, i) => (
               <div
@@ -197,19 +199,19 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
                 }}
               >
                 {exp.dataset && (
-                  <div><span style={{ color: 'var(--text-muted)' }}>Dataset: </span>{exp.dataset}</div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('search.edge.dataset')} </span>{exp.dataset}</div>
                 )}
                 {exp.dna_binding_domain && (
-                  <div><span style={{ color: 'var(--text-muted)' }}>DB Domain: </span>{exp.dna_binding_domain}</div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('search.edge.dbDomain')} </span>{exp.dna_binding_domain}</div>
                 )}
                 {exp.activation_binding_domain && (
-                  <div><span style={{ color: 'var(--text-muted)' }}>AD: </span>{exp.activation_binding_domain}</div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('search.edge.ad')} </span>{exp.activation_binding_domain}</div>
                 )}
                 {exp.assay_version !== undefined && (
-                  <div><span style={{ color: 'var(--text-muted)' }}>Assay v: </span>{exp.assay_version}</div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('search.edge.assayVersion')} </span>{exp.assay_version}</div>
                 )}
                 {exp.num_screens !== undefined && (
-                  <div><span style={{ color: 'var(--text-muted)' }}>Screens: </span>{exp.num_screens}</div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('search.edge.screens')} </span>{exp.num_screens}</div>
                 )}
               </div>
             ))}
@@ -220,10 +222,10 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
       {/* Literature */}
       {hasLiterature && (
         <>
-          <div style={SECTION}>Literature</div>
+          <div style={SECTION}>{t('search.edge.literature')}</div>
           {binaryPmids.length > 0 && (
             <div style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 3 }}>Binary</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 3 }}>{t('search.edge.binary')}</div>
               {Array.from(binaryTypes).map((label) => (
                 <div key={label} style={{ fontSize: 12 }}>
                   <a
@@ -240,7 +242,7 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
           )}
           {nonBinaryPmids.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 3 }}>Non-Binary</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 3 }}>{t('search.edge.nonBinary')}</div>
               {Array.from(nonBinaryTypes).map((label) => (
                 <div key={label} style={{ fontSize: 12 }}>
                   <a

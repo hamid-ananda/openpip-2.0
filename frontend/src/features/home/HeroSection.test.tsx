@@ -1,11 +1,18 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { HeroSection } from './HeroSection'
 
 vi.mock('./MiniNetworkGraph', () => ({
   MiniNetworkGraph: () => <div data-testid="mini-network-graph" />,
+}))
+
+/** Settings drive the "Try:" example chips; each test sets what it needs. */
+const settings = vi.hoisted(() => ({ value: undefined as Record<string, unknown> | undefined }))
+
+vi.mock('../../api/settings', () => ({
+  useSettings: () => ({ data: settings.value }),
 }))
 
 vi.mock('../../api/proteins', () => ({
@@ -20,6 +27,10 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('HeroSection', () => {
+  beforeEach(() => {
+    settings.value = undefined
+  })
+
   it('renders the site short title', () => {
     render(<HeroSection shortTitle="openPIP" proteins={8275} interactions={52569} datasets={0} />, { wrapper })
     expect(screen.getByText('openPIP')).toBeInTheDocument()
@@ -50,5 +61,31 @@ describe('HeroSection', () => {
     fireEvent.change(input, { target: { value: 'TP53, BA' } })
     fireEvent.mouseDown(screen.getByRole('option', { name: 'BAX' }))
     expect(input).toHaveValue('TP53, BAX')
+  })
+
+  it('labels an unfiltered example None, not all', () => {
+    settings.value = {
+      example1: 'BAD\nBCL2L1',
+      example1Type: null,
+      example2: 'TP53',
+      example2Type: 'query-query',
+    }
+    render(<HeroSection shortTitle="openPIP" proteins={0} interactions={0} datasets={0} />, {
+      wrapper,
+    })
+
+    // "None" is what this filter is called in the sidebar and the admin editor.
+    expect(screen.getByText('None')).toBeInTheDocument()
+    expect(screen.queryByText('all')).not.toBeInTheDocument()
+    expect(screen.getByText('query-query')).toBeInTheDocument()
+  })
+
+  it('labels a legacy "all" example None too', () => {
+    settings.value = { example1: 'BAD', example1Type: 'all' }
+    render(<HeroSection shortTitle="openPIP" proteins={0} interactions={0} datasets={0} />, {
+      wrapper,
+    })
+
+    expect(screen.getByText('None')).toBeInTheDocument()
   })
 })

@@ -10,12 +10,14 @@ import { SearchSidebar } from './SearchSidebar'
 import { NodeInfoPanel } from './NodeInfoPanel'
 import { EdgeInfoPanel } from './EdgeInfoPanel'
 import type { Protein, Interaction } from '../../types/api'
+import { useText } from '../../text'
 
 const MIN_NETWORK_H = 150
 const MAX_NETWORK_H = window.innerHeight - 56 - 120
 
 export function SearchResultsPage() {
   const { term = '' } = useParams<{ term: string }>()
+  const t = useText()
   const [networkHeight, setNetworkHeight] = useState(500)
   const [selectedProtein, setSelectedProtein] = useState<Protein | null>(null)
   const [selectedInteraction, setSelectedInteraction] = useState<Interaction | null>(null)
@@ -148,8 +150,8 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
           minHeight: 400,
           gap: 6,
         }}>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Could not reach the database.</div>
-          <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>Check your connection and try again.</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('search.error.unreachable')}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>{t('search.error.retry')}</div>
         </div>
       )
     }
@@ -227,7 +229,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
         {/* Drag handle */}
         <div
           onMouseDown={startDrag}
-          title="Drag to resize"
+          title={t('search.resizeHint')}
           style={{
             height: 10,
             flexShrink: 0,

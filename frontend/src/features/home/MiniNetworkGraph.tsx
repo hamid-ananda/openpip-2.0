@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 import { CytoscapeNetwork } from '../search/network/CytoscapeNetwork'
 import type { SearchResult } from '../../types/search'
+import { useText } from '../../text'
 
 function useHomeNetwork(refreshKey: number) {
   return useQuery<SearchResult>({
@@ -16,6 +17,7 @@ function useHomeNetwork(refreshKey: number) {
 export function MiniNetworkGraph() {
   const [refreshKey, setRefreshKey] = useState(0)
   const { data, isLoading } = useHomeNetwork(refreshKey)
+  const t = useText()
 
   const proteins = data?.all_proteins ?? []
   const interactions = data?.all_interactions ?? []
@@ -35,11 +37,11 @@ export function MiniNetworkGraph() {
               letterSpacing: '.08em',
             }}
           >
-            Example network
+            {t('home.network.heading')}
           </span>
           {queryGene && (
             <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>
-              - {queryGene} neighborhood
+              {t('home.network.neighborhood', { gene: queryGene })}
             </span>
           )}
         </div>
@@ -49,7 +51,7 @@ export function MiniNetworkGraph() {
           style={{ fontSize: 12, padding: '4px 12px' }}
           disabled={isLoading}
         >
-          {isLoading ? 'Loading…' : 'View another'}
+          {isLoading ? t('home.network.loading') : t('home.network.viewAnother')}
         </button>
       </div>
 

@@ -2,8 +2,8 @@ import { useCallback, useRef, useState } from 'react'
 import { useAdminFiles, useUploadFile, useToggleFileVisibility, useDeleteFile } from '../../api/files'
 import { useAuthStore } from '../../store/authStore'
 import type { UploadedFile } from '../../api/files'
+import { BASE_URL } from '../../api/client'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 const ALLOWED_EXTS = ['.fasta', '.fa', '.tab', '.tsv', '.sif', '.csv']
 const MAX_MB = 500
 
@@ -186,7 +186,7 @@ export function AdminFilePage() {
   }
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 80px' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100%', padding: '40px 48px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
         <h1
           style={{

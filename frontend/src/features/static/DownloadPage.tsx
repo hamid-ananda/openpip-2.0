@@ -4,25 +4,33 @@ import { useDatasets } from '../../api/downloads'
 import { usePublicFiles } from '../../api/files'
 import type { UploadedFile } from '../../api/files'
 import { useSettings } from '../../api/settings'
+import { useText } from '../../text'
+import { BASE_URL } from '../../api/client'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+// Firefox ignores a click on an anchor that is not in the document, and revoking
+// the object URL synchronously can cancel the download before it starts.
+function saveBlob(blob: Blob, filename: string) {
+  const objectUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = objectUrl
+  a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+}
 
 async function triggerDownload(datasetId: number, fmt: string, token: string | null) {
   const url = `${BASE_URL}/datasets/${datasetId}/download?fmt=${fmt}`
   const res = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
-  if (!res.ok) return
+  if (!res.ok) throw new Error(`Download failed (${res.status})`)
   const blob = await res.blob()
   const disposition = res.headers.get('Content-Disposition') ?? ''
   const match = disposition.match(/filename="([^"]+)"/)
-  const filename = match ? match[1] : `dataset_${datasetId}.${fmt}`
-  const objectUrl = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = objectUrl
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(objectUrl)
+  saveBlob(blob, match ? match[1] : `dataset_${datasetId}.${fmt}`)
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -50,12 +58,20 @@ export function DownloadPage() {
   const { data: suppFiles } = usePublicFiles()
   const { data: settings } = useSettings()
   const [downloading, setDownloading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const t = useText()
 
   async function handleDownload(datasetId: number, fmt: string) {
     const key = `${datasetId}-${fmt}`
     setDownloading(key)
-    await triggerDownload(datasetId, fmt, token)
-    setDownloading(null)
+    setError(null)
+    try {
+      await triggerDownload(datasetId, fmt, token)
+    } catch {
+      setError(`Could not download ${fmt.toUpperCase()}. Please try again.`)
+    } finally {
+      setDownloading(null)
+    }
   }
 
   return (
@@ -64,7 +80,7 @@ export function DownloadPage() {
       <section style={{ padding: '48px 80px 24px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div className="op-chip primary" style={{ marginBottom: 16 }}>
-            Bulk data
+            {t('downloads.chip')}
           </div>
           <h1
             style={{
@@ -75,7 +91,7 @@ export function DownloadPage() {
               color: 'var(--text)',
             }}
           >
-            Downloads
+            {t('downloads.title')}
           </h1>
           <p
             style={{
@@ -86,8 +102,7 @@ export function DownloadPage() {
               lineHeight: 1.6,
             }}
           >
-            Every dataset hosted on openPIP, available as PSI-MI tab, SIF, or CSV, free to
-            download: no account required.
+            {t('downloads.subtitle')}
           </p>
         </div>
       </section>
@@ -105,9 +120,24 @@ export function DownloadPage() {
       {(settings?.showDownloads ?? true) && (
       <section style={{ padding: '0 80px 64px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          {error && (
+            <div
+              role="alert"
+              style={{
+                marginBottom: 14,
+                padding: '10px 14px',
+                fontSize: 13,
+                color: 'var(--danger, #e53e3e)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+              }}
+            >
+              {error}
+            </div>
+          )}
           {isLoading ? (
             <div style={{ padding: '48px 0', color: 'var(--text-muted)', fontSize: 14 }}>
-              Loading datasets…
+              {t('downloads.loading')}
             </div>
           ) : (
             <div className="op-card" style={{ overflow: 'hidden' }}>
@@ -126,9 +156,9 @@ export function DownloadPage() {
                   letterSpacing: '.06em',
                 }}
               >
-                <div>Dataset</div>
-                <div>Year</div>
-                <div style={{ textAlign: 'right' }}>Download</div>
+                <div>{t('downloads.table.dataset')}</div>
+                <div>{t('downloads.table.year')}</div>
+                <div style={{ textAlign: 'right' }}>{t('downloads.table.download')}</div>
               </div>
 
               {/* Table rows */}
@@ -264,22 +294,23 @@ function formatBytes(bytes: number): string {
 
 function SuppFileRow({ file, token }: { file: UploadedFile; token: string | null }) {
   const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
   const ext = file.file_name.split('.').pop()?.toLowerCase() ?? ''
 
   async function handleDownload() {
     setBusy(true)
-    const res = await fetch(`${BASE_URL}/files/${file.id}/download`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    if (res.ok) {
-      const blob = await res.blob()
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = file.file_name
-      a.click()
-      URL.revokeObjectURL(a.href)
+    setFailed(false)
+    try {
+      const res = await fetch(`${BASE_URL}/files/${file.id}/download`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error(`Download failed (${res.status})`)
+      saveBlob(await res.blob(), file.file_name)
+    } catch {
+      setFailed(true)
+    } finally {
+      setBusy(false)
     }
-    setBusy(false)
   }
 
   return (
@@ -304,7 +335,12 @@ function SuppFileRow({ file, token }: { file: UploadedFile; token: string | null
         </span>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatBytes(file.file_size)}</div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+        {failed && (
+          <span role="alert" style={{ fontSize: 11, color: 'var(--danger, #e53e3e)' }}>
+            Failed
+          </span>
+        )}
         <button
           className="op-btn"
           disabled={busy}

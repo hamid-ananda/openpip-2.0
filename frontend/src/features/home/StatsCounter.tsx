@@ -1,4 +1,5 @@
 import { useCountUp } from '../../lib/useCountUp'
+import { useText } from '../../text'
 
 interface StatsCounterProps {
   proteins: number
@@ -25,12 +26,13 @@ export function StatsCounter({ proteins, interactions, datasets }: StatsCounterP
   const animatedProteins = useCountUp(proteins)
   const animatedInteractions = useCountUp(interactions)
   const animatedDatasets = useCountUp(datasets)
+  const t = useText()
 
   return (
     <div style={{ display: 'flex', gap: 40 }}>
-      <Stat n={animatedProteins.toLocaleString()} label="Proteins indexed" />
-      <Stat n={animatedInteractions.toLocaleString()} label="Verified interactions" />
-      <Stat n={animatedDatasets.toLocaleString()} label="Source datasets" />
+      <Stat n={animatedProteins.toLocaleString()} label={t('home.stats.proteins')} />
+      <Stat n={animatedInteractions.toLocaleString()} label={t('home.stats.interactions')} />
+      <Stat n={animatedDatasets.toLocaleString()} label={t('home.stats.datasets')} />
     </div>
   )
 }

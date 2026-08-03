@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, BookOpen, Download } from 'lucide-react'
 import { useSettings } from '../../api/settings'
@@ -5,35 +6,36 @@ import { useCounts } from '../../api/counts'
 import { useAnnouncements } from '../../api/announcements'
 import { HeroSection } from './HeroSection'
 import { AnnouncementsList } from './AnnouncementsList'
+import { useText } from '../../text'
 
 const ACTION_CARDS = [
   {
     icon: Search,
-    title: 'Search by gene',
-    desc: 'Enter a UniProt or HGNC identifier: find every protein it touches.',
+    titleKey: 'home.cards.search.title',
+    descKey: 'home.cards.search.desc',
     accent: 'var(--primary)',
     to: '/search',
   },
   {
     icon: BookOpen,
-    title: 'Browse the atlas',
-    desc: 'Pre-built views into HI-III, Lit-BM, HuRI and the literature.',
+    titleKey: 'home.cards.browse.title',
+    descKey: 'home.cards.browse.desc',
     accent: 'var(--accent)',
-    to: '/search',
+    to: '/proteins',
   },
   {
     icon: Download,
-    title: 'Bulk download',
-    desc: 'PSI-MI tab, SIF, CSV: pick your format and pull the whole dataset.',
+    titleKey: 'home.cards.download.title',
+    descKey: 'home.cards.download.desc',
     accent: 'var(--accent-2)',
     to: '/download',
   },
 ]
 
 /**
- * Renders admin-editable homepage prose (mission / methods) from Site Settings.
- * Both title and body are HTML authored in the admin rich-text editor; the
- * section is omitted entirely when the admin has left both blank.
+ * Renders admin-editable homepage prose (mission / methods) from the site-text
+ * registry. Both title and body are HTML authored in the admin editor; the
+ * section is omitted entirely when the admin has blanked both.
  */
 function ContentSection({ title, body }: { title?: string | null; body?: string | null }) {
   if (!title?.trim() && !body?.trim()) return null
@@ -63,6 +65,8 @@ export function HomePage() {
   const { data: settings } = useSettings()
   const { data: counts } = useCounts()
   const { data: announcements } = useAnnouncements()
+  const t = useText()
+  const [copied, setCopied] = useState(false)
 
   return (
     <div style={{ background: 'var(--bg)' }}>
@@ -73,7 +77,7 @@ export function HomePage() {
         datasets={counts?.datasets ?? 0}
       />
 
-      <ContentSection title={settings?.missionTitle} body={settings?.missionText} />
+      <ContentSection title={t('home.mission.heading')} body={t('home.mission.body')} />
 
       {/* Three ways to start */}
       <section style={{ padding: '40px 80px 80px' }}>
@@ -88,12 +92,12 @@ export function HomePage() {
               margin: '0 0 20px',
             }}
           >
-            Three ways to start
+            {t('home.cards.heading')}
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-            {ACTION_CARDS.map(({ icon: Icon, title, desc, accent, to }) => (
+            {ACTION_CARDS.map(({ icon: Icon, titleKey, descKey, accent, to }) => (
               <Link
-                key={to + title}
+                key={to + titleKey}
                 to={to}
                 className="op-card"
                 style={{
@@ -128,10 +132,10 @@ export function HomePage() {
                 <div
                   style={{ fontSize: 16, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}
                 >
-                  {title}
+                  {t(titleKey)}
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55 }}>
-                  {desc}
+                  {t(descKey)}
                 </div>
               </Link>
             ))}
@@ -139,7 +143,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <ContentSection title={settings?.methodTitle} body={settings?.methodText} />
+      <ContentSection title={t('home.methods.heading')} body={t('home.methods.body')} />
 
       {/* News + Cite */}
       <section style={{ padding: '0 80px 80px' }}>
@@ -164,7 +168,7 @@ export function HomePage() {
                 marginBottom: 16,
               }}
             >
-              News
+              {t('home.news.heading')}
             </div>
             <AnnouncementsList announcements={announcements ?? []} />
           </div>
@@ -193,11 +197,10 @@ export function HomePage() {
                   marginBottom: 12,
                 }}
               >
-                Cite openPIP
+                {t('home.cite.heading')}
               </div>
               <p style={{ fontSize: 15, lineHeight: 1.55, margin: '0 0 24px' }}>
-                If openPIP supports your research, please cite the platform and the
-                underlying source datasets.
+                {t('home.cite.body')}
               </p>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -211,13 +214,15 @@ export function HomePage() {
                 }}
                 onClick={() => {
                   navigator.clipboard
-                    .writeText(
-                      '@article{helmy2022openpip, title={openPIP}, journal={Journal of Molecular Biology}, year={2022}}'
-                    )
+                    .writeText(t('home.cite.bibtex'))
+                    .then(() => {
+                      setCopied(true)
+                      setTimeout(() => setCopied(false), 2000)
+                    })
                     .catch(() => {})
                 }}
               >
-                Copy BibTeX
+                {copied ? t('home.cite.copiedButton') : t('home.cite.copyButton')}
               </button>
               <Link
                 to="/about"
@@ -229,7 +234,7 @@ export function HomePage() {
                   fontSize: 13,
                 }}
               >
-                Learn more
+                {t('home.cite.learnMore')}
               </Link>
             </div>
           </div>

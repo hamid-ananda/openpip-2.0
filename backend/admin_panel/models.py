@@ -7,10 +7,6 @@ class AdminSettings(models.Model):
     url = models.CharField(max_length=200, null=True)
     version = models.CharField(max_length=200, null=True)
     home_page = models.TextField(null=True)
-    mission_title = models.TextField(null=True)
-    mission_text = models.TextField(null=True)
-    method_title = models.TextField(null=True)
-    method_text = models.TextField(null=True)
     about = models.TextField(null=True)
     faq = models.TextField(null=True)
     download = models.TextField(null=True)
@@ -45,6 +41,33 @@ class AdminSettings(models.Model):
 
     def __str__(self):
         return self.title or "AdminSettings"
+
+
+class SiteText(models.Model):
+    """An admin override for one piece of user-facing copy.
+
+    Rows exist only for keys an admin has actually customized. The frontend
+    owns the registry of keys and their default copy, so an absent row simply
+    means "use the shipped default" and a stale row for a retired key is inert.
+    """
+
+    key = models.CharField(max_length=200)
+    locale = models.CharField(max_length=10, default="en")
+    value = models.TextField(blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "site_text"
+        verbose_name_plural = "site text"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["key", "locale"], name="site_text_key_locale_uniq"
+            )
+        ]
+        indexes = [models.Index(fields=["locale"], name="site_text_locale_idx")]
+
+    def __str__(self):
+        return f"{self.key} [{self.locale}]"
 
 
 class Announcement(models.Model):

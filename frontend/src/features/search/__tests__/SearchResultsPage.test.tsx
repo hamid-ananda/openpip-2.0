@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useSearch } from '../../../api/search'
 import { SearchResultsPage } from '../SearchResultsPage'
 import { searchFixture } from '../../../mocks/fixtures/search'
@@ -20,22 +21,17 @@ vi.mock('cytoscape', () => ({ default: { use: vi.fn() } }))
 vi.mock('cytoscape-cola', () => ({ default: {} }))
 
 function renderWithRoute(term?: string) {
-  if (term) {
-    return render(
-      <MemoryRouter initialEntries={[`/search/${term}`]}>
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const path = term ? '/search/:term' : '/search'
+  const entry = term ? `/search/${term}` : '/search'
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
-          <Route path="/search/:term" element={<SearchResultsPage />} />
+          <Route path={path} element={<SearchResultsPage />} />
         </Routes>
       </MemoryRouter>
-    )
-  }
-  // No route param — render at a path that doesn't match :term
-  return render(
-    <MemoryRouter initialEntries={['/search']}>
-      <Routes>
-        <Route path="/search" element={<SearchResultsPage />} />
-      </Routes>
-    </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
@@ -94,8 +90,8 @@ describe('SearchResultsPage', () => {
     // Panels should be in the document
     expect(screen.getByText('Sidebar')).toBeInTheDocument()
     expect(screen.getByText('Network')).toBeInTheDocument()
+    // Enrichment lives inside ResultTablePanel's tabs, so 'Tables' covers it.
     expect(screen.getByText('Tables')).toBeInTheDocument()
-    expect(screen.getByText('Enrichment')).toBeInTheDocument()
 
     // Store should have been populated with fixture data
     const state = useSearchStore.getState()

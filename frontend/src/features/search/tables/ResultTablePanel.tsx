@@ -9,21 +9,22 @@ import { SubcellularLocationTable } from '../enrichment/SubcellularLocationTable
 import { TissueExpressionTable } from '../enrichment/TissueExpressionTable'
 import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
 import type { Protein } from '../../../types/api'
+import { useText } from '../../../text'
 
 type Tab = 'interactions' | 'interactors' | EnrichmentSource | 'subcellular' | 'tissue' | 'summary'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'interactions', label: 'Interactions' },
-  { id: 'interactors', label: 'Interactors' },
-  { id: 'GO:MF', label: 'Molecular Function' },
-  { id: 'GO:BP', label: 'Biological Process' },
-  { id: 'GO:CC', label: 'Cellular Component' },
-  { id: 'REAC', label: 'Reactome' },
-  { id: 'CORUM', label: 'CORUM' },
-  { id: 'KEGG', label: 'KEGG' },
-  { id: 'subcellular', label: 'Subcellular Location' },
-  { id: 'tissue', label: 'Tissue Expression' },
-  { id: 'summary', label: 'Protein Info' },
+const TABS: { id: Tab; textKey: string }[] = [
+  { id: 'interactions', textKey: 'search.tab.interactions' },
+  { id: 'interactors', textKey: 'search.tab.interactors' },
+  { id: 'GO:MF', textKey: 'search.tab.goMf' },
+  { id: 'GO:BP', textKey: 'search.tab.goBp' },
+  { id: 'GO:CC', textKey: 'search.tab.goCc' },
+  { id: 'REAC', textKey: 'search.tab.reactome' },
+  { id: 'CORUM', textKey: 'search.tab.corum' },
+  { id: 'KEGG', textKey: 'search.tab.kegg' },
+  { id: 'subcellular', textKey: 'search.tab.subcellular' },
+  { id: 'tissue', textKey: 'search.tab.tissue' },
+  { id: 'summary', textKey: 'search.tab.summary' },
 ]
 
 const TAB_BTN = (isActive: boolean): React.CSSProperties => ({
@@ -63,6 +64,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
 
   const [activeTab, setActiveTab] = useState<Tab>('interactions')
   const [prevProtein, setPrevProtein] = useState(selectedProtein)
+  const t = useText()
 
   // Auto-switch to summary tab when the selected protein changes (React render-phase pattern)
   if (selectedProtein !== prevProtein) {
@@ -116,7 +118,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
               onClick={() => setActiveTab(tab.id)}
               style={TAB_BTN(isActive)}
             >
-              {tab.label}
+              {t(tab.textKey)}
               {count !== undefined && (
                 <span style={{
                   fontSize: 11, fontWeight: 600,

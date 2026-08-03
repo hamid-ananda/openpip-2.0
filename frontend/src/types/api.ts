@@ -11,9 +11,19 @@ export interface AdminSettings {
   shortTitle: string
   footer: string
   homePage: string
+  /**
+   * Home-page prose, moved into the site-text registry (backend migration
+   * 0006). Still returned by /api/settings for legacy API parity, but read-only
+   * — render and edit these through the `home.mission.*` / `home.methods.*`
+   * text keys instead.
+   * @deprecated
+   */
   missionTitle: string
+  /** @deprecated See {@link AdminSettings.missionTitle}. */
   missionText: string
+  /** @deprecated See {@link AdminSettings.missionTitle}. */
   methodTitle: string
+  /** @deprecated See {@link AdminSettings.missionTitle}. */
   methodText: string
   mainColorScheme: string
   headerColorScheme: string
@@ -43,6 +53,18 @@ export interface AdminSettings {
   example1Type: string
   example2Type: string
   example3Type: string
+}
+
+/** Admin overrides for user-facing copy, keyed by site-text key. */
+export interface SiteTextResponse {
+  locale: string
+  text: Record<string, string>
+}
+
+/** One entry of a bulk site-text write. `null` clears the override. */
+export interface SiteTextEntry {
+  key: string
+  value: string | null
 }
 
 export interface InteractionCategory {
