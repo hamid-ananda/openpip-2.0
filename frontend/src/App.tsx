@@ -16,7 +16,8 @@ import { RegisterPage } from './features/auth/RegisterPage'
 import { ProfilePage } from './features/auth/ProfilePage'
 import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage'
-import { ProteinDetailPage } from './features/protein/ProteinDetailPage'
+import { ProteinsPage } from './features/proteins/ProteinsPage'
+import { LegacyProteinRedirect } from './features/proteins/LegacyProteinRedirect'
 import { DownloadPage } from './features/static/DownloadPage'
 import { AboutPage } from './features/static/AboutPage'
 import { FAQPage } from './features/static/FAQPage'
@@ -41,7 +42,10 @@ const router = createBrowserRouter(
       { index: true, element: <HomePage /> },
       { path: 'search', element: <SearchResultsPage /> },
       { path: 'search/:term', element: <SearchResultsPage /> },
-      { path: 'protein/:identifier', element: <ProteinDetailPage /> },
+      { path: 'proteins', element: <ProteinsPage /> },
+      { path: 'proteins/:identifier', element: <ProteinsPage /> },
+      // Superseded by /proteins/:identifier — kept so existing links resolve.
+      { path: 'protein/:identifier', element: <LegacyProteinRedirect /> },
       { path: 'download', element: <DownloadPage /> },
       { path: 'about', element: <AboutPage /> },
       { path: 'faq', element: <FAQPage /> },
