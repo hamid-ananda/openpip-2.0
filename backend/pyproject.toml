@@ -1,0 +1,17 @@
+# Formatter and linter configuration.
+#
+# This file exists only to pin tool settings. There is no [build-system] table
+# because the backend is a Django project run from manage.py, not a package
+# that gets built or installed.
+#
+# Line length is 88 — black's default, and what the backend has always been
+# formatted to in practice. CLAUDE.md previously documented 100, but nothing
+# enforced it: no config file existed, so black fell back to 88, and ruff never
+# checked line length at all (E501 is not in its default rule set). Raising the
+# limit to 100 would have reformatted 46 files to satisfy a convention no tool
+# had applied. Pinning 88 records what is already true.
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88
