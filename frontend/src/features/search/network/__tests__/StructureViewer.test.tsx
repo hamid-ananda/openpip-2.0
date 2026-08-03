@@ -23,9 +23,17 @@ vi.mock('molstar/lib/mol-plugin-ui/react18', () => ({
   renderReact18: vi.fn(),
 }))
 vi.mock('molstar/lib/mol-plugin-ui/spec', () => ({
-  DefaultPluginUISpec: vi.fn().mockReturnValue({ layout: {} }),
+  DefaultPluginUISpec: vi.fn().mockReturnValue({ layout: {}, behaviors: [] }),
 }))
 vi.mock('molstar/lib/mol-plugin-ui/skin/light.css', () => ({}))
+vi.mock('molstar/lib/mol-plugin/spec', () => ({
+  PluginSpec: { Behavior: vi.fn((behavior) => behavior) },
+}))
+// Supplies the per-residue pLDDT property and the confidence colouring preset.
+vi.mock('molstar/lib/extensions/model-archive/quality-assessment/behavior', () => ({
+  MAQualityAssessment: { name: 'ma-quality-assessment' },
+  QualityAssessmentPLDDTPreset: { id: 'plddt-confidence' },
+}))
 
 // Import AFTER mocks are registered
 import { StructureViewer } from '../StructureViewer'
@@ -54,7 +62,7 @@ describe('StructureViewer', () => {
     render(<StructureViewer uniprotId="Q92934" source="alphafold" pdbId={null} />)
     await waitFor(() =>
       expect(mockPlugin.builders.data.download).toHaveBeenCalledWith(
-        { url: 'https://alphafold.ebi.ac.uk/files/AF-Q92934-F1-model_v4.cif' },
+        { url: 'https://alphafold.ebi.ac.uk/files/AF-Q92934-F1-model_v6.cif' },
         expect.anything()
       )
     )
