@@ -4,11 +4,13 @@ from django.db import migrations
 def fix_audit_data(apps, schema_editor):
     with schema_editor.connection.cursor() as cursor:
         # Issue 1: HuRI (id=15) — link 45,816 orphaned interactions and set count
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO interaction_dataset (interaction_id, dataset_id)
             SELECT id, 15 FROM interaction WHERE id > 76563
             ON CONFLICT DO NOTHING
-            """)
+            """
+        )
         cursor.execute(
             "UPDATE dataset SET number_of_interactions = '45816' WHERE id = 15"
         )

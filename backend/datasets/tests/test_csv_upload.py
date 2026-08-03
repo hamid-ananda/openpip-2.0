@@ -155,8 +155,12 @@ def test_task_accepts_fmt_parameter():
     with settings_override:
         with (
             patch("datasets.tasks.process_line_batch") as mock_plb,
-            patch("datasets.tasks.enrich_proteins_from_uniprot", return_value=(0, False)),
-            patch("datasets.tasks.enrich_proteins_from_ensembl", return_value=(0, False)),
+            patch(
+                "datasets.tasks.enrich_proteins_from_uniprot", return_value=(0, False)
+            ),
+            patch(
+                "datasets.tasks.enrich_proteins_from_ensembl", return_value=(0, False)
+            ),
             patch("datasets.tasks.enrich_organisms_from_ncbi", return_value=(0, False)),
         ):
             mock_plb.return_value = {
