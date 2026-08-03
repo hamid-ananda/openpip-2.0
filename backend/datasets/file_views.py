@@ -13,7 +13,17 @@ from .models import UploadFiles
 
 ALLOWED_EXTENSIONS = {".fasta", ".fa", ".tab", ".tsv", ".sif", ".csv"}
 MAX_UPLOAD_BYTES = getattr(settings, "FILE_MANAGER_MAX_UPLOAD_MB", 500) * 1024 * 1024
-UPLOAD_DIR = os.path.join(settings.MEDIA_ROOT, "uploads")
+
+
+def upload_dir() -> str:
+    """Resolve the upload directory at call time.
+
+    Binding this to a module-level constant froze it to whatever MEDIA_ROOT
+    held at import, so anything that overrides MEDIA_ROOT afterwards — tests
+    pointing at a tmp dir, a management command, a settings reload — was
+    silently written into the real media directory instead.
+    """
+    return os.path.join(settings.MEDIA_ROOT, "uploads")
 
 
 def _ext(filename: str) -> str:
@@ -87,8 +97,9 @@ class FileListView(APIView):
             prefix = uuid.uuid4().hex[:8]
             disk_name = f"{prefix}_{original_name}"
 
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        dest_path = os.path.join(UPLOAD_DIR, disk_name)
+        target_dir = upload_dir()
+        os.makedirs(target_dir, exist_ok=True)
+        dest_path = os.path.join(target_dir, disk_name)
         with open(dest_path, "wb") as f:
             for chunk in uploaded.chunks():
                 f.write(chunk)
