@@ -151,3 +151,12 @@ def test_psicquic_format_param_is_not_drf_content_negotiation(
     # PSICQUIC owns this parameter, so the view must see it, not DRF.
     assert client.get("/psicquic/rest/query?q=BRCA1&format=tab25").status_code == 200
     assert client.get("/psicquic/rest/query?q=BRCA1&format=json").status_code == 200
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("fmt,width", [("tab25", 15), ("tab26", 36), ("tab27", 42)])
+def test_psicquic_serves_each_tab_version(client, sample_interactions, fmt, width):
+    response = client.get(f"/psicquic/rest/query?q=BRCA1&format={fmt}")
+    assert response.status_code == 200
+    rows = response.content.decode().strip().split("\n")
+    assert all(row.count("\t") == width - 1 for row in rows)

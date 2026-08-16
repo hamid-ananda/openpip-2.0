@@ -1,8 +1,20 @@
 """
-PSI-MI TAB 2.5 formatter.
+PSI-MI TAB formatter — 2.5, 2.6 and 2.7.
 
-Spec: https://psicquic.github.io/MITAB25Format.html
-Columns (tab-separated, 15 total):
+Specs: https://psicquic.github.io/MITAB25Format.html
+       https://psicquic.github.io/MITAB27Format.html
+
+The versions are strict supersets: 2.5 is the first 15 columns, 2.6 the first
+36, 2.7 all 42. A row is therefore built once at full width and sliced, which
+makes "2.5 output is unchanged" a property of the code rather than something to
+re-verify each time a column is added.
+
+openPIP fills few columns beyond 15, but not none: interactor type is protein,
+the negative flag is false, and a Y2H screen records which protein carried the
+DNA-binding domain, so bait and prey are real rather than unspecified. The rest
+are "-" because openPIP does not hold that data, not because they were skipped.
+
+Columns 1-15:
   0  Unique ID interactor A       uniprotkb:P38398
   1  Unique ID interactor B       uniprotkb:P51587
   2  Alt IDs interactor A         entrez:672|...
@@ -19,9 +31,11 @@ Columns (tab-separated, 15 total):
  13  Interaction ID               openPIP:{id}
  14  Confidence score             openPIP:{score} or -
 
-TODO(phase5): TAB 2.6 adds biological roles, experimental roles, interactor types
-TODO(phase5): TAB 2.7 adds xrefs, host organism, checksums, negative flag
-TODO(phase5): TAB 2.8 adds features (domains/binding sites), stoichiometry, identification methods
+DONE: TAB 2.6 and 2.7 — see COLUMN_NAMES and VERSION_WIDTHS below.
+TODO(phase5): TAB 2.8. The paper commits to it: "We furthermore plan to add
+    support to the PSI-MI TAB format 2.8" (Helmy et al., JMB 2022, Future
+    Directions). Read the spec for the added columns — the groupings in this
+    file's earlier TODOs were guesses and did not match MITAB27Format.html.
 TODO(phase5): Register openPIP in PSI-MI controlled vocabulary to get an official MI ID
 TODO(phase5): Register in PSICQUIC registry at EBI (https://www.ebi.ac.uk/Tools/webservices/psicquic/registry)
     — the endpoints it validates against now exist: /psicquic/rest/formats and
@@ -74,17 +88,13 @@ INTERACTION_TYPE_BY_BINARY = {
 Y2H_METHOD = ("0018", "two hybrid")
 Y2H_TYPE = ("0407", "direct interaction")
 
-TAB25_HEADER = (
-    "#ID(s) interactor A\tID(s) interactor B\t"
-    "Alt. ID(s) interactor A\tAlt. ID(s) interactor B\t"
-    "Alias(es) interactor A\tAlias(es) interactor B\t"
-    "Interaction detection method(s)\t"
-    "Publication 1st author(s)\tPublication Identifier(s)\t"
-    "Taxon interactor A\tTaxon interactor B\t"
-    "Interaction type(s)\tSource database(s)\t"
-    "Interaction identifier(s)\tConfidence value(s)"
-)
-
+# Roles and types for columns 17-22. "unspecified role" is the CV's own term for
+# "not recorded", which is honest here — openPIP stores no biological role, and
+# an experimental role only where a Y2H screen names the two domains.
+ROLE_UNSPECIFIED = ("0499", "unspecified role")
+ROLE_BAIT = ("0496", "bait")
+ROLE_PREY = ("0498", "prey")
+TYPE_PROTEIN = ("0326", "protein")
 
 # The legacy dump stores "no accession" several ways: NULL, the empty string,
 # and the literal text "NULL". Only the first two read as falsey in Python, so
@@ -173,8 +183,8 @@ def _psi_mi(code: str, label: str | None) -> str:
     return f"{term}({label})" if label else term
 
 
-def _litbm_payloads(interaction) -> list[dict]:
-    """Parsed litbm_interaction annotations, skipping anything unparseable.
+def _payloads(interaction, type_name: str) -> list[dict]:
+    """Parsed annotations of one type, skipping anything unparseable.
 
     The legacy dump stores these as JSON in a varchar, some with a trailing \\r,
     so a bad row is possible and must not take down a whole PSICQUIC response.
@@ -182,7 +192,7 @@ def _litbm_payloads(interaction) -> list[dict]:
     payloads = []
     for link in interaction.annotation_interactions.all():
         annotation = link.annotation
-        if not annotation or annotation.type_name != "litbm_interaction":
+        if not annotation or annotation.type_name != type_name:
             continue
         try:
             payload = json.loads((annotation.annotation or "").strip())
@@ -191,6 +201,10 @@ def _litbm_payloads(interaction) -> list[dict]:
         if isinstance(payload, dict):
             payloads.append(payload)
     return payloads
+
+
+def _litbm_payloads(interaction) -> list[dict]:
+    return _payloads(interaction, "litbm_interaction")
 
 
 def _is_y2h(interaction) -> bool:
@@ -239,14 +253,48 @@ def _interaction_types(interaction) -> str:
     return "-"
 
 
-def format_interaction_tab25(interaction: Interaction) -> str:
-    """Serialize one Interaction row as a PSI-MI TAB 2.5 line."""
+def _experimental_roles(interaction) -> tuple[str, str]:
+    """Columns 19/20. A Y2H screen names which protein carried which domain.
+
+    `experiment` annotations record dna_binding_domain (the bait construct) and
+    activation_binding_domain (the prey). Matching those gene names against the
+    interactors recovers a real experimental role instead of "unspecified" — the
+    one piece of genuinely new information 2.6 buys for openPIP.
+
+    The match is by gene name because that is what the annotation stores. If it
+    does not line up with either interactor the roles stay unspecified rather
+    than being assigned arbitrarily.
+    """
+    a_gene = (interaction.interactor_A.gene_name or "").strip().upper()
+    b_gene = (interaction.interactor_B.gene_name or "").strip().upper()
+    unspecified = _psi_mi(*ROLE_UNSPECIFIED)
+    if not (a_gene and b_gene):
+        return unspecified, unspecified
+
+    for payload in _payloads(interaction, "experiment"):
+        bait = (payload.get("dna_binding_domain") or "").strip().upper()
+        prey = (payload.get("activation_binding_domain") or "").strip().upper()
+        if not (bait and prey):
+            continue
+        if a_gene == bait and b_gene == prey:
+            return _psi_mi(*ROLE_BAIT), _psi_mi(*ROLE_PREY)
+        if a_gene == prey and b_gene == bait:
+            return _psi_mi(*ROLE_PREY), _psi_mi(*ROLE_BAIT)
+    return unspecified, unspecified
+
+
+def _row(interaction: Interaction) -> list[str]:
+    """All 42 MITAB columns for one interaction, in spec order."""
     a = interaction.interactor_A
     b = interaction.interactor_B
     author, pubmed = _publication(interaction)
     score = f"openPIP:{interaction.score}" if interaction.score else "-"
+    role_a, role_b = _experimental_roles(interaction)
+    unspecified = _psi_mi(*ROLE_UNSPECIFIED)
+    protein = _psi_mi(*TYPE_PROTEIN)
 
-    cols = [
+    return [
+        # ── 1-15: TAB 2.5 ──
         _uniprot(a),
         _uniprot(b),
         _alt_ids(a),
@@ -262,13 +310,102 @@ def format_interaction_tab25(interaction: Interaction) -> str:
         "openPIP:openPIP",
         f"openPIP:{interaction.pk}",
         score,
+        # ── 16-36: added by TAB 2.6 ──
+        "-",  # 16 complex expansion: the data is binary, nothing was expanded
+        unspecified,  # 17 biological role A — not recorded by openPIP
+        unspecified,  # 18 biological role B
+        role_a,  # 19 experimental role A — bait/prey where Y2H recorded it
+        role_b,  # 20 experimental role B
+        protein,  # 21 interactor type A
+        protein,  # 22 interactor type B
+        "-",  # 23 xref A — the cross-references we hold are already in col 3
+        "-",  # 24 xref B
+        "-",  # 25 interaction xref
+        "-",  # 26 annotations A
+        "-",  # 27 annotations B
+        "-",  # 28 interaction annotations
+        "-",  # 29 host organism — the assay host is not recorded per interaction
+        "-",  # 30 parameters
+        "-",  # 31 creation date — openPIP keeps no per-interaction timestamps
+        "-",  # 32 update date
+        "-",  # 33 checksum A — ROGID/CRC64 would have to be computed
+        "-",  # 34 checksum B
+        "-",  # 35 interaction checksum
+        "false",  # 36 negative — openPIP stores no negative results
+        # ── 37-42: added by TAB 2.7 ──
+        "-",  # 37 feature A
+        "-",  # 38 feature B
+        "-",  # 39 stoichiometry A
+        "-",  # 40 stoichiometry B
+        "-",  # 41 participant identification method A
+        "-",  # 42 participant identification method B
     ]
-    return "\t".join(cols)
 
 
-def format_queryset_tab25(queryset) -> str:
-    """Serialize a queryset of Interactions as TAB 2.5 text (header + lines)."""
-    lines = [TAB25_HEADER]
+COLUMN_NAMES = [
+    "ID(s) interactor A",
+    "ID(s) interactor B",
+    "Alt. ID(s) interactor A",
+    "Alt. ID(s) interactor B",
+    "Alias(es) interactor A",
+    "Alias(es) interactor B",
+    "Interaction detection method(s)",
+    "Publication 1st author(s)",
+    "Publication Identifier(s)",
+    "Taxid interactor A",
+    "Taxid interactor B",
+    "Interaction type(s)",
+    "Source database(s)",
+    "Interaction identifier(s)",
+    "Confidence value(s)",
+    "Expansion method(s)",
+    "Biological role(s) interactor A",
+    "Biological role(s) interactor B",
+    "Experimental role(s) interactor A",
+    "Experimental role(s) interactor B",
+    "Type(s) interactor A",
+    "Type(s) interactor B",
+    "Xref(s) interactor A",
+    "Xref(s) interactor B",
+    "Interaction Xref(s)",
+    "Annotation(s) interactor A",
+    "Annotation(s) interactor B",
+    "Interaction annotation(s)",
+    "Host organism(s)",
+    "Interaction parameter(s)",
+    "Creation date",
+    "Update date",
+    "Checksum(s) interactor A",
+    "Checksum(s) interactor B",
+    "Interaction Checksum(s)",
+    "Negative",
+    "Feature(s) interactor A",
+    "Feature(s) interactor B",
+    "Stoichiometry(s) interactor A",
+    "Stoichiometry(s) interactor B",
+    "Identification method participant A",
+    "Identification method participant B",
+]
+
+# Each version is a prefix of the next, so a width is all that distinguishes them.
+VERSION_WIDTHS = {"tab25": 15, "tab26": 36, "tab27": 42}
+
+# Kept for the 2.5 callers and tests that predate the other versions.
+TAB25_HEADER = "#" + "\t".join(COLUMN_NAMES[: VERSION_WIDTHS["tab25"]])
+
+
+def header_for(version: str = "tab25") -> str:
+    return "#" + "\t".join(COLUMN_NAMES[: VERSION_WIDTHS[version]])
+
+
+def format_interaction(interaction: Interaction, version: str = "tab25") -> str:
+    """Serialize one Interaction as a PSI-MI TAB line at the given version."""
+    return "\t".join(_row(interaction)[: VERSION_WIDTHS[version]])
+
+
+def format_queryset(queryset, version: str = "tab25") -> str:
+    """Serialize a queryset of Interactions as PSI-MI TAB text (header + rows)."""
+    lines = [header_for(version)]
     for interaction in queryset.select_related(
         "interactor_A", "interactor_B"
     ).prefetch_related(
@@ -277,8 +414,17 @@ def format_queryset_tab25(queryset) -> str:
         "interactor_A__protein_identifiers__identifier",
         "interactor_B__protein_identifiers__identifier",
         "interaction_datasets__dataset",
-        # Columns 6 and 11 read these; without the prefetch each row costs a query.
+        # Columns 7, 12, 19 and 20 read these; without the prefetch each row
+        # costs a query.
         "annotation_interactions__annotation",
     ):
-        lines.append(format_interaction_tab25(interaction))
+        lines.append(format_interaction(interaction, version))
     return "\n".join(lines)
+
+
+def format_interaction_tab25(interaction: Interaction) -> str:
+    return format_interaction(interaction, "tab25")
+
+
+def format_queryset_tab25(queryset) -> str:
+    return format_queryset(queryset, "tab25")

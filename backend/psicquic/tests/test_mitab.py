@@ -1,6 +1,13 @@
 # backend/psicquic/tests/test_tab25.py
 import pytest
-from psicquic.tab25 import format_interaction_tab25, TAB25_HEADER
+from psicquic.mitab import (
+    format_interaction_tab25,
+    format_interaction,
+    header_for,
+    TAB25_HEADER,
+    COLUMN_NAMES,
+    VERSION_WIDTHS,
+)
 from interactions.models import Interaction, InteractionDataset
 from proteins.models import Protein, Organism, ProteinOrganism, Annotation
 from interactions.models import AnnotationInteraction
@@ -209,3 +216,80 @@ def test_tab25_drops_placeholder_alt_ids():
     columns = format_interaction_tab25(interaction).split("\t")
     assert columns[2] == "-"
     assert columns[3] == "entrez:7157"
+
+
+# ── TAB 2.6 / 2.7 ──────────────────────────────────────────────────────────
+
+
+def test_version_widths_match_the_specs():
+    assert VERSION_WIDTHS == {"tab25": 15, "tab26": 36, "tab27": 42}
+    assert len(COLUMN_NAMES) == 42
+
+
+@pytest.mark.django_db
+def test_wider_versions_are_prefixed_by_narrower_ones(interaction_with_data):
+    # The whole design rests on this: adding a column cannot disturb 2.5.
+    t25 = format_interaction(interaction_with_data, "tab25").split("\t")
+    t26 = format_interaction(interaction_with_data, "tab26").split("\t")
+    t27 = format_interaction(interaction_with_data, "tab27").split("\t")
+    assert len(t25) == 15 and len(t26) == 36 and len(t27) == 42
+    assert t26[:15] == t25
+    assert t27[:36] == t26
+
+
+@pytest.mark.django_db
+def test_tab27_fills_the_columns_openpip_actually_knows(interaction_with_data):
+    cols = format_interaction(interaction_with_data, "tab27").split("\t")
+    assert cols[20] == 'psi-mi:"MI:0326"(protein)'  # 21 interactor type A
+    assert cols[21] == 'psi-mi:"MI:0326"(protein)'  # 22 interactor type B
+    assert cols[35] == "false"  # 36 negative — openPIP stores no negatives
+    # Unknown is stated as unspecified, not left blank.
+    assert cols[16] == 'psi-mi:"MI:0499"(unspecified role)'  # 17 biological role A
+
+
+@pytest.mark.django_db
+def test_tab27_reports_y2h_bait_and_prey(interaction_with_data):
+    # The one genuinely new fact 2.6 buys: the screen recorded which protein
+    # carried the DNA-binding domain.
+    _annotate(
+        interaction_with_data,
+        "experiment",
+        '{"dna_binding_domain":"BRCA1","activation_binding_domain":"BRCA2"}',
+    )
+    cols = format_interaction(interaction_with_data, "tab27").split("\t")
+    assert cols[18] == 'psi-mi:"MI:0496"(bait)'  # 19 experimental role A
+    assert cols[19] == 'psi-mi:"MI:0498"(prey)'  # 20 experimental role B
+
+
+@pytest.mark.django_db
+def test_tab27_reverses_bait_and_prey_when_the_screen_did(interaction_with_data):
+    _annotate(
+        interaction_with_data,
+        "experiment",
+        '{"dna_binding_domain":"BRCA2","activation_binding_domain":"BRCA1"}',
+    )
+    cols = format_interaction(interaction_with_data, "tab27").split("\t")
+    assert cols[18] == 'psi-mi:"MI:0498"(prey)'
+    assert cols[19] == 'psi-mi:"MI:0496"(bait)'
+
+
+@pytest.mark.django_db
+def test_tab27_leaves_roles_unspecified_when_the_genes_do_not_match(
+    interaction_with_data,
+):
+    # Rather than assign a role arbitrarily when the annotation names proteins
+    # that are not these two interactors.
+    _annotate(
+        interaction_with_data,
+        "experiment",
+        '{"dna_binding_domain":"TP53","activation_binding_domain":"MDM2"}',
+    )
+    cols = format_interaction(interaction_with_data, "tab27").split("\t")
+    assert cols[18] == 'psi-mi:"MI:0499"(unspecified role)'
+    assert cols[19] == 'psi-mi:"MI:0499"(unspecified role)'
+
+
+@pytest.mark.django_db
+def test_header_width_tracks_the_version(interaction_with_data):
+    for version, width in VERSION_WIDTHS.items():
+        assert header_for(version).count("\t") == width - 1

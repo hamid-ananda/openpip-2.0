@@ -5,7 +5,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
 from .miql import parse_miql
-from .tab25 import format_queryset_tab25
+from .mitab import format_queryset, VERSION_WIDTHS
 
 
 class IgnoreFormatQueryParam(DefaultContentNegotiation):
@@ -50,17 +50,17 @@ class PsicquicView(APIView):
     content_negotiation_class = IgnoreFormatQueryParam
 
 
-# Formats this service answers to. `tab25` and `count` are PSICQUIC spec names;
-# `json` is an openPIP extension for browser callers that do not want to parse
-# tab-separated text.
+# Formats this service answers to. The tab* names and `count` are PSICQUIC spec
+# names; `json` is an openPIP extension for browser callers that do not want to
+# parse tab-separated text.
 #
-# TAB 2.6/2.7/2.8 are absent rather than aliased to 2.5 — advertising a format
-# we would answer with empty columns is worse than not offering it. But this is
-# a gap to close, not a decision: the paper (Helmy et al., JMB 2022, Future
-# Directions) states "We furthermore plan to add support to the PSI-MI TAB
-# format 2.8", and the search-result export already emits 42 columns (2.7) in
-# frontend/src/lib/download.ts. PSICQUIC is the surface left behind at 2.5.
-SUPPORTED_FORMATS = ("tab25", "count", "json")
+# tab25 stays the default: it is what PSICQUIC clients ask for unless told
+# otherwise, and the wider versions add mostly "-" for openPIP. 2.8 is still
+# outstanding — the paper commits to it (Helmy et al., JMB 2022, Future
+# Directions).
+# Derived from the formatter rather than restated, so adding 2.8 there advertises
+# it here automatically instead of being advertised and then 406'd, or the reverse.
+SUPPORTED_FORMATS = tuple(VERSION_WIDTHS) + ("count", "json")
 
 # The PSICQUIC REST specification level implemented, not the openPIP release.
 # The registry at EBI reads this to decide how to talk to the service.
@@ -122,7 +122,7 @@ class PsicquicQueryView(PsicquicView):
             ]
             return JsonResponse(data, safe=False)
 
-        return _plain(format_queryset_tab25(qs))
+        return _plain(format_queryset(qs, fmt))
 
 
 class PsicquicCountView(PsicquicView):
