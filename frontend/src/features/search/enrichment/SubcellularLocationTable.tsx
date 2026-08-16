@@ -1,5 +1,6 @@
 import type { Protein } from '../../../types/api'
 import { HpaSourceNote } from './SourceNote'
+import { ReliabilityBadge } from './ReliabilityBadge'
 
 interface SubcellularLocationTableProps {
   proteins: Protein[]
@@ -18,15 +19,29 @@ const TH: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
+/** HPA reliability, strongest first — used to order the badges in a row. */
+const RELIABILITY_RANK: Record<string, number> = {
+  validated: 0,
+  supported: 1,
+  approved: 2,
+}
+
+function rank(level: string) {
+  return RELIABILITY_RANK[level.toLowerCase()] ?? 99
+}
+
 export function SubcellularLocationTable({ proteins }: SubcellularLocationTableProps) {
-  // Group proteins by location (skip empty-string values)
-  const byLocation: Record<string, string[]> = {}
+  // Group proteins by location. The stored value is not a flag — it is the HPA
+  // reliability score for that protein/compartment call (approved | supported |
+  // validated). Empty string means "not localised here", so it still gates the row.
+  const byLocation: Record<string, { gene: string; level: string }[]> = {}
   for (const p of proteins) {
     const loc = p.subcellular_location_expression_array as Record<string, string>
-    for (const [location, level] of Object.entries(loc)) {
+    for (const [location, rawLevel] of Object.entries(loc)) {
+      const level = rawLevel?.replace?.('\r', '').trim() ?? ''
       if (level) {
         byLocation[location] ??= []
-        byLocation[location].push(p.protein_gene_name)
+        byLocation[location].push({ gene: p.protein_gene_name, level })
       }
     }
   }
@@ -48,27 +63,42 @@ export function SubcellularLocationTable({ proteins }: SubcellularLocationTableP
           <tr>
             <th style={TH}>Location</th>
             <th style={TH}>Proteins</th>
+            <th style={TH}>Dataset</th>
+            <th style={TH}>Reliability</th>
           </tr>
         </thead>
         <tbody style={{ background: 'var(--bg)' }}>
-          {locations.map((location) => (
-            <tr
-              key={location}
-              style={{ borderBottom: '1px solid var(--border)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-            >
-              <td style={{ padding: '8px 16px', color: 'var(--text)', textTransform: 'capitalize' }}>
-                {location.replace(/_/g, ' ')}
-              </td>
-              <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
-                {byLocation[location].join(' | ')}
-              </td>
-            </tr>
-          ))}
+          {locations.map((location) => {
+            const entries = [...byLocation[location]].sort(
+              (a, b) => rank(a.level) - rank(b.level) || a.gene.localeCompare(b.gene)
+            )
+            return (
+              <tr
+                key={location}
+                style={{ borderBottom: '1px solid var(--border)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+              >
+                <td style={{ padding: '8px 16px', color: 'var(--text)', textTransform: 'capitalize' }}>
+                  {location.replace(/_/g, ' ')}
+                </td>
+                <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
+                  {entries.map((e) => e.gene).join(' | ')}
+                </td>
+                <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                  HPA Cell Atlas
+                </td>
+                <td style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}>
+                  {entries.map((e) => (
+                    <ReliabilityBadge key={e.gene} level={e.level} title={`${e.gene}: ${e.level}`} />
+                  ))}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
-      <HpaSourceNote assay="subcellular" />
+      <HpaSourceNote />
     </div>
   )
 }

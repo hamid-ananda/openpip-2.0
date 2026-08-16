@@ -55,4 +55,41 @@ describe('SubcellularLocationTable', () => {
     expect(screen.getByText(/BAD/)).toBeTruthy()
     expect(screen.getByText(/BCL2L1/)).toBeTruthy()
   })
+
+  it('surfaces the HPA reliability score rather than discarding it', () => {
+    const proteins = [
+      makeProtein({ protein_gene_name: 'BAD', subcellular_location_expression_array: { cytosol: 'approved' } }),
+    ]
+    render(<SubcellularLocationTable proteins={proteins} />)
+    expect(screen.getByText('approved')).toBeTruthy()
+    expect(screen.getByText('HPA Cell Atlas')).toBeTruthy()
+  })
+
+  it('orders badges strongest-reliability first within a location', () => {
+    const proteins = [
+      makeProtein({ protein_gene_name: 'BAD', subcellular_location_expression_array: { cytosol: 'approved' } }),
+      makeProtein({ protein_id: 2, protein_gene_name: 'BCL2L1', subcellular_location_expression_array: { cytosol: 'validated' } }),
+      makeProtein({ protein_id: 3, protein_gene_name: 'BAK1', subcellular_location_expression_array: { cytosol: 'supported' } }),
+    ]
+    render(<SubcellularLocationTable proteins={proteins} />)
+    // Gene list follows the same ordering as the badges.
+    expect(screen.getByText('BCL2L1 | BAK1 | BAD')).toBeTruthy()
+  })
+
+  it('tolerates the stray carriage returns present in the legacy dump', () => {
+    const proteins = [
+      makeProtein({ subcellular_location_expression_array: { cytosol: 'approved\r' } }),
+    ]
+    render(<SubcellularLocationTable proteins={proteins} />)
+    expect(screen.getByText('approved')).toBeTruthy()
+  })
+
+  it('credits the Human Protein Atlas', () => {
+    const proteins = [
+      makeProtein({ subcellular_location_expression_array: { cytosol: 'approved' } }),
+    ]
+    render(<SubcellularLocationTable proteins={proteins} />)
+    expect(screen.getByText(/Human Protein Atlas/)).toBeTruthy()
+    expect(screen.getByText(/Thul et al/)).toBeTruthy()
+  })
 })

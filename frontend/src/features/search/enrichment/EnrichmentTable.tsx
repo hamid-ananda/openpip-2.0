@@ -1,5 +1,6 @@
 import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
 import { EnrichmentSourceNote } from './SourceNote'
+import { enrichmentDatasetName } from './sources'
 
 interface EnrichmentTableProps {
   geneNames: string[]
@@ -76,7 +77,8 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
           <tr>
             <th style={TH}>Term ID</th>
             <th style={TH}>Name</th>
-            <th style={TH}>p-value</th>
+            <th style={TH}>Dataset</th>
+            <th style={TH}>p-value (FDR)</th>
           </tr>
         </thead>
         <tbody style={{ background: 'var(--bg)' }}>
@@ -98,6 +100,9 @@ export function EnrichmentTable({ geneNames, source }: EnrichmentTableProps) {
                 </a>
               </td>
               <td style={{ padding: '8px 16px', color: 'var(--text)' }}>{term.name}</td>
+              <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                {enrichmentDatasetName(source)}
+              </td>
               <td style={{ padding: '8px 16px', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-muted)' }}>
                 {term.p_value.toExponential(2)}
               </td>

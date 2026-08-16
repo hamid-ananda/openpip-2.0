@@ -1,5 +1,5 @@
 import type { Protein } from '../../../types/api'
-import { HpaSourceNote } from './SourceNote'
+import { GtexSourceNote } from './SourceNote'
 
 interface TissueExpressionTableProps {
   proteins: Protein[]
@@ -51,6 +51,7 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
           <tr>
             <th style={TH}>Tissue</th>
             <th style={TH}>Proteins</th>
+            <th style={TH}>Dataset</th>
           </tr>
         </thead>
         <tbody style={{ background: 'var(--bg)' }}>
@@ -67,11 +68,14 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
               <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
                 {byTissue[tissue].join(' | ')}
               </td>
+              <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                GTEx v6.0
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <HpaSourceNote assay="tissue" />
+      <GtexSourceNote />
     </div>
   )
 }
