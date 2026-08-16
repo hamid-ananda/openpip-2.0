@@ -124,23 +124,9 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_URLS_REGEX = r"^/(api|psicquic)/.*$"
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
-FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@openpip.usask.ca")
-
-# Set EMAIL_HOST in .env to send real mail; without it, mail goes to the console.
-EMAIL_BACKEND = env(
-    "EMAIL_BACKEND",
-    default=(
-        "django.core.mail.backends.smtp.EmailBackend"
-        if env("EMAIL_HOST", default="")
-        else "django.core.mail.backends.console.EmailBackend"
-    ),
-)
-EMAIL_HOST = env("EMAIL_HOST", default="")
-EMAIL_PORT = env.int("EMAIL_PORT", default=587)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+# openPIP sends no mail: account recovery runs on security questions, so there
+# is no EMAIL_* configuration to get wrong. Anything added here that does need
+# to send will have to set the mail backend up first.
 
 # ORCID OAuth — register a public API client at orcid.org/developer-tools.
 # Point ORCID_BASE_URL at https://orcid.org once the sandbox flow works.

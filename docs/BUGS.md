@@ -7,52 +7,55 @@ Format: **[STATUS]** — `open` · `in-progress` · `fixed` (include commit).
 
 ## Open
 
-### BUG-001 — Password reset email not delivered
-
-**Status:** `open`  
-**Severity:** High (blocks user self-service account recovery)  
-**Reported:** 2026-05-23  
-
-**Symptoms:**  
-Submitting the Forgot Password form returns a success message but no email arrives.
-The backend is running with `openpip.settings.dev`, which uses Django's
-`console` email backend — messages are printed to stdout instead of sent via SMTP.
-
-**Root cause (two parts):**  
-1. Production stack is not using `docker-compose.prod.yml` override, so
-   `DJANGO_SETTINGS_MODULE=openpip.settings.dev` → `EMAIL_BACKEND=console`.
-2. `FRONTEND_URL` defaults to `http://localhost:5173`, so even if the email
-   were sent the reset link would point at the dev server.
-
-**Fix — part 2 already committed** (`docker-compose.prod.yml`):
-- `FRONTEND_URL` default now set to `https://openpip.usask.ca/v2`.
-- SMTP env vars (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`,
-  `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`) plumbed through prod override.
-
-**Remaining action:**  
-- Add real SMTP credentials to `.env` on the server.
-- Start the stack with the prod override:
-  ```bash
-  docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod up -d
-  ```
-
----
-
-### BUG-002 — Password reset link goes to wrong base URL in dev
-
-**Status:** `open`  
-**Severity:** Low (dev only)  
-**Reported:** 2026-05-23  
-
-**Symptoms:**  
-When `FRONTEND_URL` is unset, the reset link uses the `localhost:5173` default
-regardless of where the app is actually running.
-
-**Fix:** Set `FRONTEND_URL` in `.env` or the relevant compose override.  
-Prod override now defaults this to `https://openpip.usask.ca/v2` (BUG-001 fix).
+_(none)_
 
 ---
 
 ## Fixed
 
-_(none yet)_
+### BUG-001 — Password reset email not delivered
+
+**Status:** `fixed` — cause removed, not repaired  
+**Severity:** was High (blocked user self-service account recovery)  
+**Reported:** 2026-05-23 · **Closed:** 2026-08-15  
+
+**Symptoms:**  
+Submitting the Forgot Password form returned a success message but no email
+arrived. The backend was running `openpip.settings.dev`, whose `console` email
+backend prints messages to stdout instead of sending them.
+
+**Why it was not simply repaired:**  
+Making it work needed an SMTP relay openPIP does not have, and every fix
+attempt would have left account recovery depending on mail being configured
+correctly on each deployment — the exact failure mode that produced this bug.
+
+Account recovery now runs on security questions instead: three questions set at
+registration, hashed like passwords, answered to mint the same reset token the
+emailed link used to carry. That left `PasswordResetRequestView` with no
+callers in the frontend, the CLI, or the docs, and it was the only `send_mail`
+in the codebase.
+
+**Fix:** deleted the endpoint, its route and tests, and the `EMAIL_*`,
+`DEFAULT_FROM_EMAIL` and `FRONTEND_URL` settings along with their compose and
+`.env.example` plumbing. openPIP now sends no mail at all, so there is no mail
+configuration to get wrong. Anything added later that must send will have to
+set up a backend deliberately.
+
+**Note for operators:** users created before the security-questions migration
+have none set and cannot self-recover. Reset those from the Django shell.
+
+---
+
+### BUG-002 — Password reset link goes to wrong base URL in dev
+
+**Status:** `fixed` — cause removed  
+**Severity:** was Low (dev only)  
+**Reported:** 2026-05-23 · **Closed:** 2026-08-15  
+
+**Symptoms:**  
+When `FRONTEND_URL` was unset, the emailed reset link used the
+`localhost:5173` default regardless of where the app was actually running.
+
+**Fix:** the only consumer of `FRONTEND_URL` was the reset email deleted in
+BUG-001; the setting is gone with it. The reset page is now reached by an
+in-app redirect, which cannot point at the wrong host.

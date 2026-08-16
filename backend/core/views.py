@@ -6,7 +6,6 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -271,46 +270,6 @@ class SecurityAnswerView(APIView):
                 "uid": urlsafe_base64_encode(force_bytes(user.pk)),
                 "token": _token_generator.make_token(user),
             }
-        )
-
-
-class PasswordResetRequestView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        email = request.data.get("email", "").strip()
-        if not email:
-            return Response(
-                {"detail": "Email required."}, status=status.HTTP_400_BAD_REQUEST
-            )
-        try:
-            user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist:
-            # Return success even if email not found to avoid user enumeration
-            return Response(
-                {"detail": "If that email is registered, a reset link has been sent."}
-            )
-
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = _token_generator.make_token(user)
-        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
-        reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
-
-        send_mail(
-            subject="openPIP — Reset your password",
-            message=(
-                f"Hi {user.username},\n\n"
-                f"Click the link below to reset your password. It expires in 1 hour.\n\n"
-                f"{reset_link}\n\n"
-                f"If you didn't request this, you can ignore this email."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
-        logger.info("Password reset email sent to %s", user.email)
-        return Response(
-            {"detail": "If that email is registered, a reset link has been sent."}
         )
 
 

@@ -106,31 +106,6 @@ def test_me_requires_auth(api_client):
 
 
 @pytest.mark.django_db
-def test_password_reset_request_unknown_email_returns_200(api_client):
-    """Always returns 200 to prevent user enumeration."""
-    response = api_client.post(
-        "/api/auth/password-reset-request",
-        {"email": "nobody@example.com"},
-        format="json",
-    )
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_password_reset_request_sends_email(api_client, mailoutbox):
-    User.objects.create_user("resetuser", "reset@example.com", "oldpass123")
-    response = api_client.post(
-        "/api/auth/password-reset-request",
-        {"email": "reset@example.com"},
-        format="json",
-    )
-    assert response.status_code == 200
-    assert len(mailoutbox) == 1
-    assert "reset@example.com" in mailoutbox[0].to
-    assert "reset-password" in mailoutbox[0].body
-
-
-@pytest.mark.django_db
 def test_password_reset_confirm_success(api_client):
     user = User.objects.create_user("resetme", "me@example.com", "oldpass123")
     uid = urlsafe_base64_encode(force_bytes(user.pk))
