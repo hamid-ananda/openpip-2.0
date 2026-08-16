@@ -1,7 +1,7 @@
 # Data provenance — tissue expression and the other network-view tabs
 
-**Status:** resolved, pending confirmation from Dr. Helmy
-**Raised:** 2026-08-04 · **Updated:** 2026-08-08
+**Status:** closed — kept as the record of where the tab data comes from
+**Raised:** 2026-08-04 · **Updated:** 2026-08-16
 **Context:** mentor feedback item *"Cite data sources on network-view tabs
 (e.g. Tissue Expression) and all dependent resources"*
 
@@ -11,15 +11,19 @@ Tissue expression took longer: the data is GTEx-derived but is not a raw GTEx
 download, and the record of what was done to it turned out to live somewhere
 nobody would grep — see §1.
 
-We have now traced it. **The short version: it is GTEx v6.0, processed with
-YARN (Paulson et al., BMC Bioinformatics 2017), inherited from HuRI.** The
-evidence is in §2.
+We traced it. **The short version: it is GTEx v6.0, processed with YARN
+(Paulson et al., BMC Bioinformatics 2017), inherited from HuRI.** The evidence
+is in §2.
 
 This attribution is **live on the Tissue Expression tab** as of 2026-08-08. The
 processing chain is stated in openPIP's own About text and matches HuRI's, so
-that part is documented rather than inferred. The **v6.0 release number** is the
-one piece that comes from the YARN paper rather than from our own records — it
-is well corroborated (§2) but worth a nod from you.
+that part is documented rather than inferred; the v6.0 release number is
+inferred, and §3 says exactly how far.
+
+**This is no longer a list of questions for Dr. Helmy** — it was closed on
+2026-08-16 without going to him. It stays in the docs because it is the only
+place the provenance is written down, and because the next person to wonder
+where "brain_0" came from should find this instead of repeating the search.
 
 ---
 
@@ -31,8 +35,8 @@ is well corroborated (§2) but worth a nod from you.
 | Subcellular Location | Human Protein Atlas Cell Atlas | ✅ resolved |
 | GO:MF / BP / CC | Gene Ontology, computed by g:Profiler | ✅ resolved |
 | Reactome / CORUM / KEGG | those resources, computed by g:Profiler | ✅ resolved |
-| Tissue Expression | GTEx v6.0 → YARN, via HuRI | ✅ traced, needs confirmation |
-| Tissue Specificity | same, preferential expression per Sonawane et al. 2017 | ✅ traced, needs confirmation |
+| Tissue Expression | GTEx v6.0 → YARN, via HuRI | ✅ traced (§3) |
+| Tissue Specificity | same, preferential expression per Sonawane et al. 2017 | ✅ traced (§3) |
 
 One bug was found and fixed along the way (§4).
 
@@ -159,15 +163,27 @@ rather than a property of the data.
 
 ---
 
-## 3. What we would like confirmed
+## 3. How far the inference goes
 
-1. **The release number.** GTEx → YARN → HuRI → openPIP is documented in our own
-   About text; that **v6.0** specifically is the release comes from the YARN
-   paper plus the tissue-set match in §2, not from anything openPIP records.
-2. **What `≥ 5.0` means** in qsmooth-normalized units, and whether a log2 step
-   was applied. This is the only genuinely open item.
-3. **That the wording on the site is acceptable.** The Tissue Expression tab now
-   reads:
+These were the three items we had drafted to ask Dr. Helmy. We closed them
+ourselves on 2026-08-16 rather than spend mentor time on them — the citation
+that shipped is defensible without his sign-off, and the one genuinely unknown
+item is unknown to him too, since it predates openPIP. Recorded here so nobody
+mistakes an inference for a record.
+
+1. **The release number — inferred, well corroborated.** That the chain is
+   GTEx → YARN → HuRI → openPIP is documented in our own About text. That the
+   release is specifically **v6.0** comes from the YARN paper plus the
+   three-way tissue-set match in §2, not from anything openPIP records. The
+   citation names v6.0 on that basis.
+2. **What `≥ 5.0` means — genuinely unknown.** The values are
+   qsmooth-normalized, so we cannot say whether a log2 step followed or what
+   the threshold corresponds to in interpretable units. Nothing in either
+   repository records it; the answer, if it exists, is upstream in HuRI. The
+   tab therefore states the threshold without interpreting it, which is the
+   honest position and needs no revisiting unless someone finds the original
+   preparation script.
+3. **The wording that shipped.** The Tissue Expression tab reads:
 
    > Data source: GTEx v6.0 (GTEx Consortium), normalized with YARN (Paulson et
    > al., *BMC Bioinformatics* 2017) as distributed with HuRI (Luck et al.,
@@ -175,16 +191,14 @@ rather than a property of the data.
    > clusters. Proteins are listed for a tissue at a qsmooth-normalized
    > expression level ≥ 5.0.
 
-   It deliberately states the threshold without interpreting it, pending (2)
-   above.
-
 **Sonawane et al., *Cell Reports* 2017** covers the preferential-expression
 calculation behind the `tissue_specificity` annotations (28,179 rows). It is
 already cited in the About text and needs no change. openPIP 2.0 does not
 surface tissue specificity in the UI, so there is no tab that needs it either.
 
-Any pointer to the original data-preparation script would settle all three at
-once, but it is likely upstream in HuRI rather than anything openPIP ever held.
+If the original data-preparation script ever turns up it would settle (1) and
+(2) at once, but it is likely upstream in HuRI rather than anything openPIP
+ever held.
 
 ---
 
