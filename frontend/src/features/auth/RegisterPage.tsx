@@ -4,6 +4,26 @@ import { useRegister } from '../../api/auth'
 import { useAuthStore } from '../../store/authStore'
 import { useText } from '../../text'
 
+// Used to reset a password without email — see ForgotPasswordPage.
+const SECURITY_QUESTIONS = [
+  'What was the name of your first pet?',
+  'What city were you born in?',
+  'What was the name of your first school?',
+  "What is your mother's maiden name?",
+  'What was the make of your first car?',
+  'What street did you grow up on?',
+  'What was your childhood nickname?',
+  'What is the name of your favourite teacher?',
+  'What was the title of the first book you loved?',
+  'What is your favourite food?',
+  'Where did you go on your first holiday?',
+  'What was the name of your first employer?',
+  'What is the name of your closest childhood friend?',
+  'What model was your first phone?',
+]
+
+const REQUIRED_ANSWERS = 3
+
 const BENEFITS = [
   { titleKey: 'auth.register.benefit1.title', descKey: 'auth.register.benefit1.desc' },
   { titleKey: 'auth.register.benefit2.title', descKey: 'auth.register.benefit2.desc' },
@@ -41,6 +61,12 @@ export function RegisterPage() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const { mutate: register, isPending, isSuccess, error } = useRegister()
   const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '' })
+  const [security, setSecurity] = useState(
+    Array.from({ length: REQUIRED_ANSWERS }, (_, i) => ({
+      question: SECURITY_QUESTIONS[i],
+      answer: '',
+    }))
+  )
   const [localError, setLocalError] = useState('')
   const t = useText()
 
@@ -53,7 +79,12 @@ export function RegisterPage() {
       setLocalError(t('auth.register.mismatch'))
       return
     }
-    register({ username: form.username, email: form.email, password: form.password })
+    register({
+      username: form.username,
+      email: form.email,
+      password: form.password,
+      security_questions: security,
+    })
   }
 
   if (isSuccess) {
@@ -192,6 +223,57 @@ export function RegisterPage() {
               style={{ margin: '6px 0 18px' }}
             />
 
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px' }}>
+              Pick {REQUIRED_ANSWERS} security questions. You'll need all {REQUIRED_ANSWERS}{' '}
+              answers to reset your password — capitalisation doesn't matter.
+            </p>
+            {security.map((row, i) => (
+              <div key={i} style={{ marginBottom: 14 }}>
+                <label
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                  }}
+                >
+                  Security question {i + 1}
+                </label>
+                <select
+                  value={row.question}
+                  onChange={(e) =>
+                    setSecurity((s) =>
+                      s.map((r, j) => (j === i ? { ...r, question: e.target.value } : r))
+                    )
+                  }
+                  className="op-input"
+                  style={{ margin: '6px 0' }}
+                >
+                  {SECURITY_QUESTIONS.filter(
+                    (q) => q === row.question || !security.some((r) => r.question === q)
+                  ).map((q) => (
+                    <option key={q} value={q}>
+                      {q}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={row.answer}
+                  onChange={(e) =>
+                    setSecurity((s) =>
+                      s.map((r, j) => (j === i ? { ...r, answer: e.target.value } : r))
+                    )
+                  }
+                  required
+                  aria-label={`Answer ${i + 1}`}
+                  placeholder="Your answer"
+                  className="op-input"
+                />
+              </div>
+            ))}
+            <div style={{ height: 4 }} />
+
             {(localError || error) && (
               <p style={{ color: 'var(--danger)', fontSize: 13, margin: '0 0 14px' }}>
                 {localError || t('auth.register.error')}
@@ -205,29 +287,6 @@ export function RegisterPage() {
               style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: 14 }}
             >
               {isPending ? t('auth.register.submitting') : t('auth.register.submit')}
-            </button>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                margin: '20px 0',
-                color: 'var(--text-soft)',
-                fontSize: 11,
-              }}
-            >
-              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              {t('auth.divider')}
-              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            </div>
-
-            <button
-              type="button"
-              className="op-btn"
-              style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
-            >
-              {t('auth.register.orcid')}
             </button>
           </form>
 

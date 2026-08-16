@@ -22,15 +22,30 @@ export function useLogout() {
 
 export function useRegister() {
   return useMutation({
-    mutationFn: (body: { username: string; email: string; password: string }) =>
-      apiClient.post('/auth/register', body).then((r) => r.data),
+    mutationFn: (body: {
+      username: string
+      email: string
+      password: string
+      security_questions: { question: string; answer: string }[]
+    }) => apiClient.post('/auth/register', body).then((r) => r.data),
   })
 }
 
-export function useForgotPassword() {
+export function useSecurityQuestion() {
   return useMutation({
     mutationFn: (body: { email: string }) =>
-      apiClient.post('/auth/password-reset-request', body).then((r) => r.data),
+      apiClient
+        .post('/auth/security-question', body)
+        .then((r) => r.data as { questions: string[] }),
+  })
+}
+
+export function useSecurityAnswer() {
+  return useMutation({
+    mutationFn: (body: { email: string; answers: string[] }) =>
+      apiClient
+        .post('/auth/security-answer', body)
+        .then((r) => r.data as { uid: string; token: string }),
   })
 }
 

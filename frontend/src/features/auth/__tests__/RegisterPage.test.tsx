@@ -20,6 +20,9 @@ describe('RegisterPage', () => {
     expect(screen.getByText('Email')).toBeInTheDocument()
     expect(screen.getByText('Password')).toBeInTheDocument()
     expect(screen.getByText('Confirm password')).toBeInTheDocument()
+    expect(screen.getByText('Security question 1')).toBeInTheDocument()
+    expect(screen.getByText('Security question 3')).toBeInTheDocument()
+    expect(screen.getAllByLabelText(/^Answer \d$/)).toHaveLength(3)
   })
 
   it('shows the benefits panel', () => {
@@ -37,6 +40,10 @@ describe('RegisterPage', () => {
       target: { value: 'alice@example.com' },
     })
     // fill password fields (type=password, not role=textbox)
+    // all three security answers are required
+    for (let i = 1; i <= 3; i++) {
+      fireEvent.change(screen.getByLabelText(`Answer ${i}`), { target: { value: 'Rex' } })
+    }
     const pwInputs = document.querySelectorAll('input[type="password"]')
     fireEvent.change(pwInputs[0], { target: { value: 'Secret1!' } })
     fireEvent.change(pwInputs[1], { target: { value: 'Different1!' } })
@@ -54,6 +61,10 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByPlaceholderText('you@university.edu'), {
       target: { value: 'alice@example.com' },
     })
+    // all three security answers are required
+    for (let i = 1; i <= 3; i++) {
+      fireEvent.change(screen.getByLabelText(`Answer ${i}`), { target: { value: 'Rex' } })
+    }
     const pwInputs = document.querySelectorAll('input[type="password"]')
     fireEvent.change(pwInputs[0], { target: { value: 'Secret1!' } })
     fireEvent.change(pwInputs[1], { target: { value: 'Secret1!' } })

@@ -28,6 +28,35 @@ export const authHandlers = [
     return HttpResponse.json({ detail: 'Registration successful' }, { status: 201 })
   }),
 
+  http.post('/api/auth/security-question', async ({ request }) => {
+    const { email } = (await request.json()) as { email: string }
+    if (!mockUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+      return HttpResponse.json(
+        { detail: 'No security question is set for that email.' },
+        { status: 404 }
+      )
+    }
+    return HttpResponse.json({
+      questions: [
+        'What was the name of your first pet?',
+        'What city were you born in?',
+        'What was the name of your first school?',
+      ],
+    })
+  }),
+
+  http.post('/api/auth/security-answer', async ({ request }) => {
+    const { answers } = (await request.json()) as { answers: string[] }
+    const expected = ['rex', 'regina', 'elm']
+    const ok =
+      answers.length === expected.length &&
+      answers.every((a, i) => a.trim().toLowerCase() === expected[i])
+    if (!ok) {
+      return HttpResponse.json({ detail: 'Those answers are incorrect.' }, { status: 400 })
+    }
+    return HttpResponse.json({ uid: 'mock-uid', token: 'mock-token' })
+  }),
+
   // Admin-only. Promotion is the only route to a new admin: /api/auth/register
   // is public and deliberately never sets the staff flag.
   http.get('/api/admin/users', ({ request }) => {

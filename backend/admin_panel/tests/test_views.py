@@ -811,7 +811,16 @@ def test_public_register_never_grants_admin(api_client):
     """Guards the hole the promotion flow exists to avoid."""
     response = api_client.post(
         "/api/auth/register",
-        {"username": "plain", "email": "plain@example.com", "password": "pass1234"},
+        {
+            "username": "plain",
+            "email": "plain@example.com",
+            "password": "pass1234",
+            "security_questions": [
+                {"question": "First pet?", "answer": "Rex"},
+                {"question": "Birth city?", "answer": "Regina"},
+                {"question": "First school?", "answer": "Elm"},
+            ],
+        },
         format="json",
     )
     assert response.status_code == 201

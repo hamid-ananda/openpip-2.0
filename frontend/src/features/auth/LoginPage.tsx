@@ -168,29 +168,6 @@ export function LoginPage() {
             >
               {isPending ? t('auth.login.submitting') : t('auth.login.submit')}
             </button>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                margin: '20px 0',
-                color: 'var(--text-soft)',
-                fontSize: 11,
-              }}
-            >
-              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              {t('auth.divider')}
-              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            </div>
-
-            <button
-              type="button"
-              className="op-btn"
-              style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
-            >
-              {t('auth.login.orcid')}
-            </button>
           </form>
 
           <p style={{ textAlign: 'center', marginTop: 28, fontSize: 13, color: 'var(--text-muted)' }}>

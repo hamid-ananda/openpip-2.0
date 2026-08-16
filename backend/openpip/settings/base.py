@@ -96,6 +96,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "PAGE_SIZE": 50,
+    "DEFAULT_THROTTLE_RATES": {"security_answer": "10/hour"},
 }
 
 SPECTACULAR_SETTINGS = {
@@ -125,6 +126,27 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@openpip.usask.ca")
+
+# Set EMAIL_HOST in .env to send real mail; without it, mail goes to the console.
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default=(
+        "django.core.mail.backends.smtp.EmailBackend"
+        if env("EMAIL_HOST", default="")
+        else "django.core.mail.backends.console.EmailBackend"
+    ),
+)
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+
+# ORCID OAuth — register a public API client at orcid.org/developer-tools.
+# Point ORCID_BASE_URL at https://orcid.org once the sandbox flow works.
+ORCID_CLIENT_ID = env("ORCID_CLIENT_ID", default="")
+ORCID_CLIENT_SECRET = env("ORCID_CLIENT_SECRET", default="")
+ORCID_BASE_URL = env("ORCID_BASE_URL", default="https://sandbox.orcid.org")
 
 # Celery
 CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")

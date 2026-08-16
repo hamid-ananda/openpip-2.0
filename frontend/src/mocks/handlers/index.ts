@@ -5,7 +5,6 @@ import { countsHandlers } from './counts'
 import { authHandlers } from './auth'
 import { searchHandlers } from './search'
 import { downloadHandlers } from './downloads'
-import { contactHandlers } from './contact'
 import { datasetHandlers } from './datasets'
 import { proteinHandlers } from './proteins'
 import { networksHandlers } from './networks'
@@ -21,7 +20,6 @@ export const handlers = [
   ...authHandlers,
   ...searchHandlers,
   ...downloadHandlers,
-  ...contactHandlers,
   ...datasetHandlers,
   ...proteinHandlers,
   ...networksHandlers,

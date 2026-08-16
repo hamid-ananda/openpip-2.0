@@ -24,68 +24,13 @@ export const contactGroup: TextGroup = {
   id: 'contact',
   label: 'Contact page',
   route: '/contact',
-  description: 'Form labels and confirmations. The intro paragraph is edited under Contact above.',
+  description: 'Page title only. The contact details themselves are edited under Contact above.',
   entries: [
     {
       key: 'contact.title',
       label: 'Page title',
       section: 'Page header',
       default: 'Contact',
-    },
-
-    {
-      key: 'contact.field.name',
-      label: 'Field label — name',
-      section: 'Contact form',
-      default: 'Name',
-    },
-    {
-      key: 'contact.field.email',
-      label: 'Field label — email',
-      section: 'Contact form',
-      default: 'Email',
-    },
-    {
-      key: 'contact.field.subject',
-      label: 'Field label — subject',
-      section: 'Contact form',
-      default: 'Subject',
-    },
-    {
-      key: 'contact.field.message',
-      label: 'Field label — message',
-      section: 'Contact form',
-      default: 'Message',
-    },
-    {
-      key: 'contact.submit',
-      label: 'Submit button',
-      section: 'Contact form',
-      default: 'Send Message',
-    },
-
-    {
-      key: 'contact.success.title',
-      label: 'Heading',
-      section: 'After sending',
-      default: 'Message sent!',
-    },
-    {
-      key: 'contact.success.body',
-      label: 'Body',
-      section: 'After sending',
-      default: "Thank you for contacting us. We'll respond shortly.",
-    },
-
-    {
-      key: 'contact.submitting',
-      label: 'Submit button — sending',
-      default: 'Sending...',
-    },
-    {
-      key: 'contact.error',
-      label: 'Error message',
-      default: 'Failed to send. Please try again.',
     },
   ],
 }
@@ -124,13 +69,13 @@ export const downloadsGroup: TextGroup = {
     },
     {
       key: 'downloads.table.dataset',
-      label: 'Column — dataset',
+      label: 'Column: dataset',
       default: 'Dataset',
     },
-    { key: 'downloads.table.year', label: 'Column — year', default: 'Year' },
+    { key: 'downloads.table.year', label: 'Column: year', default: 'Year' },
     {
       key: 'downloads.table.download',
-      label: 'Column — download',
+      label: 'Column: download',
       default: 'Download',
     },
   ],

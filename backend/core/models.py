@@ -3,6 +3,11 @@ from django.db import models
 
 
 class User(AbstractUser):
+    # [{"question": "...", "answer": "<hashed>"}, ...] — see core.views
+    security_questions = models.JSONField(default=list, blank=True)
+    # Null (not blank) so the unique index ignores password-only accounts.
+    orcid_id = models.CharField(max_length=19, unique=True, null=True, blank=True)
+
     class Meta:
         db_table = "user"
 
