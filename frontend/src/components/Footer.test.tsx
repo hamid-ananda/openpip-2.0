@@ -12,4 +12,10 @@ describe('Footer', () => {
     const { container } = render(<Footer html="" />)
     expect(container.querySelector('footer')).toBeInTheDocument()
   })
+
+  it('always shows the powered-by line, whatever the admin html says', () => {
+    render(<Footer html="<p>Powered by something else</p>" />)
+    const link = screen.getByRole('link', { name: 'openPIP 2.0' })
+    expect(link).toHaveAttribute('href', 'https://openpip.usask.ca')
+  })
 })

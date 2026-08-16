@@ -11,7 +11,20 @@ export function Footer({ html }: FooterProps) {
         borderTop: '1px solid var(--border)',
         backgroundColor: 'var(--surface-alt)',
       }}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    >
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+      {/* Hardcoded on purpose: not in the site-text registry, not admin-editable. */}
+      <div className="mt-4 text-xs" style={{ opacity: 0.7 }}>
+        Powered by{' '}
+        <a
+          href="https://openpip.usask.ca"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          openPIP 2.0
+        </a>
+      </div>
+    </footer>
   )
 }
