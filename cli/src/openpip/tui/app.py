@@ -79,11 +79,15 @@ class OpenPIPApp(App):
         yield Footer()
 
 
-# TODO(phase5): TUI admin panel screens (announcement manager, category manager)
-# TODO(phase5): TUI dataset browser (list + download from TUI)
-# TODO(phase5): TUI network: clickable nodes navigate to protein detail
-# TODO(phase5): TUI: keyboard shortcut for PSICQUIC query
-# TODO(phase5): openpip db shell (interactive psql via docker exec)
+# SHELVED 2026-08-16 along with the rest of the CLI — see cli/src/openpip/sdk.py
+# for the note. The six screens that exist work; these are the ones never built.
+#
+# TODO(shelved): TUI admin panel screens (announcement manager, category manager)
+# TODO(shelved): TUI dataset browser (list + download from TUI)
+# TODO(shelved): TUI network: clickable nodes navigate to protein detail
+# TODO(shelved): TUI: keyboard shortcut for PSICQUIC query
+# TODO(shelved): openpip db shell (interactive psql via docker exec) — duplicate
+#   of the sdk.py entry; one command, listed in both places
 
 
 def launch_tui() -> None:

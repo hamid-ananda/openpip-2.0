@@ -5,12 +5,29 @@ from .client import APIClient
 from .models import Protein, Interaction, Dataset, NetworkData, NetworkNode, NetworkEdge
 from .config import get_or_create_config
 
-# TODO(phase5): Publish to PyPI as 'openpip' — confirm package name with Dr. Helmy first
-# TODO(phase5): Add openpip logout command (clear token from config)
-# TODO(phase5): Add openpip db shell (opens psql via docker exec)
-# TODO(phase5): Add openpip db backup command
-# TODO(phase5): Rate limiting on public API endpoints
-# TODO(phase5): R client package (rOpenPIP) — mirrors Python SDK
+# SHELVED 2026-08-16: the CLI, SDK and TUI are parked while the web app is the
+# focus. Not deprecated — just not being extended. Parked items carry the
+# "shelved" tag below; anything still live keeps the "phase5" tag.
+#
+# Read this before unshelving: 14 of the 35 tests in cli/tests already fail
+# (5 test_client, 3 test_commands, 6 test_sdk), and did so before the shelving —
+# cli/ has had no commits since 7496b93. The ones inspected are respx mocks
+# registering a trailing slash the client does not send (mock "/api/datasets/",
+# request "/api/datasets"), so this looks like drift between the tests and the
+# client rather than a broken SDK. Nobody has confirmed that for all 14. Fix the
+# suite first when picking this back up; do not read a green-looking module as
+# working code.
+#
+# TODO(shelved): Publish to PyPI as 'openpip' — confirm package name with Dr. Helmy first
+# TODO(shelved): Add openpip logout command (clear token from config)
+# TODO(shelved): Add openpip db shell (opens psql via docker exec)
+# TODO(shelved): Add openpip db backup command
+# TODO(shelved): R client package (rOpenPIP) — mirrors Python SDK. Decide before
+#   building: the Phase 4 note rejected a JS SDK because CORS + OpenAPI already
+#   cover external callers, and the same argument mostly applies to R.
+#
+# Rate limiting on the public API was listed here too. It is backend work, not
+# SDK work, so it stays live at backend/psicquic/tab25.py rather than shelved.
 
 
 class OpenPIP:
