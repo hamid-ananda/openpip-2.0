@@ -128,12 +128,6 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 # is no EMAIL_* configuration to get wrong. Anything added here that does need
 # to send will have to set the mail backend up first.
 
-# ORCID OAuth — register a public API client at orcid.org/developer-tools.
-# Point ORCID_BASE_URL at https://orcid.org once the sandbox flow works.
-ORCID_CLIENT_ID = env("ORCID_CLIENT_ID", default="")
-ORCID_CLIENT_SECRET = env("ORCID_CLIENT_SECRET", default="")
-ORCID_BASE_URL = env("ORCID_BASE_URL", default="https://sandbox.orcid.org")
-
 # Celery
 CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://localhost:6379/0")

@@ -8,8 +8,6 @@ from .views import (
     PasswordResetConfirmView,
     SecurityQuestionView,
     SecurityAnswerView,
-    OrcidConfigView,
-    OrcidLoginView,
 )
 
 urlpatterns = [
@@ -21,6 +19,4 @@ urlpatterns = [
     path("auth/password-reset-confirm", PasswordResetConfirmView.as_view()),
     path("auth/security-question", SecurityQuestionView.as_view()),
     path("auth/security-answer", SecurityAnswerView.as_view()),
-    path("auth/orcid/config", OrcidConfigView.as_view()),
-    path("auth/orcid/login", OrcidLoginView.as_view()),
 ]

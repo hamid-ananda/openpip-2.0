@@ -1,12 +1,10 @@
 import logging
 
-import requests
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -123,99 +121,6 @@ class MeView(APIView):
             {
                 "username": user.username,
                 "email": user.email,
-                "is_admin": user.is_staff,
-            }
-        )
-
-
-class OrcidConfigView(APIView):
-    """Lets the frontend build the authorize URL without its own env var."""
-
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        return Response(
-            {
-                "enabled": bool(
-                    settings.ORCID_CLIENT_ID and settings.ORCID_CLIENT_SECRET
-                ),
-                "client_id": settings.ORCID_CLIENT_ID,
-                "authorize_url": f"{settings.ORCID_BASE_URL}/oauth/authorize",
-            }
-        )
-
-
-class OrcidLoginView(APIView):
-    """Trades the ORCID authorization code for our own JWT pair.
-
-    The /authenticate scope returns only the ORCID iD and name — no email —
-    so these accounts have no password and no security questions.
-    """
-
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        if not (settings.ORCID_CLIENT_ID and settings.ORCID_CLIENT_SECRET):
-            return Response(
-                {"detail": "ORCID sign-in is not configured."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        code = request.data.get("code", "").strip()
-        redirect_uri = request.data.get("redirect_uri", "").strip()
-        if not code or not redirect_uri:
-            return Response(
-                {"detail": "Missing authorization code."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            token_response = requests.post(
-                f"{settings.ORCID_BASE_URL}/oauth/token",
-                data={
-                    "client_id": settings.ORCID_CLIENT_ID,
-                    "client_secret": settings.ORCID_CLIENT_SECRET,
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "redirect_uri": redirect_uri,
-                },
-                headers={"Accept": "application/json"},
-                timeout=10,
-            )
-        except requests.RequestException:
-            logger.exception("ORCID token exchange failed")
-            return Response(
-                {"detail": "Could not reach ORCID. Try again."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-        if token_response.status_code != 200:
-            logger.warning("ORCID rejected the code: %s", token_response.text[:200])
-            return Response(
-                {"detail": "ORCID rejected the sign-in. Try again."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        payload = token_response.json()
-        orcid_id = (payload.get("orcid") or "").strip()
-        if not orcid_id:
-            return Response(
-                {"detail": "ORCID did not return an iD."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        user, created = User.objects.get_or_create(
-            orcid_id=orcid_id,
-            defaults={
-                "username": orcid_id,
-                "first_name": (payload.get("name") or "")[:150],
-            },
-        )
-        if created:
-            user.set_unusable_password()
-            user.save(update_fields=["password"])
-            logger.info("Created account for ORCID iD %s", orcid_id)
-        refresh = CustomRefreshToken.for_user(user)
-        return Response(
-            {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
                 "is_admin": user.is_staff,
             }
         )
