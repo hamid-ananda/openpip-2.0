@@ -26,7 +26,8 @@ TODO(phase5): Register openPIP in PSI-MI controlled vocabulary to get an officia
 TODO(phase5): Register in PSICQUIC registry at EBI (https://www.ebi.ac.uk/Tools/webservices/psicquic/registry)
     — the endpoints it validates against now exist: /psicquic/rest/formats and
     /psicquic/rest/version. What remains is the submission itself.
-TODO(phase5): Rate limiting on /psicquic/ endpoints and the public API generally
+DONE: Rate limiting on /psicquic/ (60/min) and the public API — see
+    psicquic/views.py and DEFAULT_THROTTLE_RATES in settings/base.py.
 TODO(shelved): PyPI publishing of openpip package — parked with the CLI,
     see cli/src/openpip/sdk.py
 """
