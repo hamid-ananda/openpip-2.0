@@ -238,8 +238,35 @@ p { text-wrap: pretty; }
 }
 .animate-fade-up { animation: fade-up 450ms var(--ease-out-expo) both; }
 
-.faq-answer p { margin: 0 0 12px; }
-.faq-answer p:last-child { margin-bottom: 0; }
+/* Admin-authored HTML (FAQ, about, contact, downloads). Browser defaults look
+   nothing like the rest of the site, so give the injected tags our type scale
+   and keep anything wide — long URLs, pasted tables — inside the column. */
+.op-prose {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+.op-prose p { margin: 0 0 12px; }
+.op-prose h2,
+.op-prose h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 28px 0 10px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+/* h2 groups questions into sections, so it must not look like an h3 question. */
+.op-prose h2 { font-size: 18px; margin-top: 36px; padding-top: 0; border-top: 0; }
+.op-prose > :first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.op-prose > :last-child { margin-bottom: 0; }
+.op-prose a { color: var(--primary); text-decoration: none; }
+.op-prose a:hover { text-decoration: underline; }
+.op-prose ul, .op-prose ol { margin: 0 0 12px; padding-left: 20px; }
+.op-prose li { margin-bottom: 6px; }
+.op-prose img { max-width: 100%; height: auto; }
+.op-prose table { display: block; max-width: 100%; overflow-x: auto; }
 
 @keyframes spin {
   to { transform: rotate(360deg); }

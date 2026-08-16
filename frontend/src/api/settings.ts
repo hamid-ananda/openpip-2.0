@@ -2,10 +2,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './client'
 import type { AdminSettings } from '../types/api'
 
+/**
+ * Legacy copy (the FAQ especially) was pasted from a word processor with
+ * `&nbsp;` between every word. A whole paragraph of those is one unbreakable
+ * word, so the browser cannot wrap it and the page scrolls sideways. Normalise
+ * on read, so every consumer of the settings HTML gets wrappable text.
+ */
+function unstickSpaces(settings: AdminSettings): AdminSettings {
+  return Object.fromEntries(
+    Object.entries(settings).map(([k, v]) => [
+      k,
+      typeof v === 'string' ? v.replace(/&nbsp;/g, ' ') : v,
+    ]),
+  ) as AdminSettings
+}
+
 export function useSettings() {
   return useQuery<AdminSettings>({
     queryKey: ['settings'],
-    queryFn: () => apiClient.get('/settings').then((r) => r.data),
+    queryFn: () => apiClient.get('/settings').then((r) => unstickSpaces(r.data)),
     staleTime: 5 * 60 * 1000,
   })
 }

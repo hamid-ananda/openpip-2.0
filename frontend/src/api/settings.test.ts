@@ -15,4 +15,10 @@ describe('useSettings', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data?.shortTitle).toBe('openPIP')
   })
+
+  it('replaces the pasted-in &nbsp; runs so the copy can wrap', async () => {
+    const { result } = renderHook(() => useSettings(), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.faq).toBe('<p>Frequently asked questions about openPIP.</p>')
+  })
 })

@@ -14,7 +14,7 @@ export function FAQPage() {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px' }}>
+    <div style={{ maxWidth: 820, margin: '0 auto', padding: '48px 32px 80px' }}>
       <h1
         style={{
           fontSize: 28,
@@ -27,10 +27,7 @@ export function FAQPage() {
         {t('faq.title')}
       </h1>
       {settings?.faq ? (
-        <div
-          style={{ lineHeight: 1.7, fontSize: 14, color: 'var(--text)' }}
-          dangerouslySetInnerHTML={{ __html: settings.faq }}
-        />
+        <div className="op-prose" dangerouslySetInnerHTML={{ __html: settings.faq }} />
       ) : (
         <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
           {t('faq.empty')}

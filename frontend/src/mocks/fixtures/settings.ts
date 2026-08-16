@@ -22,8 +22,10 @@ export const settingsFixture: AdminSettings = {
   url: 'http://localhost:5173/',
   version: '2.0',
   about: '<p>openPIP is an open-source protein interaction platform.</p>',
-  faq: '<p>Frequently asked questions about openPIP.</p>',
-  contact: '<p>Contact the openPIP team using the form below.</p>',
+  // Word-processor &nbsp; runs, as in the real legacy copy — see unstickSpaces.
+  faq: '<p>Frequently&nbsp;asked&nbsp;questions about openPIP.</p>',
+  contact:
+    '<p>Please contact the openPIP team at <a href="mailto:openpip@usask.ca">openpip@usask.ca</a> with questions about the interaction data or this web portal.</p>',
   download: '<p>Download full interaction datasets below.</p>',
   showDownloads: true,
   showDownloadAll: true,
