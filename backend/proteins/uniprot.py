@@ -1,6 +1,7 @@
 """UniProt REST API client and protein enrichment helper."""
 
 import logging
+import re
 
 import requests
 
@@ -8,32 +9,54 @@ logger = logging.getLogger(__name__)
 
 UNIPROT_SEARCH = "https://rest.uniprot.org/uniprotkb/search"
 UNIPROT_FIELDS = (
-    "accession,gene_names,protein_name,sequence,cc_function,xref_ensembl,xref_geneid"
+    "accession,gene_names,protein_name,sequence,cc_function,"
+    "xref_ensembl,xref_geneid,organism_name,organism_id"
 )
 BATCH_SIZE = 50
 TIMEOUT = 30
 
 
+def base_accession(uniprot_id: str) -> str:
+    """Drop a UniProt isoform suffix: Q07817-1 -> Q07817.
+
+    UniProt does not index isoforms as searchable entries, so `accession:Q07817-1`
+    matches nothing and the row is silently absent from the response — the API
+    still returns 200, just with fewer results. Over half of openPIP's
+    accessions carry a suffix, so querying them raw loses half the data without
+    raising anything.
+
+    The frontend has the same helper in features/search/network/uniprot.ts,
+    where AlphaFold and RCSB need the identical normalisation.
+    """
+    return re.sub(r"-\d+$", "", uniprot_id or "")
+
+
 def fetch_uniprot_data(accessions: list[str]) -> dict[str, dict]:
-    """Fetch UniProt entries for a list of accessions. Returns {accession: entry}."""
-    if not accessions:
+    """Fetch UniProt entries for a list of accessions.
+
+    Accepts raw accessions — isoform suffixes are stripped and duplicates
+    collapsed before querying. Returns {base accession: entry}, so look up with
+    base_accession(protein.uniprot_id) rather than the stored value.
+    """
+    wanted = sorted({base_accession(acc) for acc in accessions if acc})
+    if not wanted:
         return {}
 
-    query = " OR ".join(f"accession:{acc}" for acc in accessions)
-    params = {
-        "query": query,
-        "format": "json",
-        "fields": UNIPROT_FIELDS,
-        "size": len(accessions),
-    }
-    resp = requests.get(UNIPROT_SEARCH, params=params, timeout=TIMEOUT)
-    resp.raise_for_status()
-
-    return {
-        entry["primaryAccession"]: entry
-        for entry in resp.json().get("results", [])
-        if "primaryAccession" in entry
-    }
+    entries: dict[str, dict] = {}
+    for start in range(0, len(wanted), BATCH_SIZE):
+        batch = wanted[start : start + BATCH_SIZE]
+        params = {
+            "query": " OR ".join(f"accession:{acc}" for acc in batch),
+            "format": "json",
+            "fields": UNIPROT_FIELDS,
+            "size": len(batch),
+        }
+        resp = requests.get(UNIPROT_SEARCH, params=params, timeout=TIMEOUT)
+        resp.raise_for_status()
+        for entry in resp.json().get("results", []):
+            if "primaryAccession" in entry:
+                entries[entry["primaryAccession"]] = entry
+    return entries
 
 
 def _extract_protein_name(entry: dict) -> str:
@@ -89,6 +112,15 @@ def _extract_entrez_id(entry: dict) -> str:
     return ""
 
 
+def extract_taxon(entry: dict) -> tuple[str, str] | None:
+    """Return (taxonomy_id, scientific_name) from a UniProt entry, or None."""
+    organism = entry.get("organism") or {}
+    taxon_id = organism.get("taxonId")
+    if not taxon_id:
+        return None
+    return str(taxon_id), organism.get("scientificName") or ""
+
+
 def enrich_proteins_from_uniprot(protein_ids: list[int]) -> tuple[int, bool]:
     """
     Fetch UniProt metadata for proteins with a known uniprot_id and fill in
@@ -114,7 +146,9 @@ def enrich_proteins_from_uniprot(protein_ids: list[int]) -> tuple[int, bool]:
 
     updated = 0
     for protein in proteins:
-        entry = uniprot_data.get(protein.uniprot_id)
+        # Keyed by base accession: an isoform-suffixed uniprot_id would never
+        # have matched, which silently skipped half the proteins.
+        entry = uniprot_data.get(base_accession(protein.uniprot_id))
         if not entry:
             continue
 

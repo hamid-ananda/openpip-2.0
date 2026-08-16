@@ -122,7 +122,9 @@ def _taxon(protein) -> str:
     po = _first(protein.protein_organisms)
     if po and po.organism:
         org = po.organism
-        return f"taxid:{org.taxonomy_id}({org.name})"
+        # PSI-MI TAB wants the scientific name; legacy rows only carry a common
+        # name ("human"), so fall back to that rather than emitting nothing.
+        return f"taxid:{org.taxonomy_id}({org.scientific_name or org.name})"
     return "-"
 
 
