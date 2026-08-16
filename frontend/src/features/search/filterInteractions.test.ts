@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { filterProteinsAndInteractions } from './filterInteractions'
+import { filterProteinsAndInteractions, tissuesWithData } from './filterInteractions'
 import type { Protein, Interaction } from '../../types/api'
 import type { FilterState } from '../../types/search'
 
@@ -109,5 +109,30 @@ describe('filterProteinsAndInteractions', () => {
       { ...defaultFilters, scoreFilter: 0.5 }, [1, 2])
     // score >= 0.5: interactions 1 (0.8, P1-P2) and 3 (0.6, P1-P3) survive → proteins 1, 2, 3 all present
     expect(result.proteins).toHaveLength(3)
+  })
+})
+
+describe('tissuesWithData', () => {
+  const withTissues = (id: number, tissues: Record<string, string>): Protein => ({
+    ...makeProtein(id, `G${id}`),
+    tissue_expression_array: tissues,
+  })
+
+  it('offers only tissues some protein passes the 5.0 threshold for', () => {
+    const proteins = [
+      withTissues(1, { liver: '9.9', skin: '0.4' }),
+      withTissues(2, { liver: '1.1', brain_1: '7.2' }),
+    ]
+    // skin is present in the data but nowhere near the threshold, so filtering
+    // by it would return an empty network.
+    expect(tissuesWithData(proteins).sort()).toEqual(['brain_1', 'liver'])
+  })
+
+  it('tolerates the trailing \\r the legacy dump stores', () => {
+    expect(tissuesWithData([withTissues(1, { liver: '9.9\r' })])).toEqual(['liver'])
+  })
+
+  it('returns nothing when no protein carries tissue data', () => {
+    expect(tissuesWithData([makeProtein(1, 'G1')])).toEqual([])
   })
 })

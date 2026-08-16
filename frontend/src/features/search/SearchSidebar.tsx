@@ -9,7 +9,8 @@ import { useSettings } from '../../api/settings'
 import { useSaveNetwork } from '../../api/networks'
 import { useText } from '../../text'
 import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
-import { TISSUE_KEYS, tissueLabel } from '../../lib/tissues'
+import { tissueLabel } from '../../lib/tissues'
+import { tissuesWithData } from './filterInteractions'
 import {
   formatSIF,
   formatInteractionsCSV,
@@ -244,6 +245,13 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
 
   const hasCategories = Object.keys(categoryFilter).length > 0
 
+  // Offer only tissues these results can actually be filtered by. The current
+  // selection stays listed even when a new search has nothing for it, so the
+  // menu never disagrees with the filter that is still applied.
+  const tissueOptions = [
+    ...new Set([...tissuesWithData(allProteins), tissueFilter].filter(Boolean)),
+  ].sort((a, b) => tissueLabel(a).localeCompare(tissueLabel(b)))
+
   const downloadActions: { label: string; onClick: () => void }[] = [
     { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif') },
     { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins), 'Interactions', 'csv') },
@@ -472,7 +480,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
               style={{ fontSize: 13 }}
             >
               <option value="">{t('search.sidebar.allTissues')}</option>
-              {TISSUE_KEYS.map((key) => (
+              {tissueOptions.map((key) => (
                 <option key={key} value={key}>
                   {tissueLabel(key)}
                 </option>

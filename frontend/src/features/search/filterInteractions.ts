@@ -9,6 +9,24 @@ function passesTossueFilter(protein: Protein, tissue: string): boolean {
   return parseFloat(raw.replace('\r', '')) >= TISSUE_THRESHOLD
 }
 
+/**
+ * Tissue keys at least one protein would survive the filter for.
+ *
+ * The tissue set is whatever the loaded datasets happen to carry, so the filter
+ * dropdown reads it off the results rather than from a fixed list. Sharing
+ * passesTossueFilter means the menu cannot offer a tissue that filters to
+ * nothing.
+ */
+export function tissuesWithData(proteins: Protein[]): string[] {
+  const found = new Set<string>()
+  for (const protein of proteins) {
+    for (const tissue of Object.keys(protein.tissue_expression_array ?? {})) {
+      if (!found.has(tissue) && passesTossueFilter(protein, tissue)) found.add(tissue)
+    }
+  }
+  return [...found]
+}
+
 export function filterProteinsAndInteractions(
   allProteins: Protein[],
   allInteractions: Interaction[],

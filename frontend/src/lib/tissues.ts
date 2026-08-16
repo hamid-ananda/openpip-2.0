@@ -1,12 +1,16 @@
 /**
  * Display names for the tissue_expression annotation keys.
  *
- * These are transcribed from `annotation_type.fields` in the database, which
- * has carried them since legacy but stores them inverted ({label: key}) and is
- * exposed by no API. The set is frozen: nothing in openPIP or in legacy — admin
- * UI, CLI or script — can create or refresh a tissue expression annotation, so
- * a fetch would spend a round trip on 36 constants that cannot change. If a
- * future dataset ever brings its own tissues, read the column instead.
+ * Cosmetic only. *Which* tissues exist comes from the loaded data — see
+ * tissuesWithData in features/search/filterInteractions — so a deployment
+ * carrying tissues we have no label for still works; those keys just get
+ * prettified instead. This map only makes the ones we do know read better.
+ *
+ * Transcribed from `annotation_type.fields` in the database, which has carried
+ * them since legacy but stores them inverted ({label: key}) and is exposed by
+ * no API. Worth serving from the backend if a deployment ever loads a tissue
+ * set of its own; until something can import tissue annotations at all, that
+ * would be a round trip to relabel constants.
  *
  * brain_0/1/2 are the reason this exists. They are YARN's PCoA clusters, not an
  * ordering anyone chose by hand, so underscore-prettifying them produced
@@ -51,9 +55,6 @@ export const TISSUE_LABELS: Record<string, string> = {
   vagina: 'Vagina',
   whole_blood: 'Whole Blood',
 }
-
-/** Every tissue key openPIP holds, in the order the filter dropdown lists them. */
-export const TISSUE_KEYS = Object.keys(TISSUE_LABELS)
 
 /**
  * A tissue key's display name. Falls back to prettifying the key, so a dataset

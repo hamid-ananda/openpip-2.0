@@ -236,10 +236,17 @@ now lives once in `frontend/src/lib/tissues.ts` and all three read
 cerebellum" and "Brain other"; a test fails if any tissue label renders a bare
 cluster index again.
 
-The labels are transcribed from `annotation_type.fields` rather than fetched:
-the column is exposed by no API, and the tissue set is frozen (§1), so a round
-trip would buy nothing. If a dataset ever arrives with its own tissues, read the
-column instead — `tissueLabel()` already falls back to prettifying unknown keys.
+*Which* tissues exist is no longer hardcoded either. The filter dropdown used to
+offer a fixed list of these 36 regardless of what a deployment had loaded, which
+sat badly against openPIP being a portal anyone can put their own data in. It now
+reads the tissues off the loaded results (`tissuesWithData`, sharing the filter's
+own threshold check, so the menu cannot offer a tissue that returns nothing).
+
+That leaves the label map cosmetic: a deployment carrying tissues we have no
+label for still works, those keys just get prettified. Worth serving the map from
+`annotation_type.fields` if that day comes — but nothing in openPIP can import a
+tissue annotation yet (§1), so today it would be a round trip to relabel
+constants.
 
 This is a small improvement over legacy rather than a parity change.
 
