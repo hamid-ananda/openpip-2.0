@@ -72,4 +72,39 @@ def test_tab25_publication(interaction_with_data):
     line = format_interaction_tab25(interaction_with_data)
     cols = line.split("\t")
     assert "pubmed:12345678" in cols[8]
-    assert "Foo et al." in cols[7]
+    # TAB 2.5 column 8 is `Surname-Year`, not the free-text author string.
+    assert cols[7] == "Foo-2020"
+
+
+def test_tab25_appends_doi_to_publication_identifiers(db):
+    """Column 9 takes several pipe-separated identifiers; preprints need the DOI."""
+    org = Organism.objects.create(name="Homo sapiens", taxonomy_id="9606")
+    p_a = Protein.objects.create(gene_name="A", uniprot_id="P00001")
+    p_b = Protein.objects.create(gene_name="B", uniprot_id="P00002")
+    ProteinOrganism.objects.create(protein=p_a, organism=org)
+    ProteinOrganism.objects.create(protein=p_b, organism=org)
+    dataset = Dataset.objects.create(
+        name="Preprint Dataset",
+        pubmed_id="12345678",
+        doi="10.1038/s41586-020-2188-x",
+        author="Luck et al.",
+        year="2020",
+    )
+    interaction = Interaction.objects.create(interactor_A=p_a, interactor_B=p_b)
+    InteractionDataset.objects.create(interaction=interaction, dataset=dataset)
+
+    cols = format_interaction_tab25(interaction).split("\t")
+    assert cols[8] == "pubmed:12345678|doi:10.1038/s41586-020-2188-x"
+    assert cols[7] == "Luck-2020"
+
+
+def test_tab25_publication_falls_back_when_dataset_is_uncited(db):
+    p_a = Protein.objects.create(gene_name="A", uniprot_id="P00003")
+    p_b = Protein.objects.create(gene_name="B", uniprot_id="P00004")
+    dataset = Dataset.objects.create(name="Unpublished")
+    interaction = Interaction.objects.create(interactor_A=p_a, interactor_B=p_b)
+    InteractionDataset.objects.create(interaction=interaction, dataset=dataset)
+
+    cols = format_interaction_tab25(interaction).split("\t")
+    assert cols[7] == "-"
+    assert cols[8] == "-"

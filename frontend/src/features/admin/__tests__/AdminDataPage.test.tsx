@@ -17,6 +17,8 @@ vi.mock('../../../api/datasets', () => ({
   useInteractionCategories: vi.fn(),
   useDatasetUpload: vi.fn(),
   useDatasetDelete: vi.fn(),
+  useDatasetUpdate: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false, isError: false })),
+  useCitationLookup: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
 }))
 
 const mockCounts = { proteins: 12345, interactions: 67890 }

@@ -3,6 +3,7 @@ import { screen, fireEvent } from '@testing-library/react'
 import { EdgeInfoPanel } from '../EdgeInfoPanel'
 import type { Interaction } from '../../../types/api'
 import { renderWithProviders } from '../../../test/renderWithProviders'
+import { makeDatasetRef } from '../../../mocks/fixtures/datasetRef'
 
 function makeInteraction(overrides: Partial<Interaction> = {}): Interaction {
   return {
@@ -45,15 +46,13 @@ describe('EdgeInfoPanel', () => {
 
   it('renders dataset name and status', () => {
     const ix = makeInteraction({
-      dataset_array: [{
+      dataset_array: [makeDatasetRef({
         id: 1,
         dataset_reference: 'HI-III',
         dataset_author: 'Unpublished Dataset',
-        year: '',
-        description: '',
         interaction_status: 'validated',
         name: 'HI-III',
-      }],
+      })],
     })
     renderWithProviders(<EdgeInfoPanel interaction={ix} onClose={vi.fn()} />)
     expect(screen.getByText('HI-III')).toBeInTheDocument()

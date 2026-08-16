@@ -1,4 +1,5 @@
 import type { Protein, Interaction } from '../types/api'
+import { citationHeaderLines, tabAuthorYear } from './citation'
 
 function getProteinMap(proteins: Protein[]): Map<number, Protein> {
   return new Map(proteins.map((p) => [p.protein_id, p]))
@@ -72,10 +73,21 @@ export function formatPSIMI(interactions: Interaction[], proteins: Protein[]): s
     row[1] = `uniprotkb:${i.interactor_B.protein_uniprot_id}`
     row[4] = pA?.protein_gene_name ? `uniprotkb:${pA.protein_gene_name}(gene name)` : '-'
     row[5] = pB?.protein_gene_name ? `uniprotkb:${pB.protein_gene_name}(gene name)` : '-'
+    // Cols 8 and 9 are the publication columns; they were left as "-" before
+    // datasets carried citation details.
+    const source = i.dataset_array?.[0]
+    if (source) {
+      row[7] = tabAuthorYear(source)
+      row[8] = source.pubmed_id ? `pubmed:${source.pubmed_id}` : '-'
+    }
     row[14] = i.score != null ? `${i.score}` : '-'
     return row.join('\t')
   })
-  return rows.join('\n') + '\n'
+
+  // Leading "#" comments are legal in PSI-MI TAB and are skipped by our own
+  // upload parser, so an exported file can be re-imported unchanged.
+  const header = citationHeaderLines(interactions.flatMap((i) => i.dataset_array ?? []))
+  return [...header, ...rows].join('\n') + '\n'
 }
 
 export function buildFilename(format: string, ext: string): string {

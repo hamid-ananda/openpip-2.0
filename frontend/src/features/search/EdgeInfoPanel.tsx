@@ -1,5 +1,6 @@
 import type { Interaction } from '../../types/api'
 import { useText } from '../../text'
+import { referenceHref, referenceLabel, shortCitation } from '../../lib/citation'
 
 // PSI-MI experiment type code → human-readable label (subset covering common codes)
 const EXPERIMENT_TYPES: Record<string, string> = {
@@ -108,7 +109,7 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ minWidth: 0, paddingRight: 8 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.3, wordBreak: 'break-word' }}>
-            {geneA} — {geneB}
+            {geneA} ↔ {geneB}
           </div>
           <div style={{
             marginTop: 4,
@@ -159,8 +160,19 @@ export function EdgeInfoPanel({ interaction, onClose }: EdgeInfoPanelProps) {
             {interaction.dataset_array.map((ds, i) => (
               <div key={i} style={{ fontSize: 12, color: 'var(--text)' }}>
                 <span style={{ fontWeight: 600 }}>{ds.name}</span>
-                {ds.dataset_author && ds.dataset_author !== 'Unpublished Dataset' && (
-                  <span style={{ color: 'var(--text-muted)' }}> · {ds.dataset_author}{ds.year ? `, ${ds.year}` : ''}</span>
+                {shortCitation(ds) && (
+                  <span style={{ color: 'var(--text-muted)' }}> · {shortCitation(ds)}</span>
+                )}
+                {referenceHref(ds) && (
+                  <a
+                    href={referenceHref(ds)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ marginLeft: 6, color: 'var(--primary)', textDecoration: 'none' }}
+                    title={ds.citation ?? undefined}
+                  >
+                    {referenceLabel(ds)}
+                  </a>
                 )}
                 {ds.interaction_status && (
                   <span style={{

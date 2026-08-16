@@ -1,4 +1,5 @@
 import type { SearchResult } from '../../types/search'
+import { makeDatasetRef } from './datasetRef'
 
 export const searchFixture: SearchResult = {
   all_proteins: [
@@ -53,7 +54,7 @@ export const searchFixture: SearchResult = {
       score: 0.82,
       annotation_array: {},
       experiment_array: [],
-      dataset_array: [{ id: 1, dataset_reference: '24153252', dataset_author: 'Rolland et al.(2014)', year: '2014', description: 'HuRI', interaction_status: 'Published', name: 'HuRI' }],
+      dataset_array: [makeDatasetRef({ id: 1, dataset_reference: '24153252', dataset_author: 'Rolland et al.(2014)', year: '2014', description: 'HuRI', interaction_status: 'Published', name: 'HuRI' })],
       interaction_category_array: { highest_category_status: 'Published', highest_order: 1, interaction_category_array: [{ category_name: 'Published', order: 1 }] },
     },
     {
@@ -63,7 +64,7 @@ export const searchFixture: SearchResult = {
       score: 0.65,
       annotation_array: {},
       experiment_array: [],
-      dataset_array: [{ id: 2, dataset_reference: '16169070', dataset_author: 'Rual et al.(2005)', year: '2005', description: 'Y2H', interaction_status: 'Validated', name: 'Y2H-II' }],
+      dataset_array: [makeDatasetRef({ id: 2, dataset_reference: '16169070', dataset_author: 'Rual et al.(2005)', year: '2005', description: 'Y2H', interaction_status: 'Validated', name: 'Y2H-II' })],
       interaction_category_array: { highest_category_status: 'Validated', highest_order: 2, interaction_category_array: [{ category_name: 'Validated', order: 2 }] },
     },
     {
@@ -73,7 +74,7 @@ export const searchFixture: SearchResult = {
       score: 0.45,
       annotation_array: {},
       experiment_array: [],
-      dataset_array: [{ id: 3, dataset_reference: '10490031', dataset_author: 'Pawson et al.(1999)', year: '1999', description: 'Lit-BM', interaction_status: 'Literature', name: 'Lit-BM' }],
+      dataset_array: [makeDatasetRef({ id: 3, dataset_reference: '10490031', dataset_author: 'Pawson et al.(1999)', year: '1999', description: 'Lit-BM', interaction_status: 'Literature', name: 'Lit-BM' })],
       interaction_category_array: {
         highest_category_status: 'Literature',
         highest_order: 4,

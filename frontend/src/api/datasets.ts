@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './client'
+import type { DatasetRef, PublicationStatus } from '../types/api'
 
 export interface InteractionCategory {
   id: number
@@ -60,5 +61,60 @@ export function useDatasetUpload() {
       queryClient.invalidateQueries({ queryKey: ['datasets'] })
       queryClient.invalidateQueries({ queryKey: ['counts'] })
     },
+  })
+}
+
+/** The citation and About-page fields an admin can edit on a dataset. */
+export interface DatasetEditable {
+  description?: string
+  pubmed_id?: string
+  author?: string
+  year?: string
+  title?: string
+  journal?: string
+  doi?: string
+  url?: string
+  publication_status?: PublicationStatus
+  about_heading?: string
+  about_body?: string
+  show_on_about?: boolean
+  about_order?: number
+}
+
+/**
+ * Edit a dataset that has already been imported.
+ *
+ * The upload wizard can only capture citation details for new imports, so this
+ * is the only route by which datasets loaded before citations existed can get
+ * one — or by which a wrong reference gets corrected.
+ */
+export function useDatasetUpdate() {
+  const queryClient = useQueryClient()
+  return useMutation<DatasetRef, Error, { id: number; patch: DatasetEditable }>({
+    mutationFn: ({ id, patch }) =>
+      apiClient.patch(`/datasets/${id}`, patch).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['datasets'] })
+    },
+  })
+}
+
+export interface CitationLookupResult {
+  pubmed_id: string | null
+  doi: string | null
+  title: string | null
+  journal: string | null
+  year: string | null
+  author: string | null
+  url: string | null
+}
+
+/** Resolve a PubMed ID or DOI into citation fields for the admin to review. */
+export function useCitationLookup() {
+  return useMutation<CitationLookupResult, Error, { pubmed_id?: string; doi?: string }>({
+    mutationFn: (params) =>
+      apiClient
+        .get('/datasets/citation-lookup', { params })
+        .then((r) => r.data),
   })
 }

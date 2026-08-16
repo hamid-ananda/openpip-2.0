@@ -6,6 +6,7 @@ import type { UploadedFile } from '../../api/files'
 import { useSettings } from '../../api/settings'
 import { useText } from '../../text'
 import { BASE_URL } from '../../api/client'
+import { referenceHref, referenceLabel, shortCitation } from '../../lib/citation'
 
 // Firefox ignores a click on an anchor that is not in the document, and revoking
 // the object URL synchronously can cancel the download before it starts.
@@ -191,7 +192,23 @@ export function DownloadPage() {
                       <KindChip status={ds.interaction_status} />
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                      {ds.description}{ds.dataset_author ? ` - ${ds.dataset_author}` : ''}
+                      {ds.description}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2, lineHeight: 1.5 }}>
+                      {ds.citation ?? shortCitation(ds) ?? 'Unpublished dataset'}
+                      {referenceHref(ds) && (
+                        <>
+                          {' '}
+                          <a
+                            href={referenceHref(ds)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: 'var(--primary)', textDecoration: 'none' }}
+                          >
+                            {referenceLabel(ds)}
+                          </a>
+                        </>
+                      )}
                     </div>
                   </div>
 

@@ -90,14 +90,37 @@ export interface Counts {
   datasets: number
 }
 
+export type PublicationStatus = 'published' | 'preprint' | 'unpublished'
+
 export interface DatasetRef {
   id: number
+  /** Legacy alias for `pubmed_id`, kept for search/export consumers. */
   dataset_reference: string
+  /** Legacy alias for `author`, falls back to "Unpublished Dataset". */
   dataset_author: string
   year: string
   description: string
   interaction_status: string
   name: string
+  /** Recomputed after every import; a string because the legacy column is one. */
+  number_of_interactions: string | null
+
+  // ── Citation ──
+  /** Pre-formatted reference string, or null when the dataset is unciteable. */
+  citation: string | null
+  pubmed_id: string | null
+  author: string | null
+  title: string | null
+  journal: string | null
+  doi: string | null
+  url: string | null
+  publication_status: PublicationStatus
+
+  // ── About page ──
+  about_heading: string | null
+  about_body: string | null
+  show_on_about: boolean
+  about_order: number
 }
 
 export interface CategoryEntry {

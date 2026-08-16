@@ -17,7 +17,15 @@ from rest_framework.views import APIView
 from interactions.models import Interaction, InteractionDataset
 from proteins.models import Identifier
 from .models import Dataset
-from .serializers import DatasetSerializer
+from .citation_lookup import CitationLookupError, fetch_by_doi, fetch_by_pubmed_id
+from .serializers import (
+    ABOUT_FIELDS,
+    CITATION_FIELDS,
+    PUBMED_RE,
+    DatasetSerializer,
+    DatasetWriteSerializer,
+    format_citation,
+)
 from .upload_parser import (
     parse_and_ingest,
     fast_preview,
@@ -27,6 +35,54 @@ from .upload_parser import (
 from .tasks import import_dataset_task
 
 logger = logging.getLogger(__name__)
+
+
+def _reference_url(dataset) -> str | None:
+    """Where a reader should be sent for the dataset's source publication."""
+    if dataset.doi:
+        return f"https://doi.org/{dataset.doi}"
+    if dataset.pubmed_id:
+        return f"https://pubmed.ncbi.nlm.nih.gov/{dataset.pubmed_id}/"
+    return dataset.url or None
+
+
+def _citation_header(dataset) -> list[str]:
+    """Comment lines naming the source publication of an exported dataset."""
+    reference = format_citation(dataset)
+    lines = [f"# openPIP dataset: {dataset.name}\n"]
+    if reference:
+        lines.append(f"# Please cite: {reference}\n")
+        url = _reference_url(dataset)
+        if url:
+            lines.append(f"# {url}\n")
+    else:
+        lines.append("# Unpublished dataset — please cite openPIP.\n")
+    return lines
+
+
+def _apply_dataset_metadata(dataset_name: str, data) -> dict | None:
+    """Write any citation / About fields sent with an upload onto the dataset.
+
+    The parser creates the Dataset by name, so this runs afterwards and updates
+    that row. Returns validation errors, or None when there was nothing to do.
+    """
+    payload = {
+        field: data[field]
+        for field in (*CITATION_FIELDS, *ABOUT_FIELDS)
+        if field in data and data[field] not in ("", None)
+    }
+    if not payload:
+        return None
+
+    dataset = Dataset.objects.filter(name=dataset_name).first()
+    if not dataset:
+        return None
+
+    serializer = DatasetWriteSerializer(dataset, data=payload, partial=True)
+    if not serializer.is_valid():
+        return serializer.errors
+    serializer.save()
+    return None
 
 
 def _refresh_dataset_counts() -> None:
@@ -96,6 +152,9 @@ class DatasetFileDownloadView(APIView):
         return response
 
     def _generate_tab(self, rows, dataset):
+        # "#" comments are legal in PSI-MI TAB and are skipped by our own upload
+        # parser, so an exported file still re-imports cleanly.
+        yield from _citation_header(dataset)
         header = (
             "#ID(s) interactor A\tID(s) interactor B\t"
             "Confidence value(s)\tPublication identifier(s)\n"
@@ -170,8 +229,9 @@ class DatasetArchiveDownloadView(APIView):
                 safe_name = ds.name.replace(" ", "_") if ds.name else f"dataset_{ds.id}"
                 pubmed = f"pubmed:{ds.pubmed_id}" if ds.pubmed_id else "-"
                 lines = [
+                    *_citation_header(ds),
                     "#ID(s) interactor A\tID(s) interactor B\t"
-                    "Confidence value(s)\tPublication identifier(s)\n"
+                    "Confidence value(s)\tPublication identifier(s)\n",
                 ]
                 for id_row in rows:
                     ix = id_row.interaction
@@ -287,6 +347,9 @@ class DatasetUploadView(APIView):
             category_id=category_id,
             dry_run=False,
         )
+        errors = _apply_dataset_metadata(dataset_name, request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         _refresh_dataset_counts()
         logger.debug("upload complete — refreshed dataset interaction counts")
         return Response(result, status=status.HTTP_201_CREATED)
@@ -339,15 +402,46 @@ class DatasetUploadRowsView(APIView):
             )
 
         if is_last_batch:
+            _apply_dataset_metadata(dataset_name, request.data)
             _refresh_dataset_counts()
 
         return Response(result, status=status.HTTP_201_CREATED)
 
 
-class DatasetDeleteView(APIView):
-    """Delete a dataset and remove any interactions that are no longer linked to any dataset."""
+class DatasetDetailView(APIView):
+    """Read, edit, or delete a single dataset.
+
+    PATCH is how citation details and About-page copy get onto datasets that
+    were imported before either existed — the upload wizard can only ever
+    capture them for new imports.
+    """
 
     permission_classes = [IsAdminUser]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return super().get_permissions()
+
+    def get(self, request, pk):
+        dataset = Dataset.objects.filter(pk=pk).first()
+        if not dataset:
+            raise Http404
+        return Response(DatasetSerializer(dataset).data)
+
+    def patch(self, request, pk):
+        dataset = Dataset.objects.filter(pk=pk).first()
+        if not dataset:
+            raise Http404
+
+        serializer = DatasetWriteSerializer(dataset, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        logger.debug(
+            "dataset %d updated — fields: %s", pk, ", ".join(sorted(request.data))
+        )
+        return Response(DatasetSerializer(dataset).data, status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
         from django.db import transaction as db_transaction
@@ -386,6 +480,41 @@ class DatasetDeleteView(APIView):
         )
 
 
+class CitationLookupView(APIView):
+    """Resolve a PubMed ID or DOI into citation fields for the admin to accept.
+
+    Purely a convenience for the edit form — nothing is written here, so the
+    admin always sees what will be saved before it is saved.
+    """
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        pmid = (request.query_params.get("pubmed_id") or "").strip()
+        doi = (request.query_params.get("doi") or "").strip()
+
+        if not pmid and not doi:
+            return Response(
+                {"detail": "Provide either pubmed_id or doi."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            if pmid:
+                if not PUBMED_RE.match(pmid):
+                    return Response(
+                        {"detail": "A PubMed ID must be digits only, e.g. 25416956."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                result = fetch_by_pubmed_id(pmid)
+            else:
+                result = fetch_by_doi(doi)
+        except CitationLookupError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response(result, status=status.HTTP_200_OK)
+
+
 class AsyncImportView(APIView):
     permission_classes = [IsAdminUser]
     parser_classes = [MultiPartParser]
@@ -419,6 +548,17 @@ class AsyncImportView(APIView):
                 for line in text.splitlines()
                 if line.strip() and not line.startswith("#")
             ]
+
+        # Create the dataset up front so citation details can be validated and
+        # stored before the import is handed to Celery — a bad PMID should fail
+        # the request, not surface as a mystery halfway through a long import.
+        # The task's own get_or_create then finds this row rather than making one.
+        Dataset.objects.get_or_create(
+            name=dataset_name, defaults={"interaction_status": interaction_status}
+        )
+        errors = _apply_dataset_metadata(dataset_name, request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         task = import_dataset_task.delay(
             lines, dataset_name, interaction_status, category_id, fmt=fmt

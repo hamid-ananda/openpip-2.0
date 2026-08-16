@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useSettings } from '../../api/settings'
 import { useText, parseLines } from '../../text'
+import { DatasetCitations } from './DatasetCitations'
 
 const ExternalLink = ({ href, children }: { href: string; children: ReactNode }) => (
   <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
@@ -230,6 +231,12 @@ export function AboutPage() {
       {/* ── Literature ── */}
       <Block heading={t('about.literature.heading')} />
       <Block heading={t('about.litbm.heading')} body={t('about.litbm.body')} level={3} />
+
+      {/* ── Dataset citations (rendered from the database, editable per dataset) ── */}
+      <DatasetCitations
+        heading={t('about.datasetCitations.heading')}
+        intro={t('about.datasetCitations.intro')}
+      />
 
       {/* ── Screening pipeline ── */}
       <Block heading={t('about.pipeline.heading')} body={t('about.pipeline.body')} />

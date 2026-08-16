@@ -6,7 +6,8 @@ from .views import (
     DatasetPreviewView,
     DatasetUploadView,
     DatasetUploadRowsView,
-    DatasetDeleteView,
+    DatasetDetailView,
+    CitationLookupView,
     ProteinCheckView,
     UploadView,
     AsyncImportView,
@@ -21,7 +22,8 @@ from .file_views import (
 
 urlpatterns = [
     path("datasets", DatasetListView.as_view()),
-    path("datasets/<int:pk>", DatasetDeleteView.as_view()),
+    path("datasets/citation-lookup", CitationLookupView.as_view()),
+    path("datasets/<int:pk>", DatasetDetailView.as_view()),
     path("datasets/download/", DatasetArchiveDownloadView.as_view()),
     path("datasets/<int:pk>/download", DatasetFileDownloadView.as_view()),
     path("upload/", UploadView.as_view()),

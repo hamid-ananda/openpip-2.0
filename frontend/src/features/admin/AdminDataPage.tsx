@@ -5,8 +5,10 @@ import { useDatasets } from '../../api/downloads'
 import {
   useInteractionCategories,
   useDatasetDelete,
+  useCitationLookup,
 } from '../../api/datasets'
 import type { DatasetPreviewResult } from '../../api/datasets'
+import type { PublicationStatus } from '../../types/api'
 import { apiClient } from '../../api/client'
 import { startAsyncImport, pollImportStatus } from '../../api/asyncImport'
 import type { AsyncImportStatus } from '../../api/asyncImport'
@@ -139,6 +141,16 @@ interface WizardState {
   datasetName: string
   interactionStatus: string
   categoryId: string
+  // Citation — optional, and blank for the common unpublished upload. Anything
+  // left blank here can still be filled in later by editing the dataset.
+  pubmedId: string
+  doi: string
+  author: string
+  year: string
+  title: string
+  journal: string
+  publicationStatus: PublicationStatus
+  aboutBody: string
 }
 
 const INITIAL_STATE: WizardState = {
@@ -146,6 +158,14 @@ const INITIAL_STATE: WizardState = {
   datasetName: '',
   interactionStatus: 'published',
   categoryId: '',
+  pubmedId: '',
+  doi: '',
+  author: '',
+  year: '',
+  title: '',
+  journal: '',
+  publicationStatus: 'unpublished',
+  aboutBody: '',
 }
 
 // ─────────────────────────────────────────────────────────
@@ -729,6 +749,8 @@ function Step2({ state, onChange, onBack, onNext }: Step2Props) {
             ))}
           </select>
         </div>
+
+        <CitationFields state={state} onChange={onChange} />
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
@@ -741,6 +763,203 @@ function Step2({ state, onChange, onBack, onNext }: Step2Props) {
           Preview →
         </button>
       </div>
+    </div>
+  )
+}
+
+const citationLabelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 11,
+  fontWeight: 600,
+  color: 'var(--text-muted)',
+  marginBottom: 5,
+  textTransform: 'uppercase',
+  letterSpacing: '.06em',
+}
+
+/**
+ * Optional citation + About copy, collapsed by default.
+ *
+ * Most uploads are unpublished screens with nothing to cite, so this stays out
+ * of the way; nothing entered here is required, and it can all be filled in
+ * afterwards by editing the dataset.
+ */
+function CitationFields({
+  state,
+  onChange,
+}: {
+  state: WizardState
+  onChange: (patch: Partial<WizardState>) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  const lookup = useCitationLookup()
+
+  const handleLookup = async () => {
+    setNote(null)
+    const pmid = state.pubmedId.trim()
+    const doi = state.doi.trim()
+    if (!pmid && !doi) {
+      setNote('Enter a PubMed ID or a DOI first.')
+      return
+    }
+    try {
+      const found = await lookup.mutateAsync(pmid ? { pubmed_id: pmid } : { doi })
+      onChange({
+        pubmedId: state.pubmedId || found.pubmed_id || '',
+        doi: state.doi || found.doi || '',
+        author: state.author || found.author || '',
+        year: state.year || found.year || '',
+        title: state.title || found.title || '',
+        journal: state.journal || found.journal || '',
+        publicationStatus:
+          state.publicationStatus === 'unpublished' ? 'published' : state.publicationStatus,
+      })
+      setNote('Found — review the fields below before importing.')
+    } catch (error) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data
+        ?.detail
+      setNote(detail ?? 'Lookup failed.')
+    }
+  }
+
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%',
+          background: 'var(--surface-2)',
+          border: 'none',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="2.5"
+          aria-hidden
+          style={{ flexShrink: 0, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+          Citation and About-page copy
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>
+          - optional, and editable later
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={citationLabelStyle}>PubMed ID</label>
+              <input
+                className="op-input"
+                style={{ width: '100%' }}
+                value={state.pubmedId}
+                onChange={(e) => onChange({ pubmedId: e.target.value })}
+                placeholder="25416956"
+              />
+            </div>
+            <div>
+              <label style={citationLabelStyle}>DOI</label>
+              <input
+                className="op-input"
+                style={{ width: '100%' }}
+                value={state.doi}
+                onChange={(e) => onChange({ doi: e.target.value })}
+                placeholder="10.1016/j.cell.2014.10.050"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button type="button" className="op-btn" onClick={handleLookup} disabled={lookup.isPending}>
+              {lookup.isPending ? 'Looking up…' : 'Look up details'}
+            </button>
+            {note && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{note}</span>}
+          </div>
+
+          <div>
+            <label style={citationLabelStyle}>Title</label>
+            <input
+              className="op-input"
+              style={{ width: '100%' }}
+              value={state.title}
+              onChange={(e) => onChange({ title: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={citationLabelStyle}>Journal</label>
+              <input
+                className="op-input"
+                style={{ width: '100%' }}
+                value={state.journal}
+                onChange={(e) => onChange({ journal: e.target.value })}
+              />
+            </div>
+            <div>
+              <label style={citationLabelStyle}>Year</label>
+              <input
+                className="op-input"
+                style={{ width: '100%' }}
+                value={state.year}
+                onChange={(e) => onChange({ year: e.target.value })}
+                placeholder="2014"
+              />
+            </div>
+            <div>
+              <label style={citationLabelStyle}>Status</label>
+              <select
+                className="op-input"
+                style={{ width: '100%' }}
+                value={state.publicationStatus}
+                onChange={(e) => onChange({ publicationStatus: e.target.value as PublicationStatus })}
+              >
+                <option value="published">Published</option>
+                <option value="preprint">Preprint</option>
+                <option value="unpublished">Unpublished</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style={citationLabelStyle}>Authors</label>
+            <input
+              className="op-input"
+              style={{ width: '100%' }}
+              value={state.author}
+              onChange={(e) => onChange({ author: e.target.value })}
+              placeholder="Rolland et al."
+            />
+          </div>
+
+          <div>
+            <label style={citationLabelStyle}>About-page paragraph</label>
+            <textarea
+              className="op-input"
+              style={{ width: '100%', minHeight: 100, resize: 'vertical', lineHeight: 1.6 }}
+              value={state.aboutBody}
+              onChange={(e) => onChange({ aboutBody: e.target.value })}
+              placeholder="Describe the screen, its search space, and what was identified…"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1047,9 +1266,9 @@ function StageChecklist({ stage }: StageChecklistProps) {
 
   const rows: { label: string; state: StageChecklistRowState; warnMsg?: string }[] = [
     { label: 'Parsing rows', state: rowState(0) },
-    { label: 'Fetching UniProt metadata', state: rowState(1, 'uniprot'), warnMsg: 'UniProt unavailable — metadata skipped' },
-    { label: 'Fetching Ensembl data', state: rowState(2, 'ensembl'), warnMsg: 'Ensembl unavailable — data skipped' },
-    { label: 'Fetching organism names', state: rowState(3, 'organisms'), warnMsg: 'NCBI unavailable — names skipped' },
+    { label: 'Fetching UniProt metadata', state: rowState(1, 'uniprot'), warnMsg: 'UniProt unavailable, metadata skipped' },
+    { label: 'Fetching Ensembl data', state: rowState(2, 'ensembl'), warnMsg: 'Ensembl unavailable, data skipped' },
+    { label: 'Fetching organism names', state: rowState(3, 'organisms'), warnMsg: 'NCBI unavailable, names skipped' },
   ]
 
   return (
@@ -1085,7 +1304,7 @@ function StageChecklist({ stage }: StageChecklistProps) {
               {row.label}
             </span>
             {row.state === 'warn' && row.warnMsg && (
-              <span style={{ fontSize: 11, color: 'var(--warn)', marginLeft: 6 }}>— {row.warnMsg}</span>
+              <span style={{ fontSize: 11, color: 'var(--warn)', marginLeft: 6 }}>· {row.warnMsg}</span>
             )}
           </div>
         </div>
@@ -1116,7 +1335,19 @@ function Step4({ state, onReset }: Step4Props) {
 
     startAsyncImport(
       state.file,
-      { dataset_name: state.datasetName, interaction_status: state.interactionStatus, category_id: state.categoryId },
+      {
+        dataset_name: state.datasetName,
+        interaction_status: state.interactionStatus,
+        category_id: state.categoryId,
+        pubmed_id: state.pubmedId.trim(),
+        doi: state.doi.trim(),
+        author: state.author.trim(),
+        year: state.year.trim(),
+        title: state.title.trim(),
+        journal: state.journal.trim(),
+        publication_status: state.publicationStatus,
+        about_body: state.aboutBody.trim(),
+      },
     ).then((taskId) => {
       pollRef.current = setInterval(async () => {
         try {
@@ -1255,10 +1486,12 @@ function Step4({ state, onReset }: Step4Props) {
 // ─────────────────────────────────────────────────────────
 
 import type { DatasetRef } from '../../types/api'
+import { DatasetEditDialog } from './DatasetEditDialog'
 
 function DatasetTable({ datasets }: { datasets: DatasetRef[] }) {
   const deleteMutation = useDatasetDelete()
   const [confirmId, setConfirmId] = useState<number | null>(null)
+  const [editing, setEditing] = useState<DatasetRef | null>(null)
 
   function handleDelete(id: number) {
     deleteMutation.mutate(id, { onSuccess: () => setConfirmId(null) })
@@ -1269,7 +1502,7 @@ function DatasetTable({ datasets }: { datasets: DatasetRef[] }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 80px 160px 40px',
+          gridTemplateColumns: '1fr 80px 160px 76px',
           padding: '12px 20px',
           background: 'var(--surface-2)',
           borderBottom: '1px solid var(--border)',
@@ -1290,7 +1523,7 @@ function DatasetTable({ datasets }: { datasets: DatasetRef[] }) {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 80px 160px 40px',
+              gridTemplateColumns: '1fr 80px 160px 76px',
               padding: '12px 20px',
               borderBottom: confirmId === ds.id ? 'none' : '1px solid var(--border)',
               alignItems: 'center',
@@ -1302,14 +1535,32 @@ function DatasetTable({ datasets }: { datasets: DatasetRef[] }) {
                 {ds.name}
               </span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ds.description}</span>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
+                {ds.citation ?? <span style={{ fontStyle: 'italic' }}>No citation</span>}
+                {!ds.about_body && (
+                  <span style={{ fontStyle: 'italic' }}> · No About paragraph</span>
+                )}
+              </div>
             </div>
             <div className="op-num" style={{ color: 'var(--text-muted)', fontSize: 13 }}>{ds.year ?? '-'}</div>
             <div><span className="op-chip" style={{ fontSize: 10 }}>{ds.interaction_status}</span></div>
-            <div>
+            <div style={{ display: 'flex', gap: 2 }}>
+              <button
+                onClick={() => setEditing(ds)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', lineHeight: 0 }}
+                title="Edit citation and About paragraph"
+                aria-label={`Edit ${ds.name}`}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" />
+                </svg>
+              </button>
               <button
                 onClick={() => setConfirmId(confirmId === ds.id ? null : ds.id)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', lineHeight: 0 }}
                 title="Delete dataset"
+                aria-label={`Delete ${ds.name}`}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                   <polyline points="3 6 5 6 21 6" />
@@ -1356,6 +1607,9 @@ function DatasetTable({ datasets }: { datasets: DatasetRef[] }) {
       ))}
       {datasets.length === 0 && (
         <div style={{ padding: '24px 20px', color: 'var(--text-muted)', fontSize: 13 }}>No datasets yet.</div>
+      )}
+      {editing && (
+        <DatasetEditDialog dataset={editing} onClose={() => setEditing(null)} />
       )}
     </div>
   )
@@ -1482,7 +1736,7 @@ export function AdminDataPage() {
           />
         </div>
 
-        {/* Datasets table (read-only) */}
+        {/* Datasets table — each row edits its citation and About paragraph */}
         <div style={{ marginBottom: 32 }}>
           <h3
             style={{

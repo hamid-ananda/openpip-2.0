@@ -2,6 +2,12 @@ from django.db import models
 
 
 class Dataset(models.Model):
+    PUBLICATION_STATUS_CHOICES = [
+        ("published", "Published"),
+        ("preprint", "Preprint"),
+        ("unpublished", "Unpublished"),
+    ]
+
     name = models.CharField(max_length=100, null=True)
     pubmed_id = models.CharField(max_length=100, null=True)
     author = models.CharField(max_length=100, null=True)
@@ -10,6 +16,34 @@ class Dataset(models.Model):
     description = models.CharField(max_length=1000, null=True)
     number_of_interactions = models.CharField(max_length=100, null=True)
     file_path = models.CharField(max_length=100, null=True)
+
+    # ── Citation ──────────────────────────────────────────────────────────
+    # Legacy carried only pubmed_id/author/year, which is too thin to render a
+    # real reference. These are all nullable: an unpublished dataset is a
+    # first-class case, not a row with holes in it.
+    title = models.CharField(max_length=500, null=True, blank=True)
+    journal = models.CharField(max_length=300, null=True, blank=True)
+    doi = models.CharField(max_length=200, null=True, blank=True)
+    url = models.URLField(max_length=500, null=True, blank=True)
+    publication_status = models.CharField(
+        max_length=20,
+        choices=PUBLICATION_STATUS_CHOICES,
+        default="unpublished",
+    )
+
+    # ── About page narrative ──────────────────────────────────────────────
+    # The long-form "what this screen was" prose. Lives here rather than in the
+    # site-text registry so that an admin can write it for a dataset they just
+    # uploaded, without a code change to declare a new registry key.
+    about_heading = models.CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+        help_text="About-page heading. Falls back to the dataset name.",
+    )
+    about_body = models.TextField(null=True, blank=True)
+    show_on_about = models.BooleanField(default=True)
+    about_order = models.IntegerField(default=0)
 
     class Meta:
         db_table = "dataset"

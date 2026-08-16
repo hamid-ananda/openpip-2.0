@@ -79,14 +79,29 @@ def _taxon(protein) -> str:
 
 
 def _publication(interaction) -> tuple[str, str]:
-    """Returns (author, pubmed_id) from the first linked dataset."""
+    """Returns (author, publication identifiers) from the first linked dataset.
+
+    Column 8 follows the TAB 2.5 convention of `Surname-Year` (e.g.
+    `Rolland-2014`). Column 9 may carry several pipe-separated identifiers, so
+    a DOI is appended when the dataset has one — preprints often have only that.
+    """
     id_link = interaction.interaction_datasets.select_related("dataset").first()
     if not id_link or not id_link.dataset:
         return "-", "-"
     dataset = id_link.dataset
+
     author = dataset.author or "-"
-    pubmed = f"pubmed:{dataset.pubmed_id}" if dataset.pubmed_id else "-"
-    return author, pubmed
+    if author != "-":
+        # "Rolland et al." → "Rolland"; the year is appended separately.
+        surname = author.split()[0].rstrip(",")
+        author = f"{surname}-{dataset.year}" if dataset.year else surname
+
+    identifiers = []
+    if dataset.pubmed_id:
+        identifiers.append(f"pubmed:{dataset.pubmed_id}")
+    if dataset.doi:
+        identifiers.append(f"doi:{dataset.doi}")
+    return author, "|".join(identifiers) or "-"
 
 
 def format_interaction_tab25(interaction: Interaction) -> str:
