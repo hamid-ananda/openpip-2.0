@@ -24,6 +24,8 @@ TODO(phase5): TAB 2.7 adds xrefs, host organism, checksums, negative flag
 TODO(phase5): TAB 2.8 adds features (domains/binding sites), stoichiometry, identification methods
 TODO(phase5): Register openPIP in PSI-MI controlled vocabulary to get an official MI ID
 TODO(phase5): Register in PSICQUIC registry at EBI (https://www.ebi.ac.uk/Tools/webservices/psicquic/registry)
+    — the endpoints it validates against now exist: /psicquic/rest/formats and
+    /psicquic/rest/version. What remains is the submission itself.
 TODO(phase5): Rate limiting on /psicquic/ endpoints and the public API generally
 TODO(shelved): PyPI publishing of openpip package — parked with the CLI,
     see cli/src/openpip/sdk.py

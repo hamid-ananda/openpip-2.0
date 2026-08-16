@@ -3,6 +3,7 @@ import pytest
 from proteins.models import Protein, Organism, ProteinOrganism
 from interactions.models import Interaction, InteractionDataset
 from datasets.models import Dataset
+from psicquic.views import SUPPORTED_FORMATS, REST_VERSION
 
 
 @pytest.fixture
@@ -70,3 +71,55 @@ def test_psicquic_requires_no_auth(client, sample_interactions):
     response = client.get("/psicquic/rest/query?q=BRCA1&format=tab25")
     assert response.status_code != 401
     assert response.status_code != 403
+
+
+@pytest.mark.django_db
+def test_psicquic_rejects_an_unsupported_format(client, sample_interactions):
+    # Used to fall through and answer with TAB text, so a caller asking for XML
+    # got tab-separated data it would then fail to parse.
+    response = client.get("/psicquic/rest/query?q=BRCA1&format=xml25")
+    assert response.status_code == 406
+    body = response.content.decode()
+    assert "xml25" in body
+    assert "tab25" in body  # tells the caller what it can ask for instead
+
+
+@pytest.mark.django_db
+def test_psicquic_count_format_matches_the_count_endpoint(client, sample_interactions):
+    via_format = client.get("/psicquic/rest/query?q=BRCA1&format=count")
+    via_endpoint = client.get("/psicquic/rest/query/count?q=BRCA1")
+    assert via_format.status_code == 200
+    assert via_format.content == via_endpoint.content == b"1"
+
+
+@pytest.mark.django_db
+def test_psicquic_formats_lists_what_the_query_view_accepts(client):
+    response = client.get("/psicquic/rest/formats")
+    assert response.status_code == 200
+    listed = response.content.decode().split()
+    assert listed == list(SUPPORTED_FORMATS)
+    # The registry validates a service against this list, so it must not drift
+    # from what the query view actually answers.
+    for fmt in listed:
+        assert client.get(f"/psicquic/rest/query?q=*&format={fmt}").status_code == 200
+
+
+@pytest.mark.django_db
+def test_psicquic_version_reports_the_rest_spec_level(client):
+    response = client.get("/psicquic/rest/version")
+    assert response.status_code == 200
+    assert response.content.decode().strip() == REST_VERSION
+
+
+@pytest.mark.django_db
+def test_psicquic_default_format_is_still_tab25(client, sample_interactions):
+    response = client.get("/psicquic/rest/query?q=BRCA1")
+    assert response.status_code == 200
+    assert response.content.decode().startswith("#ID(s) interactor A")
+
+
+@pytest.mark.django_db
+def test_psicquic_rejects_non_numeric_paging(client, sample_interactions):
+    # int() on a query param used to raise ValueError -> 500.
+    response = client.get("/psicquic/rest/query?q=BRCA1&maxResults=all")
+    assert response.status_code == 400
