@@ -41,7 +41,7 @@ function FieldEditor({
   // accessible name carries the block it belongs to even though the visible
   // label stays short — the section heading above it supplies the context on
   // screen, but a screen reader reading field by field has no such anchor.
-  const accessibleName = entry.section ? `${entry.section} — ${entry.label}` : entry.label
+  const accessibleName = entry.section ? `${entry.section}: ${entry.label}` : entry.label
   // Quill renders a contenteditable div rather than a form control, so there is
   // nothing for htmlFor to point at; the editor is named as a group instead.
   const isRich = kind === 'html'
@@ -236,7 +236,7 @@ export function SiteTextFields({
             margin: 0,
           }}
         >
-          {group.label} — text
+          {group.label} text
         </h3>
         <span style={{ fontSize: 11, color: 'var(--text-soft)' }}>
           {group.entries.length} {group.entries.length === 1 ? 'item' : 'items'}

@@ -170,17 +170,17 @@ export const homeGroup: TextGroup = {
     },
     {
       key: 'home.stats.proteins',
-      label: 'Stat label — proteins',
+      label: 'Stat label: proteins',
       default: 'Proteins indexed',
     },
     {
       key: 'home.stats.interactions',
-      label: 'Stat label — interactions',
+      label: 'Stat label: interactions',
       default: 'Verified interactions',
     },
     {
       key: 'home.stats.datasets',
-      label: 'Stat label — datasets',
+      label: 'Stat label: datasets',
       default: 'Source datasets',
     },
     {
@@ -195,23 +195,23 @@ export const homeGroup: TextGroup = {
     },
     {
       key: 'home.network.heading',
-      label: 'Example network — panel heading',
+      label: 'Example network: panel heading',
       default: 'Example network',
     },
     {
       key: 'home.network.neighborhood',
-      label: 'Example network — subtitle',
+      label: 'Example network: subtitle',
       default: '- {gene} neighborhood',
       hint: 'Use {gene} to insert the gene at the centre of the example network.',
     },
     {
       key: 'home.network.viewAnother',
-      label: 'Example network — shuffle button',
+      label: 'Example network: shuffle button',
       default: 'View another',
     },
     {
       key: 'home.network.loading',
-      label: 'Example network — loading state',
+      label: 'Example network: loading state',
       default: 'Loading…',
     },
   ],

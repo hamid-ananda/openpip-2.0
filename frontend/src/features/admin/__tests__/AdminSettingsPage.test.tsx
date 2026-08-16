@@ -266,7 +266,7 @@ describe('AdminSettingsPage', () => {
 
   it('shows the shipped default as placeholder when nothing is overridden', async () => {
     renderLoaded()
-    const input = (await screen.findByLabelText('Main navigation — Home link')) as HTMLInputElement
+    const input = (await screen.findByLabelText('Main navigation: Home link')) as HTMLInputElement
     expect(input.value).toBe('')
     expect(input.placeholder).toBe('Home')
   })
@@ -274,14 +274,14 @@ describe('AdminSettingsPage', () => {
   it('pre-fills an existing override and marks it customized', async () => {
     seedSiteText({ 'nav.home': 'Start' })
     renderLoaded()
-    const input = (await screen.findByLabelText('Main navigation — Home link')) as HTMLInputElement
+    const input = (await screen.findByLabelText('Main navigation: Home link')) as HTMLInputElement
     await waitFor(() => expect(input.value).toBe('Start'))
     expect(screen.getAllByText('customized').length).toBeGreaterThan(0)
   })
 
   it('counts a copy edit toward the same Save button as the settings', async () => {
     renderLoaded()
-    fireEvent.change(await screen.findByLabelText('Main navigation — Home link'), { target: { value: 'Start' } })
+    fireEvent.change(await screen.findByLabelText('Main navigation: Home link'), { target: { value: 'Start' } })
 
     expect(await screen.findByRole('button', { name: /Save 1 change/ })).toBeEnabled()
 
@@ -294,7 +294,7 @@ describe('AdminSettingsPage', () => {
 
   it('persists a copy override and clears the dirty state', async () => {
     renderLoaded()
-    fireEvent.change(await screen.findByLabelText('Main navigation — Home link'), { target: { value: 'Start' } })
+    fireEvent.change(await screen.findByLabelText('Main navigation: Home link'), { target: { value: 'Start' } })
     fireEvent.click(await screen.findByRole('button', { name: /Save 1 change/ }))
 
     await waitFor(() => expect(screen.getByText('No unsaved changes')).toBeInTheDocument())
@@ -304,7 +304,7 @@ describe('AdminSettingsPage', () => {
   it('emptying a copy field clears the override rather than saving a blank', async () => {
     seedSiteText({ 'nav.home': 'Start' })
     renderLoaded()
-    const input = (await screen.findByLabelText('Main navigation — Home link')) as HTMLInputElement
+    const input = (await screen.findByLabelText('Main navigation: Home link')) as HTMLInputElement
     await waitFor(() => expect(input.value).toBe('Start'))
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Reset' })[0])
@@ -326,7 +326,7 @@ describe('AdminSettingsPage', () => {
     expect(screen.getByRole('link', { name: /Home/ })).not.toHaveTextContent('has unsaved changes')
 
     openPanel(/Home/)
-    fireEvent.change(await screen.findByLabelText('Hero — Sub-headline'), {
+    fireEvent.change(await screen.findByLabelText('Hero: Sub-headline'), {
       target: { value: 'A shorter promise.' },
     })
 
@@ -379,7 +379,7 @@ describe('AdminSettingsPage', () => {
     renderLoaded()
     openPanel(/Home/)
 
-    const body = within(await screen.findByRole('group', { name: 'Our Mission — Body' })).getByRole(
+    const body = within(await screen.findByRole('group', { name: 'Our Mission: Body' })).getByRole(
       'textbox'
     )
     fireEvent.change(body, { target: { value: '' } })

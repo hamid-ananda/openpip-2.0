@@ -209,7 +209,7 @@ export function InteractionsTable({ interactions, proteins }: InteractionsTableP
       {pageCount > 1 && (
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)' }}>
           <span>
-            {totalRows} interaction{totalRows !== 1 ? 's' : ''} — page {currentPage} of {pageCount} ({pageSize} per page)
+            {totalRows} interaction{totalRows !== 1 ? 's' : ''} · page {currentPage} of {pageCount} ({pageSize} per page)
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button

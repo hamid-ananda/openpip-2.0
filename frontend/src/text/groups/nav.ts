@@ -93,12 +93,12 @@ export const navGroup: TextGroup = {
     },
     {
       key: 'nav.themeToLight',
-      label: 'Theme toggle — to light',
+      label: 'Theme toggle: to light',
       default: 'Switch to light mode',
     },
     {
       key: 'nav.themeToDark',
-      label: 'Theme toggle — to dark',
+      label: 'Theme toggle: to dark',
       default: 'Switch to dark mode',
     },
   ],

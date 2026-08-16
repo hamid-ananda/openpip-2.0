@@ -69,38 +69,38 @@ export const apiGroup: TextGroup = {
     },
     {
       key: 'api.rest.searchDesc',
-      label: 'Endpoint — search',
+      label: 'Endpoint: search',
       section: 'REST API',
       default:
         'Search proteins by gene name, UniProt ID, or Ensembl ID. Comma-separate for multi-protein.',
     },
     {
       key: 'api.rest.proteinDesc',
-      label: 'Endpoint — protein detail',
+      label: 'Endpoint: protein detail',
       section: 'REST API',
       default: 'Full protein detail including description, identifiers, and interaction count.',
     },
     {
       key: 'api.rest.countsDesc',
-      label: 'Endpoint — counts',
+      label: 'Endpoint: counts',
       section: 'REST API',
       default: 'Total proteins, interactions, and datasets in the database.',
     },
     {
       key: 'api.rest.datasetsDesc',
-      label: 'Endpoint — datasets',
+      label: 'Endpoint: datasets',
       section: 'REST API',
       default: 'List all published interaction datasets.',
     },
     {
       key: 'api.rest.datasetDownloadDesc',
-      label: 'Endpoint — dataset download',
+      label: 'Endpoint: dataset download',
       section: 'REST API',
       default: 'Download a dataset file (PSI-MI TAB format).',
     },
     {
       key: 'api.rest.announcementsDesc',
-      label: 'Endpoint — announcements',
+      label: 'Endpoint: announcements',
       section: 'REST API',
       default: 'Site announcements.',
     },
@@ -172,17 +172,17 @@ export const apiGroup: TextGroup = {
 
     {
       key: 'api.rest.jsHeading',
-      label: 'Code sample heading — JavaScript',
+      label: 'Code sample heading: JavaScript',
       default: 'JavaScript (browser or Node)',
     },
     {
       key: 'api.rest.pythonHeading',
-      label: 'Code sample heading — Python',
+      label: 'Code sample heading: Python',
       default: 'Python (requests)',
     },
     {
       key: 'api.rest.curlHeading',
-      label: 'Code sample heading — curl',
+      label: 'Code sample heading: curl',
       default: 'curl',
     },
   ],

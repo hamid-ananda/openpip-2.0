@@ -65,8 +65,8 @@ export function confidenceSummary(meanPlddt: number | null): string {
   if (meanPlddt === null) return 'Confidence not reported'
   if (meanPlddt > 90) return 'Very high confidence overall'
   if (meanPlddt > 70) return 'Confident overall'
-  if (meanPlddt > 50) return 'Low confidence — interpret with care'
-  return 'Very low confidence — likely disordered'
+  if (meanPlddt > 50) return 'Low confidence; interpret with care'
+  return 'Very low confidence; likely disordered'
 }
 
 async function fetchAlphaFoldEntry(uniprotId: string): Promise<AlphaFoldEntry | null> {

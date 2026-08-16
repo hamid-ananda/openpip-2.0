@@ -113,7 +113,7 @@ describe('StructureSection', () => {
   it('explains that a 3D structure needs a UniProt accession', () => {
     renderSection('')
     expect(
-      screen.getByText('No UniProt accession — a 3D structure cannot be resolved.')
+      screen.getByText('No UniProt accession, so a 3D structure cannot be resolved.')
     ).toBeInTheDocument()
   })
 })
@@ -143,8 +143,8 @@ describe('confidenceSummary', () => {
   it.each([
     [95, 'Very high confidence overall'],
     [75, 'Confident overall'],
-    [60, 'Low confidence — interpret with care'],
-    [30, 'Very low confidence — likely disordered'],
+    [60, 'Low confidence; interpret with care'],
+    [30, 'Very low confidence; likely disordered'],
     [null, 'Confidence not reported'],
   ])('reads %s as %s', (score, expected) => {
     expect(confidenceSummary(score as number | null)).toBe(expected)
