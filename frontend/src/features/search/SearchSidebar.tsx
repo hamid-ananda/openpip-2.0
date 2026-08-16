@@ -186,6 +186,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   const tissueFilter = useSearchStore((s) => s.tissueFilter)
   const setFilterMode = useSearchStore((s) => s.setFilterMode)
   const setTissueFilter = useSearchStore((s) => s.setTissueFilter)
+  const clearTissueFilter = useSearchStore((s) => s.clearTissueFilter)
   const setLayout = useSearchStore((s) => s.setLayout)
   const setModal = useSearchStore((s) => s.setModal)
 
@@ -245,11 +246,11 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
 
   const hasCategories = Object.keys(categoryFilter).length > 0
 
-  // Offer only tissues these results can actually be filtered by. The current
-  // selection stays listed even when a new search has nothing for it, so the
-  // menu never disagrees with the filter that is still applied.
+  // Offer only tissues these results can actually be filtered by. Anything
+  // already ticked stays listed even when a new search has nothing for it, so
+  // the list never disagrees with the filter that is still applied.
   const tissueOptions = [
-    ...new Set([...tissuesWithData(allProteins), tissueFilter].filter(Boolean)),
+    ...new Set([...tissuesWithData(allProteins), ...tissueFilter]),
   ].sort((a, b) => tissueLabel(a).localeCompare(tissueLabel(b)))
 
   const downloadActions: { label: string; onClick: () => void }[] = [
@@ -469,24 +470,56 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
             ))}
           </SidebarAccordion>
 
-          {/* Tissue expression */}
-          <div>
-            <label htmlFor="tissue-filter" style={sectionLabelStyle}>{t('search.sidebar.tissue')}</label>
-            <select
-              id="tissue-filter"
-              className="op-input"
-              value={tissueFilter}
-              onChange={(e) => setTissueFilter(e.target.value)}
-              style={{ fontSize: 13 }}
-            >
-              <option value="">{t('search.sidebar.allTissues')}</option>
-              {tissueOptions.map((key) => (
-                <option key={key} value={key}>
-                  {tissueLabel(key)}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Tissue expression — several may be selected, and they AND together */}
+          <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+            <legend style={{ ...sectionLabelStyle, padding: 0 }}>
+              {t('search.sidebar.tissue')}
+            </legend>
+            {tissueOptions.length === 0 ? (
+              <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: '4px 0 0' }}>
+                {t('search.sidebar.noTissueData')}
+              </p>
+            ) : (
+              <>
+                <div style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 4 }}>
+                  {tissueOptions.map((key) => (
+                    <label
+                      key={key}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 9,
+                        padding: '5px 0',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        color: 'var(--text)',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={tissueFilter.includes(key)}
+                        onChange={(e) => setTissueFilter(key, e.target.checked)}
+                        style={{ accentColor: 'var(--primary)', cursor: 'pointer', flexShrink: 0 }}
+                      />
+                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {tissueLabel(key)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {tissueFilter.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearTissueFilter}
+                    className="op-btn"
+                    style={{ marginTop: 8, fontSize: 12, padding: '4px 10px' }}
+                  >
+                    {t('search.sidebar.allTissues')}
+                  </button>
+                )}
+              </>
+            )}
+          </fieldset>
 
           <SidebarAccordion label={t('search.sidebar.summary')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>

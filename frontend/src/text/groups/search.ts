@@ -82,9 +82,15 @@ export const searchGroup: TextGroup = {
     },
     {
       key: 'search.sidebar.allTissues',
-      label: 'All tissues option',
+      label: 'Clear tissue selection button',
       section: 'Sidebar',
       default: 'All tissues',
+    },
+    {
+      key: 'search.sidebar.noTissueData',
+      label: 'Tissue section empty state',
+      section: 'Sidebar',
+      default: 'No tissue expression data for these results.',
     },
     {
       key: 'search.sidebar.summary',

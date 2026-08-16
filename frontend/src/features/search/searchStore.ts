@@ -20,8 +20,10 @@ interface SearchState {
   categoryFilter: Record<string, boolean>
   annotationFilter: Record<string, boolean>
   filterMode: 'None' | 'query_query' | 'query_interactor'
-  tissueFilter: string
-  setTissueFilter: (t: string) => void
+  /** Selected tissues, ANDed: a protein must be expressed in every one. */
+  tissueFilter: string[]
+  setTissueFilter: (tissue: string, on: boolean) => void
+  clearTissueFilter: () => void
   selectedLayout: LayoutName
   activeModal: ModalName | null
   activeTableTab: string
@@ -53,7 +55,7 @@ const initialState = {
   } as Record<string, boolean>,
   annotationFilter: {} as Record<string, boolean>,
   filterMode: 'None' as const,
-  tissueFilter: '',
+  tissueFilter: [] as string[],
   selectedLayout: 'cola' as LayoutName,
   activeModal: null as ModalName | null,
   activeTableTab: 'interactions',
@@ -85,7 +87,13 @@ export const useSearchStore = create<SearchState>()((set) => ({
   setAnnotationFilter: (name, val) =>
     set((s) => ({ annotationFilter: { ...s.annotationFilter, [name]: val } })),
   setFilterMode: (mode) => set({ filterMode: mode }),
-  setTissueFilter: (t) => set({ tissueFilter: t }),
+  setTissueFilter: (tissue, on) =>
+    set((s) => ({
+      tissueFilter: on
+        ? [...s.tissueFilter, tissue]
+        : s.tissueFilter.filter((t) => t !== tissue),
+    })),
+  clearTissueFilter: () => set({ tissueFilter: [] }),
   setLayout: (name) => set({ selectedLayout: name }),
   setModal: (name) => set({ activeModal: name }),
   setTableTab: (name) => set({ activeTableTab: name }),

@@ -35,12 +35,14 @@ export function filterProteinsAndInteractions(
 ): { proteins: Protein[]; interactions: Interaction[] } {
   const querySet = new Set(queryProteinIds)
 
-  // Tissue filter - build allowed protein id set first
+  // Tissue filter - build allowed protein id set first. Selecting several
+  // tissues ANDs them: legacy drops a protein as soon as one selected tissue
+  // fails, so "liver + spleen" means expressed in both, not either.
   let allowedProteinIds: Set<number> | null = null
-  if (filters.tissueFilter) {
+  if (filters.tissueFilter.length > 0) {
     allowedProteinIds = new Set(
       allProteins
-        .filter((p) => passesTossueFilter(p, filters.tissueFilter))
+        .filter((p) => filters.tissueFilter.every((t) => passesTossueFilter(p, t)))
         .map((p) => p.protein_id)
     )
   }

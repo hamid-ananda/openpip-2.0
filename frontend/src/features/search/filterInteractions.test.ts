@@ -30,7 +30,7 @@ const defaultFilters: FilterState = {
   categoryFilter: { Published: true, Validated: true, Verified: true, Literature: true },
   annotationFilter: {},
   filterMode: 'None',
-  tissueFilter: '',
+  tissueFilter: [],
 }
 
 const proteins = [makeProtein(1, 'BAD'), makeProtein(2, 'BCL2L1'), makeProtein(3, 'BAK1')]
@@ -83,7 +83,7 @@ describe('filterProteinsAndInteractions', () => {
       makeInteraction(2, 1, 3, 0.7, 'Published'), // both pass → kept
     ]
     const result = filterProteinsAndInteractions([p1, p2, p3], ixs,
-      { ...defaultFilters, tissueFilter: 'liver' }, [1])
+      { ...defaultFilters, tissueFilter: ['liver'] }, [1])
     expect(result.interactions).toHaveLength(1)
     expect(result.interactions[0].interaction_id).toBe(2)
     expect(result.proteins.map(p => p.protein_id)).not.toContain(2)
@@ -94,14 +94,40 @@ describe('filterProteinsAndInteractions', () => {
     const p2 = { ...makeProtein(2, 'BCL2L1'), tissue_expression_array: { liver: '6.0\r' } }
     const ixs = [makeInteraction(1, 1, 2, 0.8, 'Published')]
     const result = filterProteinsAndInteractions([p1, p2], ixs,
-      { ...defaultFilters, tissueFilter: 'liver' }, [1])
+      { ...defaultFilters, tissueFilter: ['liver'] }, [1])
     expect(result.interactions).toHaveLength(1)
   })
 
-  it('tissueFilter empty string returns all proteins', () => {
+  it('no tissue selected returns all proteins', () => {
     const result = filterProteinsAndInteractions(proteins, interactions,
-      { ...defaultFilters, tissueFilter: '' }, [1, 2])
+      { ...defaultFilters, tissueFilter: [] }, [1, 2])
     expect(result.interactions).toHaveLength(3)
+  })
+
+  it('ANDs several selected tissues, matching legacy', () => {
+    // Legacy drops a protein as soon as one selected tissue fails
+    // (search_results.js:1336), so "liver + spleen" means expressed in both.
+    const both = { ...makeProtein(1, 'BAD'), tissue_expression_array: { liver: '8.5', spleen: '7.0' } }
+    const liverOnly = { ...makeProtein(2, 'BCL2L1'), tissue_expression_array: { liver: '9.1', spleen: '1.2' } }
+    const ixs = [makeInteraction(1, 1, 2, 0.8, 'Published')]
+
+    const oneTissue = filterProteinsAndInteractions([both, liverOnly], ixs,
+      { ...defaultFilters, tissueFilter: ['liver'] }, [1])
+    expect(oneTissue.interactions).toHaveLength(1)
+
+    const bothTissues = filterProteinsAndInteractions([both, liverOnly], ixs,
+      { ...defaultFilters, tissueFilter: ['liver', 'spleen'] }, [1])
+    expect(bothTissues.interactions).toHaveLength(0)
+  })
+
+  it('treats a missing tissue key as a failure, matching legacy', () => {
+    // typeof … == "undefined" → removeProtein in legacy.
+    const p1 = { ...makeProtein(1, 'BAD'), tissue_expression_array: { liver: '8.5' } }
+    const p2 = { ...makeProtein(2, 'BCL2L1'), tissue_expression_array: { liver: '9.0' } }
+    const ixs = [makeInteraction(1, 1, 2, 0.8, 'Published')]
+    const result = filterProteinsAndInteractions([p1, p2], ixs,
+      { ...defaultFilters, tissueFilter: ['liver', 'spleen'] }, [1])
+    expect(result.interactions).toHaveLength(0)
   })
 
   it('proteins in result are only those in surviving interactions', () => {

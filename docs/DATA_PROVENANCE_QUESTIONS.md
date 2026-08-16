@@ -157,9 +157,39 @@ qsmooth-normalized, so that conversion does not hold. This is the one thing we
 still cannot pin down: whether a log2 step was applied after qsmooth, and
 therefore what **≥ 5.0 means in interpretable terms**.
 
-That threshold is itself configuration, not a constant — it is stored in
-`annotation_type.filter` as `'5.0 >'`, which suggests it was a tunable choice
-rather than a property of the data.
+### Where the 5.0 threshold comes from
+
+An earlier draft of this document said the threshold "is configuration, not a
+constant", because `annotation_type.filter` holds the string `'5.0 >'`. That was
+wrong, and the correction is worth recording because it looks like config from
+every angle except the one that matters.
+
+**Nothing reads that column.** In legacy, `Annotation_Type::getFilter()` has no
+callers anywhere in `src`, `app` or `web`. The controller does ship the value to
+the browser, where `search_results.js` assigns it three times — lines 1291, 1440
+and 1467 — and never uses the variable:
+
+```js
+var fields = AnnotationTypesArray['tissue_expression']['fields'];
+var filter = AnnotationTypesArray['tissue_expression']['filter'];   // never read
+```
+
+The effective threshold is a literal, written twice with two spellings:
+
+- `search_results.js:1296` — `if(5 > proteinTissueArray[annotation_name] || …)`
+- `search_results.js:1336` — `if( 5.0 > tissueExpressionArray[tissue] || …)`
+
+The stored `'5.0 >'` is the source expression pasted into a config column as
+documentation. It was never a knob; it is a comment that happens to live in the
+database.
+
+Note the `fields` line above: legacy loads the display-name map and drops it the
+same way, which is why it shows "Brain 0 / 1 / 2" — see §5.
+
+openPIP 2.0 therefore hardcodes the threshold too, which is parity rather than
+an oversight (`TISSUE_THRESHOLD` in `features/search/filterInteractions.ts`,
+mirrored in `enrichment/TissueExpressionTable.tsx`). Making it admin-editable
+would be a new feature, not a restoration of one.
 
 ---
 
@@ -238,7 +268,8 @@ Two smaller corrections shipped alongside it:
 
 Both the legacy site and openPIP 2.0 displayed the brain tissues to biologists
 as **"Brain 0 / 1 / 2"** — not because the labels were lost, but because neither
-front end read the column that holds them. `annotation_type.fields` has carried
+front end used the column that holds them. Legacy is the sharper case: it *reads*
+`fields` into a variable and never touches it again (§2). `annotation_type.fields` has carried
 the display-name map all along. openPIP 2.0 hardcoded the tissue key list in
 `SearchSidebar.tsx` and prettified by replacing underscores, which is where the
 meaningless labels came from.
