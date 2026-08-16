@@ -3,7 +3,7 @@ import type { Protein, Interaction } from '../../types/api'
 import type { SearchResult } from '../../types/search'
 
 type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
-type ModalName = 'download' | 'downloadAuth' | 'cyRest' | 'loading' | 'directDownload'
+type ModalName = 'download' | 'cyRest' | 'loading' | 'directDownload'
 
 interface SearchState {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -257,25 +257,15 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
 
   const hasCategories = Object.keys(categoryFilter).length > 0
 
-  const lockIcon = !isLoggedIn ? ' 🔒' : ''
-
-  const downloadActions: { label: string; onClick: () => void }[] = isLoggedIn
-    ? [
-        { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif') },
-        { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins), 'Interactions', 'csv') },
-        { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv') },
-        { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta') },
-        { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv') },
-        { label: t('search.download.direct'), onClick: () => setModal('directDownload') },
-      ]
-    : [
-        { label: `${t('search.download.sif')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `${t('search.download.interactionsCsv')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `${t('search.download.interactorsCsv')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `${t('search.download.fasta')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `${t('search.download.psimi')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
-        { label: `${t('search.download.direct')}${lockIcon}`, onClick: () => setModal('downloadAuth') },
-      ]
+  const downloadActions: { label: string; onClick: () => void }[] = [
+    { label: t('search.download.sif'), onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif') },
+    { label: t('search.download.interactionsCsv'), onClick: () => handleDownload(formatInteractionsCSV(allInteractions, allProteins), 'Interactions', 'csv') },
+    { label: t('search.download.interactorsCsv'), onClick: () => handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv') },
+    { label: t('search.download.fasta'), onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta') },
+    { label: t('search.download.psimi'), onClick: () => handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv') },
+    { label: t('search.download.direct'), onClick: () => setModal('directDownload') },
+    { label: t('search.download.cytoscape'), onClick: () => setModal('cyRest') },
+  ]
 
   return (
     <aside style={{

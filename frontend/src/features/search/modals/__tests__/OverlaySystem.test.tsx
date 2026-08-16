@@ -28,10 +28,10 @@ describe('OverlaySystem', () => {
     expect(screen.getByText('Preparing network data for export.')).toBeInTheDocument()
   })
 
-  it('renders DownloadAuthModal when activeModal is "downloadAuth"', () => {
-    useSearchStore.setState({ activeModal: 'downloadAuth' })
+  it('renders CyRestModal when activeModal is "cyRest"', () => {
+    useSearchStore.setState({ activeModal: 'cyRest' })
     wrap()
-    expect(screen.getByText('Login Required')).toBeInTheDocument()
+    expect(screen.getByText('Open in Cytoscape')).toBeInTheDocument()
   })
 
   it('renders DownloadModal when activeModal is "download"', () => {

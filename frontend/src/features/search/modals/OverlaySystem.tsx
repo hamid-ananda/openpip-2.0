@@ -1,6 +1,5 @@
 import { useSearchStore } from '../searchStore'
 import { LoadingOverlay } from './LoadingOverlay'
-import { DownloadAuthModal } from './DownloadAuthModal'
 import { DownloadModal } from './DownloadModal'
 import { CyRestModal } from './CyRestModal'
 import { DirectDownloadModal } from './DirectDownloadModal'
@@ -10,7 +9,6 @@ export function OverlaySystem() {
   const close = () => setModal(null)
 
   if (activeModal === 'loading') return <LoadingOverlay />
-  if (activeModal === 'downloadAuth') return <DownloadAuthModal onClose={close} />
   if (activeModal === 'download') return <DownloadModal onClose={close} />
   if (activeModal === 'cyRest') return <CyRestModal onClose={close} />
   if (activeModal === 'directDownload') return <DirectDownloadModal onClose={close} />

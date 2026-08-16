@@ -210,6 +210,12 @@ export const searchGroup: TextGroup = {
       section: 'Download menu',
       default: 'Direct Download (GZ)',
     },
+    {
+      key: 'search.download.cytoscape',
+      label: 'Open in Cytoscape',
+      section: 'Download menu',
+      default: 'Open in Cytoscape',
+    },
 
     {
       key: 'search.save.button',
@@ -443,85 +449,61 @@ export const searchGroup: TextGroup = {
       default: 'Screens:',
     },
 
-    {
-      key: 'search.authModal.title',
-      label: 'Title',
-      section: 'Login-required modal',
-      default: 'Login Required',
-    },
-    {
-      key: 'search.authModal.body',
-      label: 'Body',
-      section: 'Login-required modal',
-      default: 'You must be logged in to download interaction data.',
-    },
-    {
-      key: 'search.authModal.confirm',
-      label: 'Confirm button',
-      section: 'Login-required modal',
-      default: 'Log In',
-    },
-
     // Chrome: placeholders, transient states, and accessible labels.
     {
       key: 'search.sidebar.queryPlaceholder',
-      label: 'Sidebar — query placeholder',
+      label: 'Sidebar: query placeholder',
       default: 'Gene symbol or UniProt ID',
     },
     {
       key: 'search.sidebar.noProteins',
-      label: 'Sidebar — no proteins message',
+      label: 'Sidebar: no proteins message',
       default: 'No proteins loaded.',
     },
     {
       key: 'search.save.placeholder',
-      label: 'Save network — name placeholder',
+      label: 'Save network: name placeholder',
       default: 'Network name',
     },
     {
       key: 'search.save.nameRequired',
-      label: 'Save network — name required',
+      label: 'Save network: name required',
       default: 'Name is required',
     },
     {
       key: 'search.save.failed',
-      label: 'Save network — failed',
+      label: 'Save network: failed',
       default: 'Failed to save. Try again.',
     },
     {
       key: 'search.save.success',
-      label: 'Save network — success',
+      label: 'Save network: success',
       default: 'Saved!',
     },
     {
       key: 'search.save.cancel',
-      label: 'Save network — cancel',
+      label: 'Save network: cancel',
       default: 'Cancel',
     },
     {
       key: 'search.panel.close',
-      label: 'Panel — close button label',
+      label: 'Panel: close button label',
       default: 'Close',
     },
     {
       key: 'search.error.unreachable',
-      label: 'Error — database unreachable',
+      label: 'Error: database unreachable',
       default: 'Could not reach the database.',
     },
     {
       key: 'search.error.retry',
-      label: 'Error — retry hint',
+      label: 'Error: retry hint',
       default: 'Check your connection and try again.',
     },
     {
       key: 'search.resizeHint',
       label: 'Resize handle tooltip',
       default: 'Drag to resize',
-    },
-    {
-      key: 'search.authModal.cancel',
-      label: 'Login modal — cancel',
-      default: 'Cancel',
     },
   ],
 }

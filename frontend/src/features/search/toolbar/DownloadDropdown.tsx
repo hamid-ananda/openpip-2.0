@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import { useSearchStore } from '../searchStore'
-import { useAuthStore } from '../../../store/authStore'
 import {
   formatSIF,
   formatInteractionsCSV,
@@ -20,8 +19,6 @@ export function DownloadDropdown() {
   const queryProteinIds = useSearchStore((s) => s.queryProteinIds)
   const setModal = useSearchStore((s) => s.setModal)
 
-  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
-
   // Close on click outside
   useEffect(() => {
     if (!open) return
@@ -38,63 +35,52 @@ export function DownloadDropdown() {
     if (e.key === 'Escape') setOpen(false)
   }
 
-  function handleAuthRequired() {
-    setModal('downloadAuth')
-    setOpen(false)
-  }
-
   function handleDownload(content: string, format: string, ext: string) {
     downloadFile(buildFilename(format, ext), content)
     setOpen(false)
   }
 
-  const lockIcon = !isLoggedIn ? ' 🔒' : ''
-
-  const actions: { label: string; onClick: () => void }[] = isLoggedIn
-    ? [
-        {
-          label: 'SIF',
-          onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif'),
-        },
-        {
-          label: 'Interactions CSV',
-          onClick: () =>
-            handleDownload(
-              formatInteractionsCSV(allInteractions, allProteins, new Set(queryProteinIds)),
-              'Interactions',
-              'csv'
-            ),
-        },
-        {
-          label: 'Interactors CSV',
-          onClick: () =>
-            handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv'),
-        },
-        {
-          label: 'FASTA',
-          onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta'),
-        },
-        {
-          label: 'PSI-MI',
-          onClick: () =>
-            handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv'),
-        },
-        {
-          label: 'Direct Download (GZ)',
-          onClick: () => {
-            setModal('directDownload')
-            setOpen(false)
-          },
-        },
-      ]
-    : [
-        { label: `SIF${lockIcon}`, onClick: handleAuthRequired },
-        { label: `Interactions CSV${lockIcon}`, onClick: handleAuthRequired },
-        { label: `Interactors CSV${lockIcon}`, onClick: handleAuthRequired },
-        { label: `FASTA${lockIcon}`, onClick: handleAuthRequired },
-        { label: `PSI-MI${lockIcon}`, onClick: handleAuthRequired },
-        { label: `Direct Download (GZ)${lockIcon}`, onClick: handleAuthRequired },
-      ]
+  const actions: { label: string; onClick: () => void }[] = [
+    {
+      label: 'SIF',
+      onClick: () => handleDownload(formatSIF(allInteractions, allProteins), 'SIF', 'sif'),
+    },
+    {
+      label: 'Interactions CSV',
+      onClick: () =>
+        handleDownload(
+          formatInteractionsCSV(allInteractions, allProteins, new Set(queryProteinIds)),
+          'Interactions',
+          'csv'
+        ),
+    },
+    {
+      label: 'Interactors CSV',
+      onClick: () => handleDownload(formatInteractorsCSV(allProteins), 'Interactors', 'csv'),
+    },
+    {
+      label: 'FASTA',
+      onClick: () => handleDownload(formatFASTA(allProteins), 'FASTA', 'fasta'),
+    },
+    {
+      label: 'PSI-MI',
+      onClick: () => handleDownload(formatPSIMI(allInteractions, allProteins), 'PSIMI', 'tsv'),
+    },
+    {
+      label: 'Direct Download (GZ)',
+      onClick: () => {
+        setModal('directDownload')
+        setOpen(false)
+      },
+    },
+    {
+      label: 'Open in Cytoscape',
+      onClick: () => {
+        setModal('cyRest')
+        setOpen(false)
+      },
+    },
+  ]
 
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
