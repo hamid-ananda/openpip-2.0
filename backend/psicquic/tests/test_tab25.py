@@ -2,7 +2,8 @@
 import pytest
 from psicquic.tab25 import format_interaction_tab25, TAB25_HEADER
 from interactions.models import Interaction, InteractionDataset
-from proteins.models import Protein, Organism, ProteinOrganism
+from proteins.models import Protein, Organism, ProteinOrganism, Annotation
+from interactions.models import AnnotationInteraction
 from datasets.models import Dataset
 
 
@@ -108,3 +109,81 @@ def test_tab25_publication_falls_back_when_dataset_is_uncited(db):
     cols = format_interaction_tab25(interaction).split("\t")
     assert cols[7] == "-"
     assert cols[8] == "-"
+
+
+def _annotate(interaction, type_name, payload):
+    """Attach a raw annotation row, as the legacy dump stores them."""
+    annotation = Annotation.objects.create(annotation=payload, type_name=type_name)
+    AnnotationInteraction.objects.create(interaction=interaction, annotation=annotation)
+
+
+def test_tab25_detection_method_from_litbm(interaction_with_data):
+    _annotate(
+        interaction_with_data,
+        "litbm_interaction",
+        '{"pmid":"8555189","experiment_type":"0018","binary_type":"binary"}',
+    )
+    columns = format_interaction_tab25(interaction_with_data).split("\t")
+    assert columns[6] == 'psi-mi:"MI:0018"(two hybrid)'
+    assert columns[11] == 'psi-mi:"MI:0407"(direct interaction)'
+
+
+def test_tab25_detection_method_pipes_multiple_experiments(interaction_with_data):
+    # 47k litbm rows cover 12k interactions, so several methods per row is normal.
+    _annotate(
+        interaction_with_data,
+        "litbm_interaction",
+        '{"experiment_type":"0096","binary_type":"non_binary"}',
+    )
+    _annotate(
+        interaction_with_data,
+        "litbm_interaction",
+        '{"experiment_type":"0018","binary_type":"binary"}',
+    )
+    columns = format_interaction_tab25(interaction_with_data).split("\t")
+    assert columns[6] == 'psi-mi:"MI:0018"(two hybrid)|psi-mi:"MI:0096"(pull down)'
+    # Both evidence strengths are reported rather than collapsed to the stronger.
+    assert 'psi-mi:"MI:0407"(direct interaction)' in columns[11]
+    assert 'psi-mi:"MI:0915"(physical association)' in columns[11]
+
+
+def test_tab25_unlabelled_code_emits_bare_identifier(interaction_with_data):
+    # Better an unlabelled CV reference than an invented term name.
+    _annotate(interaction_with_data, "litbm_interaction", '{"experiment_type":"9999"}')
+    columns = format_interaction_tab25(interaction_with_data).split("\t")
+    assert columns[6] == 'psi-mi:"MI:9999"'
+
+
+def test_tab25_y2h_screen_infers_two_hybrid(interaction_with_data):
+    # An experiment annotation carries DB/AD domains, which only Y2H produces.
+    _annotate(
+        interaction_with_data,
+        "experiment",
+        '{"dataset":"HI-III","dna_binding_domain":"TNMD",'
+        '"activation_binding_domain":"SPAG4","assay_version":2}',
+    )
+    columns = format_interaction_tab25(interaction_with_data).split("\t")
+    assert columns[6] == 'psi-mi:"MI:0018"(two hybrid)'
+    assert columns[11] == 'psi-mi:"MI:0407"(direct interaction)'
+
+
+def test_tab25_litbm_wins_over_the_y2h_default(interaction_with_data):
+    # Recorded evidence beats the inference when both are present.
+    _annotate(interaction_with_data, "experiment", '{"dna_binding_domain":"TNMD"}')
+    _annotate(interaction_with_data, "litbm_interaction", '{"experiment_type":"0114"}')
+    columns = format_interaction_tab25(interaction_with_data).split("\t")
+    assert columns[6] == 'psi-mi:"MI:0114"(x-ray crystallography)'
+
+
+def test_tab25_survives_a_malformed_annotation(interaction_with_data):
+    # A varchar column holding JSON will eventually hold something that is not.
+    _annotate(interaction_with_data, "litbm_interaction", "{not json at all")
+    columns = format_interaction_tab25(interaction_with_data).split("\t")
+    assert columns[6] == "-"
+    assert len(columns) == 15
+
+
+def test_tab25_no_annotations_still_reports_unknown(interaction_with_data):
+    columns = format_interaction_tab25(interaction_with_data).split("\t")
+    assert columns[6] == "-"
+    assert columns[11] == "-"
