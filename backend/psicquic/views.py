@@ -1,16 +1,65 @@
 from django.http import HttpResponse, JsonResponse
-from django.views import View
+from rest_framework.negotiation import DefaultContentNegotiation
+from rest_framework.permissions import AllowAny
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework.views import APIView
 
 from .miql import parse_miql
 from .tab25 import format_queryset_tab25
+
+
+class IgnoreFormatQueryParam(DefaultContentNegotiation):
+    """Stop DRF from claiming PSICQUIC's `format` parameter.
+
+    DRF reads ?format=x as "render with the renderer named x" and 404s before
+    the view runs when there is none. PSICQUIC defines the same parameter with
+    an entirely different meaning (tab25, count, json), and the spec wins on
+    this URL. These views build their own responses, so negotiation has nothing
+    useful to do anyway.
+    """
+
+    def select_renderer(self, request, renderers, format_suffix=None):
+        return renderers[0], renderers[0].media_type
+
+
+class PsicquicThrottle(AnonRateThrottle):
+    """Rate limit for the public PSICQUIC surface.
+
+    These endpoints are unauthenticated and return bulk data, so they are the
+    cheapest thing on the site to hammer. The rate is in settings under the
+    "psicquic" scope; it is sized to leave a full paged crawl comfortable while
+    stopping a loop with no sleep in it.
+
+    Throttling by IP is a blunt instrument — it counts a shared NAT as one
+    caller. If that becomes a problem the answer is API keys, not a looser rate.
+    """
+
+    scope = "psicquic"
+
+
+class PsicquicView(APIView):
+    """Shared base: public, throttled, and returning plain responses.
+
+    These were django.views.View before, which DRF's throttling never sees.
+    APIView returns HttpResponse untouched — content negotiation only applies
+    to DRF's own Response — so the output is byte-identical.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [PsicquicThrottle]
+    content_negotiation_class = IgnoreFormatQueryParam
+
 
 # Formats this service answers to. `tab25` and `count` are PSICQUIC spec names;
 # `json` is an openPIP extension for browser callers that do not want to parse
 # tab-separated text.
 #
-# TAB 2.6/2.7/2.8 are deliberately absent rather than aliased to 2.5: every
-# column they add would be "-" for openPIP today, and advertising a format we
-# answer with empty columns is worse than not offering it. See tab25.py.
+# TAB 2.6/2.7/2.8 are absent rather than aliased to 2.5 — advertising a format
+# we would answer with empty columns is worse than not offering it. But this is
+# a gap to close, not a decision: the paper (Helmy et al., JMB 2022, Future
+# Directions) states "We furthermore plan to add support to the PSI-MI TAB
+# format 2.8", and the search-result export already emits 42 columns (2.7) in
+# frontend/src/lib/download.ts. PSICQUIC is the surface left behind at 2.5.
 SUPPORTED_FORMATS = ("tab25", "count", "json")
 
 # The PSICQUIC REST specification level implemented, not the openPIP release.
@@ -24,7 +73,7 @@ def _plain(content: str, status: int = 200) -> HttpResponse:
     )
 
 
-class PsicquicQueryView(View):
+class PsicquicQueryView(PsicquicView):
     def get(self, request):
         query = request.GET.get("q", "*")
         fmt = request.GET.get("format", "tab25").lower()
@@ -76,13 +125,13 @@ class PsicquicQueryView(View):
         return _plain(format_queryset_tab25(qs))
 
 
-class PsicquicCountView(View):
+class PsicquicCountView(PsicquicView):
     def get(self, request):
         query = request.GET.get("q", "*")
         return _plain(str(parse_miql(query).count()))
 
 
-class PsicquicFormatsView(View):
+class PsicquicFormatsView(PsicquicView):
     """The formats this service can return, one per line.
 
     The EBI registry polls this to learn what a service supports; without it a
@@ -93,7 +142,7 @@ class PsicquicFormatsView(View):
         return _plain("\n".join(SUPPORTED_FORMATS) + "\n")
 
 
-class PsicquicVersionView(View):
+class PsicquicVersionView(PsicquicView):
     """The PSICQUIC REST specification level implemented."""
 
     def get(self, request):

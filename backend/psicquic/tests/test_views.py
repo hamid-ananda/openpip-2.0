@@ -3,7 +3,7 @@ import pytest
 from proteins.models import Protein, Organism, ProteinOrganism
 from interactions.models import Interaction, InteractionDataset
 from datasets.models import Dataset
-from psicquic.views import SUPPORTED_FORMATS, REST_VERSION
+from psicquic.views import SUPPORTED_FORMATS, REST_VERSION, PsicquicThrottle
 
 
 @pytest.fixture
@@ -123,3 +123,31 @@ def test_psicquic_rejects_non_numeric_paging(client, sample_interactions):
     # int() on a query param used to raise ValueError -> 500.
     response = client.get("/psicquic/rest/query?q=BRCA1&maxResults=all")
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_psicquic_throttles_a_hammering_client(
+    client, sample_interactions, monkeypatch
+):
+    # These endpoints are unauthenticated and return bulk data, so an unbounded
+    # loop against them is the cheapest way to hurt the site.
+    from django.core.cache import cache
+
+    cache.clear()
+    # THROTTLE_RATES is read into a class attribute at import time, so patching
+    # settings at runtime would not reach it.
+    monkeypatch.setattr(PsicquicThrottle, "THROTTLE_RATES", {"psicquic": "3/min"})
+    codes = [client.get("/psicquic/rest/query?q=BRCA1").status_code for _ in range(5)]
+    assert codes[:3] == [200, 200, 200]
+    assert codes[3:] == [429, 429]
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_psicquic_format_param_is_not_drf_content_negotiation(
+    client, sample_interactions
+):
+    # DRF reads ?format= as a renderer override and 404s when it finds none.
+    # PSICQUIC owns this parameter, so the view must see it, not DRF.
+    assert client.get("/psicquic/rest/query?q=BRCA1&format=tab25").status_code == 200
+    assert client.get("/psicquic/rest/query?q=BRCA1&format=json").status_code == 200

@@ -143,8 +143,9 @@ class SecurityQuestionView(APIView):
 
 
 class _SecurityAnswerThrottle(AnonRateThrottle):
-    # ponytail: LocMemCache means the limit is per worker process; point
-    # CACHES at Redis if that turns out to be too loose.
+    # CACHES points at Redis when REDIS_URL is set, so this counts across all
+    # gunicorn workers rather than per process. Without it the effective limit
+    # was silently 3x the configured one.
     scope = "security_answer"
 
 
