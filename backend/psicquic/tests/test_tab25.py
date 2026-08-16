@@ -187,3 +187,25 @@ def test_tab25_no_annotations_still_reports_unknown(interaction_with_data):
     columns = format_interaction_tab25(interaction_with_data).split("\t")
     assert columns[6] == "-"
     assert columns[11] == "-"
+
+
+@pytest.mark.parametrize("placeholder", ["NULL", "null", "None", "-", "n/a", ""])
+def test_tab25_treats_placeholder_accessions_as_absent(db, placeholder):
+    # The legacy dump spells "no accession" several ways; only NULL and "" are
+    # falsey in Python, so the literal text "NULL" was emitted as an identifier.
+    p_a = Protein.objects.create(gene_name="A", uniprot_id=placeholder)
+    p_b = Protein.objects.create(gene_name="B", uniprot_id="P04637")
+    interaction = Interaction.objects.create(interactor_A=p_a, interactor_B=p_b)
+    columns = format_interaction_tab25(interaction).split("\t")
+    assert columns[0] == f"openPIP:{p_a.pk}"
+    assert columns[1] == "uniprotkb:P04637"
+
+
+@pytest.mark.django_db
+def test_tab25_drops_placeholder_alt_ids():
+    p_a = Protein.objects.create(gene_name="A", uniprot_id="P38398", entrez_id="NULL")
+    p_b = Protein.objects.create(gene_name="B", uniprot_id="P04637", entrez_id="7157")
+    interaction = Interaction.objects.create(interactor_A=p_a, interactor_B=p_b)
+    columns = format_interaction_tab25(interaction).split("\t")
+    assert columns[2] == "-"
+    assert columns[3] == "entrez:7157"

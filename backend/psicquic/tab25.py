@@ -86,23 +86,33 @@ TAB25_HEADER = (
 )
 
 
+# The legacy dump stores "no accession" several ways: NULL, the empty string,
+# and the literal text "NULL". Only the first two read as falsey in Python, so
+# 61 proteins were emitting uniprotkb:NULL as a real identifier.
+PLACEHOLDER_IDS = {"", "null", "none", "-", "n/a", "na"}
+
+
+def _has_id(value) -> bool:
+    return bool(value) and str(value).strip().lower() not in PLACEHOLDER_IDS
+
+
 def _uniprot(protein) -> str:
-    if protein.uniprot_id:
+    if _has_id(protein.uniprot_id):
         return f"uniprotkb:{protein.uniprot_id}"
     return f"openPIP:{protein.pk}"
 
 
 def _alt_ids(protein) -> str:
     parts = []
-    if protein.entrez_id:
+    if _has_id(protein.entrez_id):
         parts.append(f"entrez:{protein.entrez_id}")
-    if protein.ensembl_id:
+    if _has_id(protein.ensembl_id):
         parts.append(f"ensembl:{protein.ensembl_id}")
     # Plain .all() so the queryset's prefetch cache is used; adding
     # .select_related() here would re-query once per protein per row.
     for pi in protein.protein_identifiers.all():
         id_obj = pi.identifier
-        if id_obj and id_obj.identifier and id_obj.naming_convention:
+        if id_obj and _has_id(id_obj.identifier) and id_obj.naming_convention:
             parts.append(f"{id_obj.naming_convention}:{id_obj.identifier}")
     return "|".join(parts) if parts else "-"
 
