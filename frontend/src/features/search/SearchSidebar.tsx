@@ -9,6 +9,7 @@ import { useSettings } from '../../api/settings'
 import { useSaveNetwork } from '../../api/networks'
 import { useText } from '../../text'
 import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
+import { TISSUE_KEYS, tissueLabel } from '../../lib/tissues'
 import {
   formatSIF,
   formatInteractionsCSV,
@@ -25,20 +26,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   Verified: 'var(--color-edge-verified)',
   Literature: 'var(--literature)',
 }
-
-// Keys match tissue_expression_array field names in the search result
-const TISSUES = [
-  'adipose_subcutaneous', 'adipose_visceral_omentum', 'adrenal_gland',
-  'artery_aorta', 'artery_coronary', 'artery_tibial',
-  'brain_0', 'brain_1', 'brain_2',
-  'breast_mammary_tissue', 'colon_sigmoid', 'colon_transverse',
-  'esophagus_gastroesophageal_junction', 'esophagus_mucosa', 'esophagus_muscularis',
-  'heart_atrial_appendage', 'heart_left_ventricle', 'kidney_cortex',
-  'liver', 'lung', 'minor_salivary_gland', 'muscle_skeletal', 'nerve_tibial',
-  'ovary', 'pancreas', 'pituitary', 'prostate', 'skin',
-  'small_intestine_terminal_ileum', 'spleen', 'stomach', 'testis',
-  'thyroid', 'uterus', 'vagina', 'whole_blood',
-]
 
 type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
 
@@ -485,9 +472,9 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
               style={{ fontSize: 13 }}
             >
               <option value="">{t('search.sidebar.allTissues')}</option>
-              {TISSUES.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+              {TISSUE_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {tissueLabel(key)}
                 </option>
               ))}
             </select>

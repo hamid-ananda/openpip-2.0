@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { ProteinDetail } from '../../api/proteins'
 import { useProteinInteractors } from '../../api/proteins'
 import { downloadFile } from '../../lib/download'
+import { tissueLabel } from '../../lib/tissues'
 import { useText } from '../../text'
 import { formatProteinJSON, formatProteinTSV, proteinFileStem } from './exportProtein'
 import { computeSequenceStats, toFasta } from './sequenceStats'
@@ -144,7 +145,7 @@ export function ProteinDetailPanel({ protein, onSelectInteractor }: ProteinDetai
 
   const tissues = Object.entries(protein.tissue_expression_array || {})
     .map(([tissue, value]) => ({
-      tissue: tissue.replace(/_/g, ' '),
+      tissue: tissueLabel(tissue),
       score: parseFloat(String(value)),
     }))
     .filter((entry) => !isNaN(entry.score))
@@ -537,11 +538,12 @@ export function ProteinDetailPanel({ protein, onSelectInteractor }: ProteinDetai
                   {tissues.map(({ tissue, score }) => (
                     <div key={tissue}>
                       <div className="pdp-tissue">
+                        {/* No capitalize: the label is already cased, and the
+                            brain clusters read "Brain basal ganglia". */}
                         <span
                           style={{
                             fontSize: 12,
                             color: 'var(--text)',
-                            textTransform: 'capitalize',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',

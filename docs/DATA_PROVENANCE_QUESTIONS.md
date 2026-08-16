@@ -220,17 +220,28 @@ Two smaller corrections shipped alongside it:
 
 ---
 
-## 5. A separate, fixable UI problem
+## 5. A separate, fixable UI problem — fixed 2026-08-15
 
-Both the legacy site and openPIP 2.0 display the brain tissues to biologists as
-**"Brain 0 / 1 / 2"** — not because the labels were lost, but because neither
-front end reads the column that holds them. `annotation_type.fields` has carried
-the display-name map all along. openPIP 2.0 hardcodes the tissue key list in
-`SearchSidebar.tsx` and prettifies by replacing underscores, which is where the
-meaningless labels come from.
+Both the legacy site and openPIP 2.0 displayed the brain tissues to biologists
+as **"Brain 0 / 1 / 2"** — not because the labels were lost, but because neither
+front end read the column that holds them. `annotation_type.fields` has carried
+the display-name map all along. openPIP 2.0 hardcoded the tissue key list in
+`SearchSidebar.tsx` and prettified by replacing underscores, which is where the
+meaningless labels came from.
 
-This needs no further information to fix, and it is a small improvement over
-legacy rather than a parity change.
+**Fixed.** Three places invented labels independently — the sidebar filter
+dropdown, the protein detail panel and the enrichment tissue table — so the map
+now lives once in `frontend/src/lib/tissues.ts` and all three read
+`tissueLabel()`. The brain clusters read "Brain basal ganglia", "Brain
+cerebellum" and "Brain other"; a test fails if any tissue label renders a bare
+cluster index again.
+
+The labels are transcribed from `annotation_type.fields` rather than fetched:
+the column is exposed by no API, and the tissue set is frozen (§1), so a round
+trip would buy nothing. If a dataset ever arrives with its own tissues, read the
+column instead — `tissueLabel()` already falls back to prettifying unknown keys.
+
+This is a small improvement over legacy rather than a parity change.
 
 ---
 

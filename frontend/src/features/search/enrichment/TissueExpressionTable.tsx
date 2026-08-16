@@ -1,5 +1,6 @@
 import type { Protein } from '../../../types/api'
 import { GtexSourceNote } from './SourceNote'
+import { tissueLabel } from '../../../lib/tissues'
 
 interface TissueExpressionTableProps {
   proteins: Protein[]
@@ -62,8 +63,8 @@ export function TissueExpressionTable({ proteins }: TissueExpressionTableProps) 
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = '')}
             >
-              <td style={{ padding: '8px 16px', color: 'var(--text)', textTransform: 'capitalize' }}>
-                {tissue.replace(/_/g, ' ')}
+              <td style={{ padding: '8px 16px', color: 'var(--text)' }}>
+                {tissueLabel(tissue)}
               </td>
               <td style={{ padding: '8px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
                 {byTissue[tissue].join(' | ')}
