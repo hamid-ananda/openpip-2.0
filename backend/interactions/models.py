@@ -198,3 +198,71 @@ class InteractionSupportInformation(models.Model):
 
     class Meta:
         db_table = "interaction_support_information"
+
+
+class InteractionParticipant(models.Model):
+    """One protein's role in one interaction.
+
+    PSI-MI models participants as first-class: a protein is not simply "in" an
+    interaction, it takes part in a particular way — as bait or prey, as the
+    enzyme or the target. MITAB carries that per side (columns 17-22, 37-44),
+    and openPIP had nowhere to put it, so the parser discarded those columns and
+    the formatter had to re-derive bait/prey from a Y2H annotation blob on every
+    request.
+
+    New table, no legacy column touched. Roles are stored as bare PSI-MI
+    accession numbers ("0496"), not as rendered `psi-mi:"MI:0496"(bait)` cells,
+    so they can be queried — the reason for modelling this rather than keeping
+    the JSON passthrough. Labels are resolved at render time from
+    psicquic.mitab; a code with no known label still renders, just without the
+    parenthetical.
+    """
+
+    SIDE_A = "A"
+    SIDE_B = "B"
+    SIDE_CHOICES = [(SIDE_A, "interactor A"), (SIDE_B, "interactor B")]
+
+    interaction = models.ForeignKey(
+        Interaction,
+        on_delete=models.CASCADE,
+        db_column="interaction_id",
+        related_name="participants",
+    )
+    protein = models.ForeignKey(
+        Protein,
+        on_delete=models.CASCADE,
+        db_column="protein_id",
+        related_name="participations",
+    )
+    side = models.CharField(max_length=1, choices=SIDE_CHOICES)
+
+    # PSI-MI CV accessions, digits only. Null means the source did not say,
+    # which is different from MI:0499 "unspecified role" — that is a positive
+    # statement that the role is unspecified.
+    biological_role = models.CharField(max_length=10, null=True, blank=True)
+    experimental_role = models.CharField(max_length=10, null=True, blank=True)
+    interactor_type = models.CharField(max_length=10, null=True, blank=True)
+    identification_method = models.CharField(max_length=10, null=True, blank=True)
+    biological_effect = models.CharField(max_length=10, null=True, blank=True)
+
+    # Free text: these are not CV terms. Features look like
+    # "binding-associated region:1-50", stoichiometry is a number or range.
+    features = models.CharField(max_length=1000, null=True, blank=True)
+    stoichiometry = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        db_table = "interaction_participant"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["interaction", "side"], name="one_participant_per_side"
+            )
+        ]
+        indexes = [
+            # "which interactions was this protein the bait in"
+            models.Index(
+                fields=["protein", "experimental_role"], name="participant_role_idx"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.protein} as {self.side} in {self.interaction_id}"

@@ -11,6 +11,7 @@ from interactions.models import (
     AnnotationInteraction,
     Interaction,
     InteractionDataset,
+    InteractionParticipant,
     InteractionInteractionCategory,
     InteractionSupportInformation,
     SupportInformation,
@@ -46,6 +47,8 @@ def detect_format(filename: str, file_bytes: bytes) -> str:
 
 # psi-mi:"MI:1112"(two hybrid prey pooling approach)
 _PSIMI_LABEL_RE = re.compile(r'psi-mi:"[^"]*"\(([^)]+)\)', re.IGNORECASE)
+# The accession out of the same cell: psi-mi:"MI:0496"(bait) -> 0496
+_PSIMI_CODE_RE = re.compile(r'psi-mi:"MI:(\d+)"', re.IGNORECASE)
 # taxid:9606(human)
 _TAXID_RE = re.compile(r"taxid:(\d+)\(([^)]+)\)")
 
@@ -215,6 +218,49 @@ def _handle_dataset(
         },
     )
     InteractionDataset.objects.get_or_create(interaction=interaction, dataset=dataset)
+
+
+def _parse_psimi_code(raw: str) -> str | None:
+    """Extract the bare accession from psi-mi:"MI:0496"(bait) notation."""
+    if not raw or raw.strip() == "-":
+        return None
+    match = _PSIMI_CODE_RE.search(raw)
+    return match.group(1) if match else None
+
+
+def _clean_cell(raw: str) -> str | None:
+    """A free-text MITAB cell, or None when the file said nothing."""
+    value = (raw or "").strip()
+    return value or None if value != "-" else None
+
+
+def _handle_participants(interaction: Interaction, protein_a, protein_b, row) -> None:
+    """Record each side's role from MITAB columns 17-22, 37-44.
+
+    These columns were read and thrown away before InteractionParticipant
+    existed, so an upload lost exactly the experimental detail openPIP exists to
+    surface. Absent values stay NULL rather than being defaulted, so "the file
+    did not say" stays distinguishable from a recorded MI:0499 unspecified role.
+    """
+    sides = (
+        (InteractionParticipant.SIDE_A, protein_a, 16, 18, 20, 40, 42, 36, 38),
+        (InteractionParticipant.SIDE_B, protein_b, 17, 19, 21, 41, 43, 37, 39),
+    )
+    for side, protein, bio, exp, itype, ident, effect, feat, stoich in sides:
+        InteractionParticipant.objects.update_or_create(
+            interaction=interaction,
+            side=side,
+            defaults={
+                "protein": protein,
+                "biological_role": _parse_psimi_code(_safe_col(row, bio)),
+                "experimental_role": _parse_psimi_code(_safe_col(row, exp)),
+                "interactor_type": _parse_psimi_code(_safe_col(row, itype)),
+                "identification_method": _parse_psimi_code(_safe_col(row, ident)),
+                "biological_effect": _parse_psimi_code(_safe_col(row, effect)),
+                "features": _clean_cell(_safe_col(row, feat)),
+                "stoichiometry": _clean_cell(_safe_col(row, stoich)),
+            },
+        )
 
 
 def _handle_detection_method(interaction: Interaction, method_col: str) -> None:
@@ -495,6 +541,7 @@ def parse_and_ingest(
 
                 # ── Detection method (col 6) ───────────────────────────────
                 _handle_detection_method(interaction, _safe_col(row, 6))
+                _handle_participants(interaction, protein_a, protein_b, row)
 
                 # ── Interaction annotations (col 27) ───────────────────────
                 _handle_interaction_annotations(interaction, _safe_col(row, 27))

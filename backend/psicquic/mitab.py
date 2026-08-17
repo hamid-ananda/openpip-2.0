@@ -102,6 +102,15 @@ ROLE_BAIT = ("0496", "bait")
 ROLE_PREY = ("0498", "prey")
 TYPE_PROTEIN = ("0326", "protein")
 
+# Labels for the accessions stored on InteractionParticipant, which keeps codes
+# rather than rendered cells so roles stay queryable. A code with no entry here
+# renders bare — the same rule the detection methods follow.
+CV_LABELS = {
+    code: label
+    for code, label in (ROLE_UNSPECIFIED, ROLE_BAIT, ROLE_PREY, TYPE_PROTEIN)
+}
+CV_LABELS.update(DETECTION_METHOD_LABELS)
+
 # The legacy dump stores "no accession" several ways: NULL, the empty string,
 # and the literal text "NULL". Only the first two read as falsey in Python, so
 # 61 proteins were emitting uniprotkb:NULL as a real identifier.
@@ -295,6 +304,23 @@ def _interaction_types(interaction) -> str:
     return "-"
 
 
+def _participants(interaction) -> dict:
+    """{"A": participant, "B": participant} for whatever sides are recorded."""
+    return {p.side: p for p in interaction.participants.all()}
+
+
+def _participant_field(participants: dict, side: str, field: str) -> str | None:
+    participant = participants.get(side)
+    return getattr(participant, field, None) if participant else None
+
+
+def _cv_or_none(code: str | None) -> str | None:
+    """Render a stored PSI-MI accession, or None when nothing was recorded."""
+    if not code:
+        return None
+    return _psi_mi(code, CV_LABELS.get(code))
+
+
 def _experimental_roles(interaction) -> tuple[str, str]:
     """Columns 19/20. A Y2H screen names which protein carried which domain.
 
@@ -331,9 +357,23 @@ def _row(interaction: Interaction) -> list[str]:
     b = interaction.interactor_B
     author, pubmed = _publication(interaction)
     score = f"openPIP:{interaction.score}" if interaction.score else "-"
-    role_a, role_b = _experimental_roles(interaction)
     unspecified = _psi_mi(*ROLE_UNSPECIFIED)
     protein = _psi_mi(*TYPE_PROTEIN)
+
+    # A recorded participant is authoritative; the Y2H inference is the fallback
+    # for interactions imported before participants were modelled. Once the
+    # backfill has run, everything comes from the table.
+    parts = _participants(interaction)
+
+    def stored(side: str, field: str, default: str) -> str:
+        return _cv_or_none(_participant_field(parts, side, field)) or default
+
+    def text(side: str, field: str) -> str:
+        return _participant_field(parts, side, field) or "-"
+
+    inferred_a, inferred_b = _experimental_roles(interaction)
+    role_a = stored("A", "experimental_role", inferred_a)
+    role_b = stored("B", "experimental_role", inferred_b)
 
     return [
         # ── 1-15: TAB 2.5 ──
@@ -354,12 +394,12 @@ def _row(interaction: Interaction) -> list[str]:
         score,
         # ── 16-36: added by TAB 2.6 ──
         "-",  # 16 complex expansion: the data is binary, nothing was expanded
-        unspecified,  # 17 biological role A — not recorded by openPIP
-        unspecified,  # 18 biological role B
+        stored("A", "biological_role", unspecified),  # 17
+        stored("B", "biological_role", unspecified),  # 18
         role_a,  # 19 experimental role A — bait/prey where Y2H recorded it
         role_b,  # 20 experimental role B
-        protein,  # 21 interactor type A
-        protein,  # 22 interactor type B
+        stored("A", "interactor_type", protein),  # 21
+        stored("B", "interactor_type", protein),  # 22
         "-",  # 23 xref A — the cross-references we hold are already in col 3
         "-",  # 24 xref B
         "-",  # 25 interaction xref
@@ -375,12 +415,12 @@ def _row(interaction: Interaction) -> list[str]:
         "-",  # 35 interaction checksum
         "false",  # 36 negative — openPIP stores no negative results
         # ── 37-42: added by TAB 2.7 ──
-        "-",  # 37 feature A
-        "-",  # 38 feature B
-        "-",  # 39 stoichiometry A
-        "-",  # 40 stoichiometry B
-        "-",  # 41 participant identification method A
-        "-",  # 42 participant identification method B
+        text("A", "features"),  # 37
+        text("B", "features"),  # 38
+        text("A", "stoichiometry"),  # 39
+        text("B", "stoichiometry"),  # 40
+        stored("A", "identification_method", "-"),  # 41
+        stored("B", "identification_method", "-"),  # 42
         # ── 43-46: added by TAB 2.8 (CausalTAB) ──
         # All four describe causal, directional regulation: which molecular
         # function drives the effect, by what mechanism, and what the effect on
@@ -390,8 +430,8 @@ def _row(interaction: Interaction) -> list[str]:
         # kind, not because they were skipped, and they would stay empty for any
         # physical-interaction portal. They are where causal data would go if
         # openPIP ever hosts it.
-        "-",  # 43 biological effect of interactor A
-        "-",  # 44 biological effect of interactor B
+        stored("A", "biological_effect", "-"),  # 43
+        stored("B", "biological_effect", "-"),  # 44
         "-",  # 45 causal regulatory mechanism
         "-",  # 46 causal statement
     ]
@@ -476,6 +516,8 @@ def format_queryset(queryset, version: str = "tab25") -> str:
         # Columns 7, 12, 19 and 20 read these; without the prefetch each row
         # costs a query.
         "annotation_interactions__annotation",
+        # Columns 17-22 and 37-44 come from here once the backfill has run.
+        "participants",
     ):
         lines.append(format_interaction(interaction, version))
     return "\n".join(lines)
