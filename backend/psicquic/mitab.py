@@ -85,17 +85,27 @@ LABEL_TO_DETECTION_CODE = {
     label.lower(): code for code, label in DETECTION_METHOD_LABELS.items()
 }
 
-# Lit-BM records whether the evidence is binary. MI:0407 is the direct-interaction
-# term; non-binary evidence supports association but not direct contact, so it
-# maps to the weaker MI:0915.
+# Lit-BM records whether the evidence is binary. These deliberately stop short
+# of MI:0407 "direct interaction", which asserts direct physical contact.
+#
+# A binary assay detects an interaction between two molecules; a positive result
+# is not proof they touch. Reporting MI:0407 upgraded Lit-BM's own flag into a
+# stronger claim than the flag makes, on openPIP's authority rather than the
+# source's. MI:0915 "physical association" says what the evidence supports, and
+# non-binary evidence — which may be complex co-membership — drops to the
+# weaker MI:0914 "association".
+#
+# The distinction between the two flags survives; only the over-claim is gone.
 INTERACTION_TYPE_BY_BINARY = {
-    "binary": ("0407", "direct interaction"),
-    "non_binary": ("0915", "physical association"),
+    "binary": ("0915", "physical association"),
+    "non_binary": ("0914", "association"),
 }
 
-# A yeast two-hybrid screen is a direct binary assay by construction.
+# A yeast two-hybrid screen is a binary assay, so the same restraint applies:
+# the detection method column already says MI:0018, and asserting direct contact
+# on top of it would be openPIP's inference rather than the screen's finding.
 Y2H_METHOD = ("0018", "two hybrid")
-Y2H_TYPE = ("0407", "direct interaction")
+Y2H_TYPE = ("0915", "physical association")
 
 # Roles and types for columns 17-22. "unspecified role" is the CV's own term for
 # "not recorded", which is honest here — openPIP stores no biological role, and
@@ -113,6 +123,8 @@ CV_LABELS = {
     for code, label in (ROLE_UNSPECIFIED, ROLE_BAIT, ROLE_PREY, TYPE_PROTEIN)
 }
 CV_LABELS.update(DETECTION_METHOD_LABELS)
+CV_LABELS.update(dict(INTERACTION_TYPE_BY_BINARY.values()))
+CV_LABELS["0407"] = "direct interaction"
 
 # The legacy dump stores "no accession" several ways: NULL, the empty string,
 # and the literal text "NULL". Only the first two read as falsey in Python, so
@@ -326,11 +338,19 @@ def _detection_methods(interaction) -> str:
 
 
 def _interaction_types(interaction) -> str:
-    """Column 11. From Lit-BM's binary flag, or direct interaction for Y2H.
+    """Column 12. The depositor's statement first, then what we can infer.
+
+    A type stated in the uploaded file wins over any inference: the depositor
+    describes their own experiment, and openPIP reading the evidence differently
+    would overwrite their claim with ours. The same rule taxonomy follows.
 
     openPIP's own categories (Published, Validated, Verified, Literature) are
     curation tiers, not PSI-MI terms, and are deliberately not mapped here.
     """
+    stated = _cv_or_none(interaction.interaction_type)
+    if stated:
+        return stated
+
     terms = {
         INTERACTION_TYPE_BY_BINARY[p["binary_type"]]
         for p in _litbm_payloads(interaction)

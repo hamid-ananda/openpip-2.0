@@ -47,6 +47,14 @@ class Interaction(models.Model):
     # Not nullable, because MITAB has no "unstated" for this column: a row that
     # says nothing means the interaction is positive, which is what False says.
     negative = models.BooleanField(default=False)
+    # MITAB column 12, as a bare PSI-MI accession ("0407"). Null when the file
+    # said nothing, which is different from a stated value — openPIP then falls
+    # back to inferring one from the evidence.
+    #
+    # Stored rather than always inferred because a depositor describing their
+    # own experiment outranks our reading of it. That is the same rule taxonomy
+    # follows: a taxon stated in the file beats the UniProt lookup.
+    interaction_type = models.CharField(max_length=10, null=True, blank=True)
     binding_start = models.CharField(max_length=10, null=True)
     binding_end = models.CharField(max_length=10, null=True)
     removed = models.CharField(max_length=10, default="0")

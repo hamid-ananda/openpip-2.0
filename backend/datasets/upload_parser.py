@@ -566,6 +566,9 @@ def parse_and_ingest(
                     interactor_B=protein_b,
                     score=score,
                     negative=_parse_negative(_safe_col(row, 35)),
+                    # Column 12. Stored so the depositor's statement about their
+                    # own experiment outranks the type openPIP would infer.
+                    interaction_type=_parse_psimi_code(_safe_col(row, 11)),
                     removed="0",
                 )
                 interactions_created += 1

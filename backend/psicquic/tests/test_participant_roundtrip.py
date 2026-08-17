@@ -79,3 +79,31 @@ def test_participants_point_at_the_right_side():
     participants = {p.side: p for p in interaction.participants.all()}
     assert participants["A"].protein_id == interaction.interactor_A_id
     assert participants["B"].protein_id == interaction.interactor_B_id
+
+
+@pytest.mark.django_db
+def test_a_stated_interaction_type_beats_our_inference():
+    # The depositor describes their own experiment. openPIP reading the evidence
+    # differently would overwrite their claim with ours — the same rule taxonomy
+    # follows, where a taxon in the file beats the UniProt lookup.
+    interaction = _upload(_row(**{"11": 'psi-mi:"MI:0407"(direct interaction)'}))
+    assert interaction.interaction_type == "0407"
+
+    cols = format_interaction(interaction, "tab27").split("\t")
+    assert cols[11] == 'psi-mi:"MI:0407"(direct interaction)'
+
+
+@pytest.mark.django_db
+def test_an_unstated_type_is_left_to_the_inference_path():
+    # Nothing stated and no Y2H constructs to reason from, so "-" is the honest
+    # answer. The inference itself is covered by the Y2H tests in test_mitab.
+    interaction = _upload(_row())
+    assert interaction.interaction_type is None
+    assert format_interaction(interaction, "tab27").split("\t")[11] == "-"
+
+
+@pytest.mark.django_db
+def test_a_stated_type_we_have_no_label_for_still_round_trips():
+    interaction = _upload(_row(**{"11": 'psi-mi:"MI:9999"(some new term)'}))
+    cols = format_interaction(interaction, "tab27").split("\t")
+    assert cols[11] == 'psi-mi:"MI:9999"'

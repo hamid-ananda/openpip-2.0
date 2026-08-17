@@ -197,7 +197,7 @@ const PSIMI_COLS_SPEC: { col: number; name: string; status: ColStatus; note: str
   { col: 9,  name: 'Publication ID (PubMed)',         status: 'ignored',  note: 'use dataset metadata in the next step instead' },
   { col: 10, name: 'Taxon - Protein A',               status: 'parsed',   note: 'e.g. taxid:9606(human). If absent, taken from UniProt' },
   { col: 11, name: 'Taxon - Protein B',               status: 'parsed',   note: 'same format as column 10' },
-  { col: 12, name: 'Interaction type',                status: 'ignored',  note: '' },
+  { col: 12, name: 'Interaction type',                status: 'parsed',   note: 'e.g. psi-mi:"MI:0915"(physical association). A stated type wins over any openPIP infers' },
   { col: 13, name: 'Source database',                 status: 'ignored',  note: '' },
   { col: 14, name: 'Interaction identifier',          status: 'ignored',  note: '' },
   { col: 15, name: 'Confidence score',                status: 'parsed',   note: 'e.g. 0.92 or intact-miscore:0.92' },

@@ -132,7 +132,9 @@ def test_tab25_detection_method_from_litbm(interaction_with_data):
     )
     columns = format_interaction_tab25(interaction_with_data).split("\t")
     assert columns[6] == 'psi-mi:"MI:0018"(two hybrid)'
-    assert columns[11] == 'psi-mi:"MI:0407"(direct interaction)'
+    # Not MI:0407: a binary assay detects an interaction, it does not prove
+    # direct contact, and reporting that would upgrade Lit-BM's own flag.
+    assert columns[11] == 'psi-mi:"MI:0915"(physical association)'
 
 
 def test_tab25_detection_method_pipes_multiple_experiments(interaction_with_data):
@@ -150,8 +152,8 @@ def test_tab25_detection_method_pipes_multiple_experiments(interaction_with_data
     columns = format_interaction_tab25(interaction_with_data).split("\t")
     assert columns[6] == 'psi-mi:"MI:0018"(two hybrid)|psi-mi:"MI:0096"(pull down)'
     # Both evidence strengths are reported rather than collapsed to the stronger.
-    assert 'psi-mi:"MI:0407"(direct interaction)' in columns[11]
     assert 'psi-mi:"MI:0915"(physical association)' in columns[11]
+    assert 'psi-mi:"MI:0914"(association)' in columns[11]
 
 
 def test_tab25_unlabelled_code_emits_bare_identifier(interaction_with_data):
@@ -171,7 +173,7 @@ def test_tab25_y2h_screen_infers_two_hybrid(interaction_with_data):
     )
     columns = format_interaction_tab25(interaction_with_data).split("\t")
     assert columns[6] == 'psi-mi:"MI:0018"(two hybrid)'
-    assert columns[11] == 'psi-mi:"MI:0407"(direct interaction)'
+    assert columns[11] == 'psi-mi:"MI:0915"(physical association)'
 
 
 def test_tab25_litbm_wins_over_the_y2h_default(interaction_with_data):
