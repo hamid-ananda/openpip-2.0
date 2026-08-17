@@ -3,7 +3,7 @@ import pytest
 from proteins.models import Protein, Organism, ProteinOrganism
 from interactions.models import Interaction, InteractionDataset
 from datasets.models import Dataset
-from psicquic.views import SUPPORTED_FORMATS, REST_VERSION, PsicquicThrottle
+from psicquic.views import SUPPORTED_FORMATS, SERVICE_VERSION, PsicquicThrottle
 
 
 @pytest.fixture
@@ -105,10 +105,12 @@ def test_psicquic_formats_lists_what_the_query_view_accepts(client):
 
 
 @pytest.mark.django_db
-def test_psicquic_version_reports_the_rest_spec_level(client):
+def test_psicquic_version_reports_this_services_own_version(client):
+    # Not a spec level: the EBI registry's 34 services report mutually
+    # inconsistent values (1.5.3, 1.3.3, 1.3.14), so the field is per-service.
     response = client.get("/psicquic/rest/version")
     assert response.status_code == 200
-    assert response.content.decode().strip() == REST_VERSION
+    assert response.content.decode().strip() == SERVICE_VERSION
 
 
 @pytest.mark.django_db

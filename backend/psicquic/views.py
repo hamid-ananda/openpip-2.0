@@ -62,9 +62,17 @@ class PsicquicView(APIView):
 # it here automatically instead of being advertised and then 406'd, or the reverse.
 SUPPORTED_FORMATS = tuple(VERSION_WIDTHS) + ("count", "json")
 
-# The PSICQUIC REST specification level implemented, not the openPIP release.
-# The registry at EBI reads this to decide how to talk to the service.
-REST_VERSION = "1.3"
+# This service's own version, which is what /version means. Checked against the
+# EBI registry: the 34 services registered there report 1.5.3, 1.3.3 and 1.3.14
+# — values that disagree with each other and carry patch levels, so the field is
+# each service's build of the PSICQUIC reference implementation, not a shared
+# specification level. The registry record has no separate restVersion field.
+#
+# openPIP does not run the reference implementation, so reporting a number from
+# its series would invite a client to infer an old psicquic-ws build and the
+# capabilities that go with it. openPIP's own release number says what is
+# actually serving.
+SERVICE_VERSION = "2.0.0"
 
 
 def _plain(content: str, status: int = 200) -> HttpResponse:
@@ -143,7 +151,7 @@ class PsicquicFormatsView(PsicquicView):
 
 
 class PsicquicVersionView(PsicquicView):
-    """The PSICQUIC REST specification level implemented."""
+    """This service's version, per the PSICQUIC REST convention."""
 
     def get(self, request):
-        return _plain(REST_VERSION + "\n")
+        return _plain(SERVICE_VERSION + "\n")
