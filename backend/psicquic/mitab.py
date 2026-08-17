@@ -77,6 +77,11 @@ DETECTION_METHOD_LABELS = {
     "0676": "tandem affinity purification",
 }
 
+# Uploads keep only the label, so the code has to be recovered by name.
+LABEL_TO_DETECTION_CODE = {
+    label.lower(): code for code, label in DETECTION_METHOD_LABELS.items()
+}
+
 # Lit-BM records whether the evidence is binary. MI:0407 is the direct-interaction
 # term; non-binary evidence supports association but not direct contact, so it
 # maps to the weaker MI:0915.
@@ -211,17 +216,43 @@ def _litbm_payloads(interaction) -> list[dict]:
 def _is_y2h(interaction) -> bool:
     """True when the interaction came from one of the two-hybrid screens.
 
-    `experiment` annotations carry dna_binding_domain and
-    activation_binding_domain, which only a Y2H assay produces.
+    Detected by the presence of the two Y2H constructs, NOT by the annotation's
+    type name. Both the legacy screens and the upload parser write
+    type_name="experiment", but they mean different things: legacy stores a JSON
+    payload with dna_binding_domain and activation_binding_domain, while
+    datasets/upload_parser._handle_detection_method stores a bare method label
+    such as "pull down". Keying on the type name alone reported every uploaded
+    interaction as two hybrid whatever its actual method.
     """
     return any(
-        link.annotation and link.annotation.type_name == "experiment"
-        for link in interaction.annotation_interactions.all()
+        payload.get("dna_binding_domain") or payload.get("activation_binding_domain")
+        for payload in _payloads(interaction, "experiment")
     )
 
 
+def _uploaded_method_labels(interaction) -> list[str]:
+    """Detection-method labels stored by the upload parser.
+
+    datasets/upload_parser._handle_detection_method keeps only the label from
+    the uploaded psi-mi:"MI:0018"(two hybrid) cell, so the code has to be
+    recovered by name on the way back out. Without this an uploaded dataset
+    round-trips its detection method to "-", losing on re-export what it was
+    given on import.
+    """
+    labels = []
+    for link in interaction.annotation_interactions.all():
+        annotation = link.annotation
+        if not annotation or annotation.type_name != "experiment":
+            continue
+        text = (annotation.annotation or "").strip()
+        # Legacy screens store JSON here instead; those are handled as Y2H.
+        if text and not text.startswith("{"):
+            labels.append(text)
+    return labels
+
+
 def _detection_methods(interaction) -> str:
-    """Column 6. Real MI codes where Lit-BM recorded them, else the Y2H default."""
+    """Column 7. Recorded codes first, then uploaded labels, then the Y2H default."""
     codes = {
         str(p["experiment_type"]).strip()
         for p in _litbm_payloads(interaction)
@@ -231,6 +262,16 @@ def _detection_methods(interaction) -> str:
         return "|".join(
             _psi_mi(code, DETECTION_METHOD_LABELS.get(code)) for code in sorted(codes)
         )
+
+    terms = []
+    for label in sorted(set(_uploaded_method_labels(interaction))):
+        code = LABEL_TO_DETECTION_CODE.get(label.lower())
+        # An unrecognised label still beats "-": name the method even without a
+        # code, rather than inventing an MI term for it.
+        terms.append(_psi_mi(code, label) if code else f'psi-mi:"{label}"')
+    if terms:
+        return "|".join(terms)
+
     if _is_y2h(interaction):
         return _psi_mi(*Y2H_METHOD)
     return "-"
