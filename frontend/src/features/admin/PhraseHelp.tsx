@@ -159,7 +159,7 @@ export function PhraseHelp() {
               <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
                 The box recognises {unsupported.join(' and ')} but cannot filter
                 by them, and says so to the visitor. Do not write an example that
-                relies on one — it would teach a phrasing that quietly does
+                relies on one, it would teach a phrasing that quietly does
                 nothing.
               </p>
             </section>

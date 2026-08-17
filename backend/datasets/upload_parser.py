@@ -257,6 +257,12 @@ def _handle_participants(interaction: Interaction, protein_a, protein_b, row) ->
     existed, so an upload lost exactly the experimental detail openPIP exists to
     surface. Absent values stay NULL rather than being defaulted, so "the file
     did not say" stays distinguishable from a recorded MI:0499 unspecified role.
+
+    The upload wizard shows admins which columns are read, in
+    PSIMI_COLS_SPEC in frontend/src/features/admin/AdminDataPage.tsx. Teaching
+    this function a new column means changing that list too: an admin told a
+    column is ignored will not bother to include it, so a stale entry there
+    quietly costs real data.
     """
     sides = (
         (InteractionParticipant.SIDE_A, protein_a, 16, 18, 20, 40, 42, 36, 38),
