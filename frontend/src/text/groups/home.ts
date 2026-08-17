@@ -164,6 +164,42 @@ export const homeGroup: TextGroup = {
       default: 'Search',
     },
     {
+      key: 'home.hero.tryLabel',
+      label: 'Phrase examples label',
+      section: 'Hero',
+      default: 'Or ask',
+    },
+    {
+      key: 'home.hero.phrase1',
+      label: 'Phrase example 1',
+      section: 'Hero',
+      default: 'BCL2 in liver',
+    },
+    {
+      key: 'home.hero.phrase2',
+      label: 'Phrase example 2',
+      section: 'Hero',
+      default: 'TP53 and MDM2 with high confidence',
+    },
+    {
+      key: 'home.hero.phrase3',
+      label: 'Phrase example 3',
+      section: 'Hero',
+      default: 'what binds CDK2 in testis',
+    },
+    {
+      key: 'home.hero.willSearch',
+      label: 'Query preview prefix',
+      section: 'Hero',
+      default: 'Will search',
+    },
+    {
+      key: 'home.hero.cannotFilter',
+      label: 'Query preview: unsupported filter notice',
+      section: 'Hero',
+      default: 'Cannot filter by:',
+    },
+    {
       key: 'home.hero.examplesLabel',
       label: 'Example queries label',
       default: 'Try:',

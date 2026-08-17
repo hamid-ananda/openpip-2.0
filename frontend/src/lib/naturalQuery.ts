@@ -1,0 +1,149 @@
+import { TISSUE_LABELS, tissueLabel } from './tissues'
+
+/**
+ * Turn a typed phrase into a gene search plus filter settings.
+ *
+ * Deliberately not a language model. Every entity a biologist names in one of
+ * these questions — a gene, a tissue, a dataset — is already a value in our own
+ * database, so matching against those lists answers the realistic queries with
+ * no dependency, no API call, no data leaving the deployment, and no capacity to
+ * invent a filter nobody asked for. openPIP is software other labs install; a
+ * model would become their problem too.
+ *
+ * The design rule that matters: this never silently reinterprets a search. What
+ * it understood is returned in `applied` and shown to the user, and the filters
+ * it sets are the same ones in the sidebar, so a wrong guess is visible and can
+ * be switched off. What it did not understand is returned in `ignored` and said
+ * out loud rather than dropped.
+ */
+
+export interface ParsedQuery {
+  /** The gene term to search — what actually goes in the URL. */
+  term: string
+  /** Tissue keys to filter by, if any were named. */
+  tissues: string[]
+  /** Minimum interaction score, if a confidence was described. */
+  minScore: number | null
+  /** Human-readable descriptions of what was applied, for display. */
+  applied: string[]
+  /** Words we recognised as intent but cannot honour. */
+  ignored: string[]
+}
+
+/** Words that carry no meaning for us; dropped before looking for gene names. */
+const STOP_WORDS = new Set([
+  'a', 'all', 'an', 'and', 'are', 'as', 'at', 'between', 'binds', 'binding',
+  'by', 'find', 'for', 'from', 'get', 'in', 'interaction', 'interactions',
+  'interactor', 'interactors', 'is', 'me', 'of', 'only', 'partners', 'protein',
+  'proteins', 'show', 'that', 'the', 'to', 'what', 'which', 'with', 'within',
+])
+
+/** Phrases we recognise but cannot act on — better named than silently dropped. */
+const UNSUPPORTED_INTENTS: Record<string, string> = {
+  'two-hybrid': 'detection method',
+  'two hybrid': 'detection method',
+  y2h: 'detection method',
+  'pull down': 'detection method',
+  'pull-down': 'detection method',
+  bait: 'experimental role',
+  prey: 'experimental role',
+}
+
+const CONFIDENCE_WORDS: Record<string, number> = {
+  'high confidence': 0.5,
+  'high-confidence': 0.5,
+  'highly confident': 0.5,
+  confident: 0.5,
+  reliable: 0.5,
+}
+
+/** Tissue names, longest first so "brain cerebellum" wins over "brain". */
+const TISSUE_PHRASES: [string, string][] = Object.keys(TISSUE_LABELS)
+  .map((key): [string, string] => [tissueLabel(key).toLowerCase(), key])
+  .sort((a, b) => b[0].length - a[0].length)
+
+/**
+ * True when the input is an ordinary gene search and should be left alone.
+ *
+ * A comma or newline list, or a single token, is what the box has always
+ * accepted. Reinterpreting those would change existing behaviour for everyone
+ * who is not writing a sentence.
+ */
+export function looksLikeGeneList(input: string): boolean {
+  const trimmed = input.trim()
+  if (!trimmed) return true
+  if (/[,\n]/.test(trimmed)) return true
+  return trimmed.split(/\s+/).length === 1
+}
+
+function extractScore(text: string): { score: number | null; rest: string; label: string | null } {
+  // "score above 0.8", "score > 0.8"
+  const explicit = text.match(/score\s*(?:above|over|greater than|>=?|of at least)\s*(\d*\.?\d+)/i)
+  if (explicit) {
+    return {
+      score: parseFloat(explicit[1]),
+      rest: text.replace(explicit[0], ' '),
+      label: `score ≥ ${parseFloat(explicit[1])}`,
+    }
+  }
+  for (const [phrase, value] of Object.entries(CONFIDENCE_WORDS)) {
+    if (text.includes(phrase)) {
+      return { score: value, rest: text.replace(phrase, ' '), label: `score ≥ ${value}` }
+    }
+  }
+  return { score: null, rest: text, label: null }
+}
+
+function extractTissues(text: string): { keys: string[]; rest: string } {
+  const keys: string[] = []
+  let rest = text
+  for (const [phrase, key] of TISSUE_PHRASES) {
+    if (rest.includes(phrase)) {
+      keys.push(key)
+      rest = rest.replace(phrase, ' ')
+    }
+  }
+  return { keys, rest }
+}
+
+/**
+ * Parse a phrase into a search term and filters.
+ *
+ * Returns null when the input is an ordinary gene search, so callers can keep
+ * their existing path rather than routing everything through here.
+ */
+export function parseNaturalQuery(input: string): ParsedQuery | null {
+  if (looksLikeGeneList(input)) return null
+
+  const applied: string[] = []
+  const ignored: string[] = []
+  let working = ` ${input.toLowerCase()} `
+
+  for (const [phrase, description] of Object.entries(UNSUPPORTED_INTENTS)) {
+    if (working.includes(phrase)) {
+      working = working.replace(phrase, ' ')
+      if (!ignored.includes(description)) ignored.push(description)
+    }
+  }
+
+  const tissue = extractTissues(working)
+  working = tissue.rest
+  if (tissue.keys.length) {
+    applied.push(`expressed in ${tissue.keys.map(tissueLabel).join(' and ')}`)
+  }
+
+  const score = extractScore(working)
+  working = score.rest
+  if (score.label) applied.push(score.label)
+
+  // Whatever survives, minus filler, is what the user is searching for. Case is
+  // restored from the original input so gene symbols stay recognisable.
+  const original = input.split(/[\s,]+/).filter(Boolean)
+  const remaining = working
+    .split(/[\s,]+/)
+    .filter((word) => word && !STOP_WORDS.has(word))
+    .map((word) => original.find((o) => o.toLowerCase() === word) ?? word)
+
+  const term = remaining.join(', ')
+  return { term, tissues: tissue.keys, minScore: score.score, applied, ignored }
+}

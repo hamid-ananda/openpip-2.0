@@ -8,6 +8,7 @@ import { GeneSuggestionList } from '../../components/GeneSuggestionList'
 import { useSearchStore } from '../search/searchStore'
 import { useText } from '../../text'
 import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
+import { looksLikeGeneList, parseNaturalQuery } from '../../lib/naturalQuery'
 
 interface HeroSectionProps {
   shortTitle: string
@@ -21,8 +22,16 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
   const navigate = useNavigate()
   const { data: settings } = useSettings()
   const setFilterMode = useSearchStore((s) => s.setFilterMode)
+  const setScoreFilter = useSearchStore((s) => s.setScoreFilter)
+  const setTissueFilter = useSearchStore((s) => s.setTissueFilter)
+  const clearTissueFilter = useSearchStore((s) => s.clearTissueFilter)
   const ac = useGeneAutocomplete(query, setQuery, 'hero-gene')
   const t = useText()
+
+  // Only a gene list gets gene suggestions. Once the input becomes a phrase,
+  // completing "liver" as though it were a gene is noise.
+  const isGeneList = looksLikeGeneList(query)
+  const parsed = isGeneList ? null : parseNaturalQuery(query)
 
   const searchExamples = [
     { proteins: settings?.example1, type: settings?.example1Type },
@@ -33,7 +42,20 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const term = query.trim()
-    if (term) navigate(`/search/${encodeURIComponent(term)}`)
+    if (!term) return
+
+    if (!parsed) {
+      navigate(`/search/${encodeURIComponent(term)}`)
+      return
+    }
+    if (!parsed.term) return
+
+    // Filters are applied to the store the sidebar reads, so the results page
+    // shows exactly what was understood and the user can switch any of it off.
+    clearTissueFilter()
+    parsed.tissues.forEach((tissue) => setTissueFilter(tissue, true))
+    setScoreFilter(parsed.minScore ?? 0)
+    navigate(`/search/${encodeURIComponent(parsed.term)}`)
   }
 
   return (
@@ -89,7 +111,7 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
                 style={{ borderRadius: '8px 0 0 8px', borderRight: 'none', width: '100%' }}
                 aria-label={t('home.hero.searchLabel')}
               />
-              {ac.showList && (
+              {isGeneList && ac.showList && (
                 <GeneSuggestionList
                   idPrefix="hero-gene"
                   suggestions={ac.suggestions}
@@ -112,6 +134,67 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
               {t('home.hero.searchButton')}
             </button>
           </form>
+
+          {/* What the phrase was understood to mean, shown before the user
+              commits to it rather than after. A wrong reading is visible here
+              and again as sidebar filters on the results page. */}
+          {parsed && parsed.term && (
+            <div
+              style={{
+                marginTop: -22,
+                marginBottom: 26,
+                fontSize: 13,
+                color: 'var(--text-muted)',
+                lineHeight: 1.6,
+              }}
+              aria-live="polite"
+            >
+              <span>
+                {t('home.hero.willSearch')}{' '}
+                <strong style={{ color: 'var(--text)', fontFamily: 'var(--mono)' }}>
+                  {parsed.term}
+                </strong>
+              </span>
+              {parsed.applied.map((what) => (
+                <span key={what}> · {what}</span>
+              ))}
+              {parsed.ignored.length > 0 && (
+                <div style={{ color: 'var(--warning, var(--text-soft))', marginTop: 4 }}>
+                  {t('home.hero.cannotFilter')} {parsed.ignored.join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Phrase examples sit beside the admin-configured gene examples so the
+              capability is discoverable by clicking, not by guessing. Clicking
+              fills the box rather than searching, so the preview above explains
+              what will happen before anything is committed. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-soft)', letterSpacing: '.04em', textTransform: 'uppercase' }}>
+              {t('home.hero.tryLabel')}
+            </span>
+            {[t('home.hero.phrase1'), t('home.hero.phrase2'), t('home.hero.phrase3')]
+              .filter(Boolean)
+              .map((phrase) => (
+                <button
+                  key={phrase}
+                  type="button"
+                  onClick={() => setQuery(phrase)}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: '1px dashed var(--border-strong)',
+                    background: 'transparent',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  {phrase}
+                </button>
+              ))}
+          </div>
 
           {searchExamples.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
