@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
-from .miql import parse_miql
+from .miql import UnsupportedQuery, parse_miql
 from .mitab import format_queryset, VERSION_WIDTHS
 
 
@@ -96,7 +96,13 @@ class PsicquicQueryView(PsicquicView):
                 status=406,
             )
 
-        matches = parse_miql(query)
+        try:
+            matches = parse_miql(query)
+        except UnsupportedQuery as exc:
+            # 400, not an empty result set: a federating client must be able to
+            # tell "openPIP cannot answer this" from "openPIP holds none".
+            return _plain(f"{exc}\n", status=400)
+
         if fmt == "count":
             return _plain(str(matches.count()))
 
@@ -136,7 +142,10 @@ class PsicquicQueryView(PsicquicView):
 class PsicquicCountView(PsicquicView):
     def get(self, request):
         query = request.GET.get("q", "*")
-        return _plain(str(parse_miql(query).count()))
+        try:
+            return _plain(str(parse_miql(query).count()))
+        except UnsupportedQuery as exc:
+            return _plain(f"{exc}\n", status=400)
 
 
 class PsicquicFormatsView(PsicquicView):

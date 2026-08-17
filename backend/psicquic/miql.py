@@ -11,12 +11,40 @@ Supported syntax:
   taxidB:9606         taxon filter on interactor B
   *                   return all interactions
 
-Unsupported: AND / OR operators, species:, pubmed:, detmethod:
+Anything else — other MIQL fields, and the AND / OR / NOT operators — raises
+UnsupportedQuery rather than being answered. See the note on SUPPORTED_FIELDS.
 """
 
 import re
 from django.db.models import Q, QuerySet
 from interactions.models import Interaction
+
+
+class UnsupportedQuery(ValueError):
+    """Raised for valid MIQL this parser cannot answer.
+
+    The alternative is worse than it looks. Before this existed, a query like
+    `species:9606` fell through to the plain-text branch, matched no protein
+    named "species:9606", and returned zero — a confident, 200-status "there are
+    none" to a question about the 122,933 human interactions openPIP holds.
+    `detmethod:"two hybrid"` likewise reported none of roughly 80,000.
+
+    A client federating across PSICQUIC services cannot tell that kind of zero
+    from a real one, so it records openPIP as having no human data and no
+    two-hybrid data. Refusing the query is the difference between "we cannot
+    answer that" and "the answer is none".
+    """
+
+
+# Fields this parser implements. Everything else in MIQL is rejected rather
+# than guessed at, so the failure is visible to the caller.
+SUPPORTED_FIELDS = ("idA", "idB", "id", "taxidA", "taxidB")
+
+# A leading token of the form field:value — the shape of every MIQL field query.
+_FIELD_QUERY = re.compile(r"^([A-Za-z_]+):", re.IGNORECASE)
+
+# Boolean operators are part of MIQL but not of this parser.
+_OPERATORS = re.compile(r"\b(AND|OR|NOT)\b")
 
 
 def _proteins_matching(term: str):
@@ -76,6 +104,21 @@ def parse_miql(query: str) -> QuerySet:
     if m:
         pks = _proteins_by_taxon(m.group(1))
         return base.filter(interactor_B__in=pks)
+
+    # Anything still carrying a field prefix or a boolean operator is MIQL we
+    # do not implement. Falling through to the plain-text branch would search
+    # for the literal string and report zero results.
+    if _OPERATORS.search(q):
+        raise UnsupportedQuery(
+            "Boolean operators (AND, OR, NOT) are not supported. "
+            "Query one field at a time."
+        )
+    field = _FIELD_QUERY.match(q)
+    if field:
+        raise UnsupportedQuery(
+            f"Unsupported query field: {field.group(1)}. "
+            f"Supported fields: {', '.join(SUPPORTED_FIELDS)}."
+        )
 
     # Plain text — search gene name or UniProt ID for either interactor
     pks = _proteins_matching(q)

@@ -162,3 +162,42 @@ def test_psicquic_serves_each_tab_version(client, sample_interactions, fmt, widt
     assert response.status_code == 200
     rows = response.content.decode().strip().split("\n")
     assert all(row.count("\t") == width - 1 for row in rows)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "query",
+    [
+        "species:9606",
+        'detmethod:"two hybrid"',
+        "pubid:12345678",
+        "idA:BRCA1 AND species:9606",
+        "idA:BRCA1 OR idB:TP53",
+    ],
+)
+def test_unsupported_miql_is_refused_not_answered_with_zero(
+    client, sample_interactions, query
+):
+    """The bug this guards is a wrong answer, not a missing feature.
+
+    These queries used to fall through to a plain-text search, match nothing,
+    and return 0 with a 200 — telling a federating client that openPIP holds no
+    human interactions and no two-hybrid data, when it holds tens of thousands
+    of both.
+    """
+    response = client.get("/psicquic/rest/query", {"q": query, "format": "count"})
+    assert response.status_code == 400
+    assert response.content.decode().strip() != "0"
+
+
+@pytest.mark.django_db
+def test_the_count_endpoint_refuses_them_too(client, sample_interactions):
+    response = client.get("/psicquic/rest/query/count", {"q": "species:9606"})
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_supported_queries_still_answer(client, sample_interactions):
+    for query in ["BRCA1", "idA:BRCA1", "id:P38398", "taxidA:9606", "*"]:
+        response = client.get("/psicquic/rest/query", {"q": query, "format": "count"})
+        assert response.status_code == 200, query
