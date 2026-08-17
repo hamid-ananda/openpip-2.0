@@ -309,3 +309,31 @@ def test_tab28_causal_columns_are_empty_for_physical_interactions(
     # "fixing" them with invented values.
     cols = format_interaction(interaction_with_data, "tab28").split("\t")
     assert cols[42:] == ["-", "-", "-", "-"]
+
+
+@pytest.mark.django_db
+def test_cross_references_go_to_the_xref_columns_not_the_alt_id_columns(
+    interaction_with_data,
+):
+    # MITAB separates "another name for this molecule" from "a pointer to
+    # another resource". Mixing them would claim a PDB entry is an identifier
+    # for the protein.
+    from proteins.models import Identifier, ProteinIdentifier
+
+    protein = interaction_with_data.interactor_A
+    for convention, value in [("ensembl", "ENSG00000012048"), ("pdb", "1JM7")]:
+        identifier = Identifier.objects.create(
+            identifier=value, naming_convention=convention
+        )
+        ProteinIdentifier.objects.create(protein=protein, identifier=identifier)
+
+    cols = format_interaction(interaction_with_data, "tab27").split("\t")
+    assert "ensembl:ENSG00000012048" in cols[2]  # alt ID — names the molecule
+    assert "pdb:1JM7" not in cols[2]
+    assert cols[22] == "pdb:1JM7"  # xref — points elsewhere
+
+
+@pytest.mark.django_db
+def test_xref_column_is_dash_when_there_are_none(interaction_with_data):
+    cols = format_interaction(interaction_with_data, "tab27").split("\t")
+    assert cols[22] == "-"

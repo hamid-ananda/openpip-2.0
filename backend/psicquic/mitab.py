@@ -50,6 +50,7 @@ TODO(shelved): PyPI publishing of openpip package — parked with the CLI,
 import json
 
 from interactions.models import Interaction
+from proteins.uniprot import ALT_ID_CONVENTIONS
 
 # PSI-MI CV labels for the detection-method codes openPIP actually stores, which
 # arrive bare ("0018") in litbm_interaction annotations. Only codes listed here
@@ -127,18 +128,44 @@ def _uniprot(protein) -> str:
     return f"openPIP:{protein.pk}"
 
 
+def _stored_identifiers(protein):
+    """(convention, value) pairs from the prefetch cache.
+
+    Plain .all() so the queryset's prefetch cache is used; adding
+    .select_related() here would re-query once per protein per row.
+    """
+    for pi in protein.protein_identifiers.all():
+        id_obj = pi.identifier
+        if id_obj and _has_id(id_obj.identifier) and id_obj.naming_convention:
+            yield id_obj.naming_convention, id_obj.identifier
+
+
 def _alt_ids(protein) -> str:
+    """Columns 3/4 — other identifiers naming the same molecule."""
     parts = []
     if _has_id(protein.entrez_id):
         parts.append(f"entrez:{protein.entrez_id}")
     if _has_id(protein.ensembl_id):
         parts.append(f"ensembl:{protein.ensembl_id}")
-    # Plain .all() so the queryset's prefetch cache is used; adding
-    # .select_related() here would re-query once per protein per row.
-    for pi in protein.protein_identifiers.all():
-        id_obj = pi.identifier
-        if id_obj and _has_id(id_obj.identifier) and id_obj.naming_convention:
-            parts.append(f"{id_obj.naming_convention}:{id_obj.identifier}")
+    for convention, value in _stored_identifiers(protein):
+        if convention in ALT_ID_CONVENTIONS:
+            parts.append(f"{convention}:{value}")
+    return "|".join(parts) if parts else "-"
+
+
+def _xrefs(protein) -> str:
+    """Columns 23/24 — pointers to other resources, not alternative names.
+
+    MITAB draws this distinction and openPIP now has both kinds in the identifier
+    table: RefSeq names the same molecule, while PDB and InterPro point at
+    structures and domains. Anything not on the alt-ID list is a cross-reference,
+    so a database added to the enrichment lands here without further wiring.
+    """
+    parts = [
+        f"{convention}:{value}"
+        for convention, value in _stored_identifiers(protein)
+        if convention not in ALT_ID_CONVENTIONS
+    ]
     return "|".join(parts) if parts else "-"
 
 
@@ -400,8 +427,8 @@ def _row(interaction: Interaction) -> list[str]:
         role_b,  # 20 experimental role B
         stored("A", "interactor_type", protein),  # 21
         stored("B", "interactor_type", protein),  # 22
-        "-",  # 23 xref A — the cross-references we hold are already in col 3
-        "-",  # 24 xref B
+        _xrefs(a),  # 23
+        _xrefs(b),  # 24
         "-",  # 25 interaction xref
         "-",  # 26 annotations A
         "-",  # 27 annotations B
