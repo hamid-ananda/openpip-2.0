@@ -38,6 +38,15 @@ class Interaction(models.Model):
         related_name="interactions_as_B",
     )
     score = models.CharField(max_length=10, null=True)
+    # MITAB column 36. A negative interaction is a reported *non*-interaction —
+    # an experiment that looked and found nothing. Before this field the parser
+    # dropped the column and the formatter hardcoded "false", so uploading a
+    # negative result re-published it as a positive claim: the opposite of what
+    # the depositor stated, which is worse than losing it.
+    #
+    # Not nullable, because MITAB has no "unstated" for this column: a row that
+    # says nothing means the interaction is positive, which is what False says.
+    negative = models.BooleanField(default=False)
     binding_start = models.CharField(max_length=10, null=True)
     binding_end = models.CharField(max_length=10, null=True)
     removed = models.CharField(max_length=10, default="0")

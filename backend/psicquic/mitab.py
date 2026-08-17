@@ -455,7 +455,9 @@ def _row(interaction: Interaction) -> list[str]:
         f"rogid:{rogid_a}" if rogid_a else "-",  # 33
         f"rogid:{rogid_b}" if rogid_b else "-",  # 34
         f"rigid:{rigid_value}" if rigid_value else "-",  # 35
-        "false",  # 36 negative — openPIP stores no negative results
+        # 36 negative. Read from the file on upload rather than assumed: a
+        # reported non-interaction must not be re-published as a positive.
+        "true" if interaction.negative else "false",
         # ── 37-42: added by TAB 2.7 ──
         text("A", "features"),  # 37
         text("B", "features"),  # 38

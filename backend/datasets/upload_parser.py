@@ -250,6 +250,20 @@ def _is_header_row(row: list[str]) -> bool:
     return first.startswith("#") or ":" not in first
 
 
+def _parse_negative(raw: str) -> bool:
+    """MITAB column 36. True only when the file says so.
+
+    A negative interaction is a reported non-interaction — an experiment that
+    looked and found nothing. This column was not read at all while the
+    formatter emitted a hardcoded "false", so an uploaded negative result came
+    back out as a positive claim, which is worse than losing it.
+
+    Anything that is not an explicit true reads as positive, matching MITAB:
+    a row that says nothing about this column is a positive finding.
+    """
+    return (raw or "").strip().lower() in {"true", "yes", "1"}
+
+
 def _handle_participants(interaction: Interaction, protein_a, protein_b, row) -> None:
     """Record each side's role from MITAB columns 17-22, 37-44.
 
@@ -551,6 +565,7 @@ def parse_and_ingest(
                     interactor_A=protein_a,
                     interactor_B=protein_b,
                     score=score,
+                    negative=_parse_negative(_safe_col(row, 35)),
                     removed="0",
                 )
                 interactions_created += 1

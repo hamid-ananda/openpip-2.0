@@ -221,7 +221,7 @@ const PSIMI_COLS_SPEC: { col: number; name: string; status: ColStatus; note: str
   { col: 33, name: 'Checksum - Protein A',            status: 'ignored',  note: 'computed on export as a ROGID, not read' },
   { col: 34, name: 'Checksum - Protein B',            status: 'ignored',  note: 'computed on export as a ROGID, not read' },
   { col: 35, name: 'Checksum - Interaction',          status: 'ignored',  note: 'computed on export as a RIGID, not read' },
-  { col: 36, name: 'Negative',                        status: 'ignored',  note: 'openPIP stores no negative results' },
+  { col: 36, name: 'Negative',                        status: 'parsed',   note: 'true marks a reported non-interaction; anything else is positive' },
   { col: 37, name: 'Features - Protein A',            status: 'parsed',   note: 'free text, e.g. binding-associated region:1-50' },
   { col: 38, name: 'Features - Protein B',            status: 'parsed',   note: 'same format as column 37' },
   { col: 39, name: 'Stoichiometry - Protein A',       status: 'parsed',   note: 'free text' },
