@@ -16,14 +16,15 @@ import type { TextGroup } from '../types'
  */
 export const searchExamplesGroup: TextGroup = {
   id: 'searchExamples',
-  label: 'Search examples',
+  label: 'Phrase examples',
   route: '/',
   description:
     'Phrases shown under the home page search box, demonstrating what can be typed. Clicking one fills the box rather than searching.',
   entries: [
     {
       key: 'searchExamples.label',
-      label: 'Phrase examples heading',
+      label: 'Heading above the phrases',
+      section: 'Phrase examples',
       default: 'Or ask',
     },
     {
