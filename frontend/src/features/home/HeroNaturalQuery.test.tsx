@@ -86,4 +86,25 @@ describe('hero natural-language search', () => {
     fireEvent.submit(input.closest('form')!)
     expect(useSearchStore.getState().tissueFilter).toEqual(['liver'])
   })
+
+  it('suggests tissue names while a phrase is being typed', () => {
+    // The point of the dropdown: "in liver" only works if you already know
+    // liver is a tissue openPIP holds. Offering it makes that discoverable.
+    const input = typeQuery('BCL2 in liv')
+    fireEvent.focus(input)
+    expect(screen.getByText('Liver')).toBeInTheDocument()
+  })
+
+  it('completes the phrase when a tissue is chosen', () => {
+    const input = typeQuery('BCL2 in liv')
+    fireEvent.focus(input)
+    fireEvent.mouseDown(screen.getByText('Liver'))
+    expect((input as HTMLInputElement).value).toBe('BCL2 in Liver')
+  })
+
+  it('does not offer tissues for an ordinary gene search', () => {
+    const input = typeQuery('BCL2')
+    fireEvent.focus(input)
+    expect(screen.queryByText('Liver')).not.toBeInTheDocument()
+  })
 })

@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { StatsCounter } from './StatsCounter'
 import { MiniNetworkGraph } from './MiniNetworkGraph'
 import { useSettings } from '../../api/settings'
-import { useGeneAutocomplete } from '../../components/useGeneAutocomplete'
+import {
+  useGeneAutocomplete,
+  useTokenAutocomplete,
+} from '../../components/useGeneAutocomplete'
 import { GeneSuggestionList } from '../../components/GeneSuggestionList'
 import { useSearchStore } from '../search/searchStore'
 import { useText } from '../../text'
 import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
 import { looksLikeGeneList, parseNaturalQuery } from '../../lib/naturalQuery'
+import { searchTissues } from '../../lib/tissues'
 
 interface HeroSectionProps {
   shortTitle: string
@@ -25,13 +29,23 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
   const setScoreFilter = useSearchStore((s) => s.setScoreFilter)
   const setTissueFilter = useSearchStore((s) => s.setTissueFilter)
   const clearTissueFilter = useSearchStore((s) => s.clearTissueFilter)
-  const ac = useGeneAutocomplete(query, setQuery, 'hero-gene')
   const t = useText()
 
   // Only a gene list gets gene suggestions. Once the input becomes a phrase,
-  // completing "liver" as though it were a gene is noise.
+  // completing "liver" as though it were a gene is noise — the phrase needs
+  // tissue names instead. Both hooks run unconditionally (hooks must), and only
+  // the relevant list is rendered.
   const isGeneList = looksLikeGeneList(query)
   const parsed = isGeneList ? null : parseNaturalQuery(query)
+
+  const geneAc = useGeneAutocomplete(query, setQuery, 'hero-gene')
+  const lastWord = query.split(/\s+/).pop() ?? ''
+  const tissueAc = useTokenAutocomplete(query, setQuery, 'hero-gene', {
+    suggestions: isGeneList ? [] : searchTissues(lastWord),
+    separator: ' ',
+    joiner: ' ',
+  })
+  const ac = isGeneList ? geneAc : tissueAc
 
   const searchExamples = [
     { proteins: settings?.example1, type: settings?.example1Type },
@@ -111,7 +125,7 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
                 style={{ borderRadius: '8px 0 0 8px', borderRight: 'none', width: '100%' }}
                 aria-label={t('home.hero.searchLabel')}
               />
-              {isGeneList && ac.showList && (
+              {ac.showList && (
                 <GeneSuggestionList
                   idPrefix="hero-gene"
                   suggestions={ac.suggestions}

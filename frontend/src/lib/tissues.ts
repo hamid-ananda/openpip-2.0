@@ -65,3 +65,22 @@ export function tissueLabel(key: string): string {
     TISSUE_LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   )
 }
+
+/**
+ * Tissue labels matching a typed prefix, for suggesting in the search box.
+ *
+ * Typing "in liver" only works if you already know "liver" is a tissue openPIP
+ * holds. Offering the list as you type is what makes the phrase search
+ * discoverable rather than a syntax to memorise — and it keeps the user to
+ * names that exist, so the parser will recognise whatever they pick.
+ */
+export function searchTissues(prefix: string, limit = 6): string[] {
+  const needle = prefix.trim().toLowerCase()
+  if (needle.length < 2) return []
+  const labels = Object.keys(TISSUE_LABELS).map(tissueLabel)
+  const starts = labels.filter((l) => l.toLowerCase().startsWith(needle))
+  const contains = labels.filter(
+    (l) => !l.toLowerCase().startsWith(needle) && l.toLowerCase().includes(needle)
+  )
+  return [...starts, ...contains].slice(0, limit)
+}
