@@ -39,7 +39,7 @@ const STOP_WORDS = new Set([
 ])
 
 /** Phrases we recognise but cannot act on — better named than silently dropped. */
-const UNSUPPORTED_INTENTS: Record<string, string> = {
+export const UNSUPPORTED_INTENTS: Record<string, string> = {
   'two-hybrid': 'detection method',
   'two hybrid': 'detection method',
   y2h: 'detection method',
@@ -49,7 +49,7 @@ const UNSUPPORTED_INTENTS: Record<string, string> = {
   prey: 'experimental role',
 }
 
-const CONFIDENCE_WORDS: Record<string, number> = {
+export const CONFIDENCE_WORDS: Record<string, number> = {
   'high confidence': 0.5,
   'high-confidence': 0.5,
   'highly confident': 0.5,
@@ -146,4 +146,37 @@ export function parseNaturalQuery(input: string): ParsedQuery | null {
 
   const term = remaining.join(', ')
   return { term, tissues: tissue.keys, minScore: score.score, applied, ignored }
+}
+
+/**
+ * What the box understands, described for the admin help panel.
+ *
+ * Generated from the same constants the parser uses, so the documentation
+ * cannot claim a capability that was renamed or removed. Anything hand-written
+ * here would drift the first time the vocabulary changed.
+ */
+export function supportedPatterns() {
+  return {
+    genes: {
+      title: 'Gene names',
+      examples: ['TP53', 'TP53, MDM2'],
+      note: 'A single gene or a comma-separated list. These are searched exactly as before.',
+    },
+    tissues: {
+      title: 'A tissue',
+      examples: ['BCL2 in liver', 'what binds CDK2 in testis'],
+      note: `Any of the ${Object.keys(TISSUE_LABELS).length} tissues openPIP holds expression data for. Typing part of a name offers the rest.`,
+      values: Object.keys(TISSUE_LABELS).map(tissueLabel),
+    },
+    confidence: {
+      title: 'A confidence threshold',
+      examples: ['TP53 with high confidence', 'BCL2 with score above 0.8'],
+      note: `Either an explicit score, or one of: ${Object.keys(CONFIDENCE_WORDS).join(', ')}.`,
+    },
+  }
+}
+
+/** Intents the box recognises but cannot honour, with what each would need. */
+export function unsupportedPatterns(): string[] {
+  return [...new Set(Object.values(UNSUPPORTED_INTENTS))]
 }

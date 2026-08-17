@@ -7,6 +7,7 @@ import type { AdminSettings } from '../../types/api'
 import { RichTextEditor } from '../../components/RichTextEditor'
 import { TEXT_GROUP_BY_ID } from '../../text'
 import { SiteTextFields } from './SiteTextFields'
+import { PhraseHelp } from './PhraseHelp'
 import { useSiteTextDrafts } from './useSiteTextDrafts'
 import {
   settingsTabFromSearch,
@@ -1495,6 +1496,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           <CategoryTable />
         </Section>
 
+        <PhraseHelp />
         {pageText('search')}
       </TabPanel>
 
