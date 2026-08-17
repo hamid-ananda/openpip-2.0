@@ -52,6 +52,8 @@ import json
 from interactions.models import Interaction
 from proteins.uniprot import ALT_ID_CONVENTIONS
 
+from .checksums import rigid, rogid
+
 # PSI-MI CV labels for the detection-method codes openPIP actually stores, which
 # arrive bare ("0018") in litbm_interaction annotations. Only codes listed here
 # get a label; anything else is emitted as psi-mi:"MI:xxxx" with no parenthetical.
@@ -191,6 +193,16 @@ def _taxon(protein) -> str:
         # name ("human"), so fall back to that rather than emitting nothing.
         return f"taxid:{org.taxonomy_id}({org.scientific_name or org.name})"
     return "-"
+
+
+def _taxonomy_id(protein) -> str | None:
+    po = _first(protein.protein_organisms)
+    return po.organism.taxonomy_id if po and po.organism else None
+
+
+def _rogid(protein) -> str | None:
+    """Computed, not stored — the sequence and taxid are already in hand."""
+    return rogid(protein.sequence, _taxonomy_id(protein))
 
 
 def _publication(interaction) -> tuple[str, str]:
@@ -398,6 +410,9 @@ def _row(interaction: Interaction) -> list[str]:
     def text(side: str, field: str) -> str:
         return _participant_field(parts, side, field) or "-"
 
+    rogid_a, rogid_b = _rogid(a), _rogid(b)
+    rigid_value = rigid(rogid_a, rogid_b)
+
     inferred_a, inferred_b = _experimental_roles(interaction)
     role_a = stored("A", "experimental_role", inferred_a)
     role_b = stored("B", "experimental_role", inferred_b)
@@ -437,9 +452,9 @@ def _row(interaction: Interaction) -> list[str]:
         "-",  # 30 parameters
         "-",  # 31 creation date — openPIP keeps no per-interaction timestamps
         "-",  # 32 update date
-        "-",  # 33 checksum A — ROGID/CRC64 would have to be computed
-        "-",  # 34 checksum B
-        "-",  # 35 interaction checksum
+        f"rogid:{rogid_a}" if rogid_a else "-",  # 33
+        f"rogid:{rogid_b}" if rogid_b else "-",  # 34
+        f"rigid:{rigid_value}" if rigid_value else "-",  # 35
         "false",  # 36 negative — openPIP stores no negative results
         # ── 37-42: added by TAB 2.7 ──
         text("A", "features"),  # 37
