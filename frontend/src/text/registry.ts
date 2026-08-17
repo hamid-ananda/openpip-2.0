@@ -2,6 +2,7 @@ import type { TextEntry, TextGroup } from './types'
 import { navGroup } from './groups/nav'
 import { homeGroup } from './groups/home'
 import { searchGroup } from './groups/search'
+import { searchExamplesGroup } from './groups/searchExamples'
 import { proteinsGroup } from './groups/proteins'
 import { aboutGroup } from './groups/about'
 import { documentationGroup } from './groups/documentation'
@@ -26,6 +27,7 @@ export const TEXT_GROUPS: readonly TextGroup[] = [
   navGroup,
   homeGroup,
   searchGroup,
+  searchExamplesGroup,
   proteinsGroup,
   downloadsGroup,
   aboutGroup,

@@ -154,6 +154,9 @@ const TAB_CONFIG: Record<TabId, TabConfig> = {
       'example1', 'example2', 'example3',
       'example1Type', 'example2Type', 'example3Type',
     ],
+    // The phrase examples live beside the gene ones they sit next to on the
+    // page, rather than on Home where the rest of the hero copy is edited.
+    textGroups: ['searchExamples'],
   },
   downloads: {
     fields: ['download', 'showDownloads', 'showDownloadAll'],

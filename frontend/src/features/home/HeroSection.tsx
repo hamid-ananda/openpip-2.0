@@ -186,9 +186,9 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
               what will happen before anything is committed. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-soft)', letterSpacing: '.04em', textTransform: 'uppercase' }}>
-              {t('home.hero.tryLabel')}
+              {t('searchExamples.label')}
             </span>
-            {[t('home.hero.phrase1'), t('home.hero.phrase2'), t('home.hero.phrase3')]
+            {[t('searchExamples.phrase1'), t('searchExamples.phrase2'), t('searchExamples.phrase3')]
               .filter(Boolean)
               .map((phrase) => (
                 <button
