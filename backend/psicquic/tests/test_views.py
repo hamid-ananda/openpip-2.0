@@ -169,9 +169,9 @@ def test_psicquic_serves_each_tab_version(client, sample_interactions, fmt, widt
     "query",
     [
         'detmethod:"two hybrid"',
-        "pubid:12345678",
-        "idA:BRCA1 AND idB:TP53",
-        "idA:BRCA1 OR idB:TP53",
+        "type:MI:0407",
+        "pbioroleA:bait",
+        "stc:1",
     ],
 )
 def test_unsupported_miql_is_refused_not_answered_with_zero(
@@ -191,7 +191,7 @@ def test_unsupported_miql_is_refused_not_answered_with_zero(
 
 @pytest.mark.django_db
 def test_the_count_endpoint_refuses_them_too(client, sample_interactions):
-    response = client.get("/psicquic/rest/query/count", {"q": "pubid:12345678"})
+    response = client.get("/psicquic/rest/query/count", {"q": "pbioroleA:bait"})
     assert response.status_code == 400
 
 
@@ -213,7 +213,9 @@ def test_every_advertised_field_is_actually_answerable(client, sample_interactio
     from psicquic.miql import SUPPORTED_FIELDS
 
     for field in SUPPORTED_FIELDS:
-        value = "9606" if "taxid" in field or field == "species" else "BRCA1"
+        value = {"taxidA": "9606", "taxidB": "9606", "species": "9606"}.get(
+            field, "12345678" if field == "pubid" else "BRCA1"
+        )
         response = client.get(
             "/psicquic/rest/query", {"q": f"{field}:{value}", "format": "count"}
         )
