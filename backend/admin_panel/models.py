@@ -13,6 +13,13 @@ class AdminSettings(models.Model):
     contact = models.TextField(null=True)
     show_downloads = models.BooleanField(default=False)
     show_download_all = models.BooleanField(default=False)
+    # Annotation features that only mean something for a multicellular organism.
+    # The paper records that these "had to be manually removed from the code"
+    # to host the yeast YeRI dataset; openPIP is software other labs install, so
+    # editing source to hide a tab is not a reasonable ask. Default on, because
+    # the reference deployment is human.
+    show_tissue_expression = models.BooleanField(default=True)
+    show_subcellular_location = models.BooleanField(default=True)
     footer = models.TextField(null=True)
     main_color_scheme = models.CharField(max_length=10, null=True)
     header_color_scheme = models.CharField(max_length=10, null=True)

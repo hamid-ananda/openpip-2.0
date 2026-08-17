@@ -36,12 +36,19 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
   // tissue names instead. Both hooks run unconditionally (hooks must), and only
   // the relevant list is rendered.
   const isGeneList = looksLikeGeneList(query)
-  const parsed = isGeneList ? null : parseNaturalQuery(query)
+  const parsed = isGeneList
+    ? null
+    : parseNaturalQuery(query, {
+        tissuesEnabled: settings?.showTissueExpression !== false,
+      })
 
   const geneAc = useGeneAutocomplete(query, setQuery, 'hero-gene')
   const lastWord = query.split(/\s+/).pop() ?? ''
   const tissueAc = useTokenAutocomplete(query, setQuery, 'hero-gene', {
-    suggestions: isGeneList ? [] : searchTissues(lastWord),
+    suggestions:
+      isGeneList || settings?.showTissueExpression === false
+        ? []
+        : searchTissues(lastWord),
     separator: ' ',
     joiner: ' ',
   })

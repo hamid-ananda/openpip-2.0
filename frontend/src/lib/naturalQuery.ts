@@ -112,8 +112,12 @@ function extractTissues(text: string): { keys: string[]; rest: string } {
  * Returns null when the input is an ordinary gene search, so callers can keep
  * their existing path rather than routing everything through here.
  */
-export function parseNaturalQuery(input: string): ParsedQuery | null {
+export function parseNaturalQuery(
+  input: string,
+  options: { tissuesEnabled?: boolean } = {}
+): ParsedQuery | null {
   if (looksLikeGeneList(input)) return null
+  const tissuesEnabled = options.tissuesEnabled !== false
 
   const applied: string[] = []
   const ignored: string[] = []
@@ -126,7 +130,12 @@ export function parseNaturalQuery(input: string): ParsedQuery | null {
     }
   }
 
-  const tissue = extractTissues(working)
+  // A deployment whose organism has no tissues hides the filter, so the phrase
+  // search must not offer one either — it would apply a filter with no visible
+  // control and no way to undo it.
+  const tissue = tissuesEnabled
+    ? extractTissues(working)
+    : { keys: [] as string[], rest: working }
   working = tissue.rest
   if (tissue.keys.length) {
     applied.push(`expressed in ${tissue.keys.map(tissueLabel).join(' and ')}`)

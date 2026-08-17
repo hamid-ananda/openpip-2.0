@@ -88,3 +88,23 @@ describe('parseNaturalQuery', () => {
     expect(parseNaturalQuery('BCL2 and WIBBLE')?.term).toBe('BCL2, WIBBLE')
   })
 })
+
+describe('parseNaturalQuery with tissue support switched off', () => {
+  it('does not apply a tissue filter the site has hidden', () => {
+    // A yeast deployment hides the tab and the sidebar filter; the phrase
+    // search must not quietly apply one with no visible control.
+    const parsed = parseNaturalQuery('BCL2 in liver', { tissuesEnabled: false })
+    expect(parsed?.tissues).toEqual([])
+    expect(parsed?.applied).toEqual([])
+  })
+
+  it('still finds the gene', () => {
+    // The word stays in the search term rather than vanishing.
+    const parsed = parseNaturalQuery('BCL2 in liver', { tissuesEnabled: false })
+    expect(parsed?.term).toContain('BCL2')
+  })
+
+  it('is unchanged when tissues are enabled', () => {
+    expect(parseNaturalQuery('BCL2 in liver')?.tissues).toEqual(['liver'])
+  })
+})

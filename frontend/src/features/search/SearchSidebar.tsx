@@ -249,6 +249,9 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
   // Offer only tissues these results can actually be filtered by. Anything
   // already ticked stays listed even when a new search has nothing for it, so
   // the list never disagrees with the filter that is still applied.
+  // Hidden when the deployment says its organism has no tissues — offering a
+  // filter for data whose tab is switched off would be a dead control.
+  const showTissue = settings?.showTissueExpression !== false
   const tissueOptions = [
     ...new Set([...tissuesWithData(allProteins), ...tissueFilter]),
   ].sort((a, b) => tissueLabel(a).localeCompare(tissueLabel(b)))
@@ -471,6 +474,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
           </SidebarAccordion>
 
           {/* Tissue expression — several may be selected, and they AND together */}
+          {showTissue && (
           <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             <legend style={{ ...sectionLabelStyle, padding: 0 }}>
               {t('search.sidebar.tissue')}
@@ -520,6 +524,7 @@ export function SearchSidebar({ term, visibleInteractionIds }: SearchSidebarProp
               </>
             )}
           </fieldset>
+          )}
 
           <SidebarAccordion label={t('search.sidebar.summary')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>

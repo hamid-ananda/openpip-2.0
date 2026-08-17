@@ -94,6 +94,12 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     faq = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     contact = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     download = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    showTissueExpression = serializers.BooleanField(
+        source="show_tissue_expression", required=False
+    )
+    showSubcellularLocation = serializers.BooleanField(
+        source="show_subcellular_location", required=False
+    )
     showDownloads = serializers.BooleanField(source="show_downloads", required=False)
     showDownloadAll = serializers.BooleanField(
         source="show_download_all", required=False
@@ -148,6 +154,8 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
             "faq",
             "contact",
             "download",
+            "showTissueExpression",
+            "showSubcellularLocation",
             "showDownloads",
             "showDownloadAll",
             "example1",

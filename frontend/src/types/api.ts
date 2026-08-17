@@ -45,6 +45,9 @@ export interface AdminSettings {
   faq: string
   contact: string
   download: string
+  /** Annotation features that only apply to a multicellular organism. */
+  showTissueExpression: boolean
+  showSubcellularLocation: boolean
   showDownloads: boolean
   showDownloadAll: boolean
   example1: string

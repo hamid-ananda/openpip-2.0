@@ -154,6 +154,7 @@ const TAB_CONFIG: Record<TabId, TabConfig> = {
     fields: [
       'example1', 'example2', 'example3',
       'example1Type', 'example2Type', 'example3Type',
+      'showTissueExpression', 'showSubcellularLocation',
     ],
     // The phrase examples live beside the gene ones they sit next to on the
     // page, rather than on Home where the rest of the hero copy is edited.
@@ -1494,6 +1495,36 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
             Each row controls how an interaction source is displayed in search results.
           </p>
           <CategoryTable />
+        </Section>
+
+        <Section title="Annotation tabs">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '62ch' }}>
+            Tissue expression and subcellular location only mean something for a
+            multicellular organism. Turn off whichever this deployment's data
+            cannot support and the tab disappears from search results, along
+            with the tissue filter and the phrase search's tissue suggestions.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {(
+              [
+                { key: 'showTissueExpression', label: 'Show Tissue Expression tab' },
+                { key: 'showSubcellularLocation', label: 'Show Subcellular Location tab' },
+              ] as { key: 'showTissueExpression' | 'showSubcellularLocation'; label: string }[]
+            ).map(({ key, label }) => (
+              <label
+                key={key}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={form[key] ?? true}
+                  onChange={(e) => set(key, e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <span style={{ color: 'var(--text)' }}>{label}</span>
+              </label>
+            ))}
+          </div>
         </Section>
 
         <PhraseHelp />

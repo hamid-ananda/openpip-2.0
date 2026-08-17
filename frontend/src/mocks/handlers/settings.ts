@@ -4,7 +4,9 @@ import type { AdminSettings } from '../../types/api'
 
 // Stateful so PATCH updates are reflected in GET within the same test run.
 // In the browser, browser.ts uses passthrough() for all requests instead.
-let currentSettings: AdminSettings = { ...settingsFixture }
+let currentSettings: AdminSettings = {
+  showTissueExpression: true,
+  showSubcellularLocation: true, ...settingsFixture }
 
 export const settingsHandlers = [
   http.get('/api/settings', () => HttpResponse.json(currentSettings)),

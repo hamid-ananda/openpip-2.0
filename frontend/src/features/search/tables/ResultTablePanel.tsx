@@ -9,6 +9,7 @@ import { SubcellularLocationTable } from '../enrichment/SubcellularLocationTable
 import { TissueExpressionTable } from '../enrichment/TissueExpressionTable'
 import { useEnrichment, type EnrichmentSource } from '../../../api/enrichment'
 import type { Protein } from '../../../types/api'
+import { useSettings } from '../../../api/settings'
 import { useText } from '../../../text'
 
 type Tab = 'interactions' | 'interactors' | EnrichmentSource | 'subcellular' | 'tissue' | 'summary'
@@ -26,6 +27,22 @@ const TABS: { id: Tab; textKey: string }[] = [
   { id: 'tissue', textKey: 'search.tab.tissue' },
   { id: 'summary', textKey: 'search.tab.summary' },
 ]
+
+/**
+ * Tabs for annotations this deployment actually has.
+ *
+ * Tissue expression and subcellular location only mean something for a
+ * multicellular organism. The paper records that hosting the yeast YeRI dataset
+ * meant deleting these from the source; they are settings now, so a deployment
+ * turns off what its data cannot support instead of forking the code.
+ */
+function visibleTabs(showTissue: boolean, showSubcellular: boolean) {
+  return TABS.filter(
+    (tab) =>
+      (tab.id !== 'tissue' || showTissue) &&
+      (tab.id !== 'subcellular' || showSubcellular)
+  )
+}
 
 const TAB_BTN = (isActive: boolean): React.CSSProperties => ({
   padding: '10px 16px',
@@ -63,6 +80,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   } = useSearchStore()
 
   const [activeTab, setActiveTab] = useState<Tab>('interactions')
+  const { data: settings } = useSettings()
   const [prevProtein, setPrevProtein] = useState(selectedProtein)
   const t = useText()
 
@@ -80,6 +98,17 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   )
 
   const geneNames = proteins.map((p) => p.protein_gene_name)
+
+  // Settings default to on where absent, so a deployment that has not saved
+  // them keeps the tabs it has always had.
+  const showTissue = settings?.showTissueExpression !== false
+  const showSubcellular = settings?.showSubcellularLocation !== false
+  const tabs = visibleTabs(showTissue, showSubcellular)
+
+  // A hidden tab must not stay selected — switching it off while a visitor is
+  // reading it would otherwise leave the panel showing a tab nobody can return
+  // to and no way back.
+  const currentTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : 'interactions'
 
   // Run enrichment in the background as soon as results are shown (this panel is
   // always mounted, regardless of the active tab) so the enrichment tabs are
@@ -108,8 +137,8 @@ export function ResultTablePanel({ selectedProtein }: Props) {
         background: 'var(--surface)',
         paddingLeft: 8,
       }}>
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id
+        {tabs.map((tab) => {
+          const isActive = currentTab === tab.id
           const count = counts[tab.id]
           return (
             <button
@@ -146,15 +175,15 @@ export function ResultTablePanel({ selectedProtein }: Props) {
       </div>
 
       <div style={{ background: 'var(--bg)' }}>
-        {activeTab === 'interactions' ? (
+        {currentTab === 'interactions' ? (
           <InteractionsTable interactions={interactions} proteins={proteins} />
-        ) : activeTab === 'interactors' ? (
+        ) : currentTab === 'interactors' ? (
           <InteractorsTable proteins={proteins} queryProteinIds={queryProteinIds} />
-        ) : activeTab === 'subcellular' ? (
+        ) : currentTab === 'subcellular' ? (
           <SubcellularLocationTable proteins={allProteins} />
-        ) : activeTab === 'tissue' ? (
+        ) : currentTab === 'tissue' ? (
           <TissueExpressionTable proteins={allProteins} />
-        ) : activeTab === 'summary' ? (
+        ) : currentTab === 'summary' ? (
           summaryProtein ? (
             <ProteinSummaryPanel
               protein={summaryProtein}
@@ -167,7 +196,7 @@ export function ResultTablePanel({ selectedProtein }: Props) {
             </div>
           )
         ) : (
-          <EnrichmentTable geneNames={geneNames} source={activeTab as EnrichmentSource} />
+          <EnrichmentTable geneNames={geneNames} source={currentTab as EnrichmentSource} />
         )}
       </div>
     </div>
