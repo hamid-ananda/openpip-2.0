@@ -507,3 +507,19 @@ describe('AdminSettingsPage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Admin access removed')
   })
 })
+
+describe('search panel copy', () => {
+  it('offers the phrase examples beside the gene examples', async () => {
+    // TAB_CONFIG declaring a text group is not enough: rendering is a separate
+    // pageText(tab) call in the panel's JSX, so a declared group with no call
+    // compiles, type-checks, and simply never appears. That is exactly how the
+    // phrase examples first shipped — configured onto this panel, invisible.
+    renderLoaded()
+    openPanel(/search/i)
+
+    expect(await screen.findByLabelText(/Phrase example 1/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Phrase example 2/i)).toBeInTheDocument()
+    // The gene examples they were moved to sit beside.
+    expect(screen.getByText(/Example 1/)).toBeInTheDocument()
+  })
+})

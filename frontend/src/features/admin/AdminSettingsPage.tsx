@@ -1495,6 +1495,7 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           <CategoryTable />
         </Section>
 
+        {pageText('search')}
       </TabPanel>
 
       {/* ── ABOUT ── */}
