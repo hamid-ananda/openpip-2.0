@@ -1,13 +1,14 @@
 """
-PSI-MI TAB formatter — 2.5, 2.6 and 2.7.
+PSI-MI TAB formatter — 2.5, 2.6, 2.7 and 2.8.
 
 Specs: https://psicquic.github.io/MITAB25Format.html
        https://psicquic.github.io/MITAB27Format.html
+       https://psicquic.github.io/MITAB28Format.html
 
 The versions are strict supersets: 2.5 is the first 15 columns, 2.6 the first
-36, 2.7 all 42. A row is therefore built once at full width and sliced, which
-makes "2.5 output is unchanged" a property of the code rather than something to
-re-verify each time a column is added.
+36, 2.7 the first 42, 2.8 all 46. A row is therefore built once at full width
+and sliced, which makes "2.5 output is unchanged" a property of the code rather
+than something to re-verify each time a column is added.
 
 openPIP fills few columns beyond 15, but not none: interactor type is protein,
 the negative flag is false, and a Y2H screen records which protein carried the
@@ -31,11 +32,11 @@ Columns 1-15:
  13  Interaction ID               openPIP:{id}
  14  Confidence score             openPIP:{score} or -
 
-DONE: TAB 2.6 and 2.7 — see COLUMN_NAMES and VERSION_WIDTHS below.
-TODO(phase5): TAB 2.8. The paper commits to it: "We furthermore plan to add
-    support to the PSI-MI TAB format 2.8" (Helmy et al., JMB 2022, Future
-    Directions). Read the spec for the added columns — the groupings in this
-    file's earlier TODOs were guesses and did not match MITAB27Format.html.
+DONE: TAB 2.6, 2.7 and 2.8 — see COLUMN_NAMES and VERSION_WIDTHS below. 2.8
+    closes the paper's commitment ("We furthermore plan to add support to the
+    PSI-MI TAB format 2.8", Helmy et al., JMB 2022, Future Directions), though
+    its four added columns are CausalTAB and stay empty for a physical-
+    interaction portal — see the note on columns 43-46.
 TODO(phase5): Register openPIP in PSI-MI controlled vocabulary to get an official MI ID
 TODO(phase5): Register in PSICQUIC registry at EBI (https://www.ebi.ac.uk/Tools/webservices/psicquic/registry)
     — the endpoints it validates against now exist: /psicquic/rest/formats and
@@ -339,6 +340,19 @@ def _row(interaction: Interaction) -> list[str]:
         "-",  # 40 stoichiometry B
         "-",  # 41 participant identification method A
         "-",  # 42 participant identification method B
+        # ── 43-46: added by TAB 2.8 (CausalTAB) ──
+        # All four describe causal, directional regulation: which molecular
+        # function drives the effect, by what mechanism, and what the effect on
+        # the other participant is. openPIP hosts binary *physical* interactions
+        # — Y2H and curated literature — which are undirected and carry no
+        # regulatory claim. These are empty because the data is a different
+        # kind, not because they were skipped, and they would stay empty for any
+        # physical-interaction portal. They are where causal data would go if
+        # openPIP ever hosts it.
+        "-",  # 43 biological effect of interactor A
+        "-",  # 44 biological effect of interactor B
+        "-",  # 45 causal regulatory mechanism
+        "-",  # 46 causal statement
     ]
 
 
@@ -385,10 +399,14 @@ COLUMN_NAMES = [
     "Stoichiometry(s) interactor B",
     "Identification method participant A",
     "Identification method participant B",
+    "Biological effect of interactor A",
+    "Biological effect of interactor B",
+    "Causal regulatory mechanism",
+    "Causal statement",
 ]
 
 # Each version is a prefix of the next, so a width is all that distinguishes them.
-VERSION_WIDTHS = {"tab25": 15, "tab26": 36, "tab27": 42}
+VERSION_WIDTHS = {"tab25": 15, "tab26": 36, "tab27": 42, "tab28": 46}
 
 # Kept for the 2.5 callers and tests that predate the other versions.
 TAB25_HEADER = "#" + "\t".join(COLUMN_NAMES[: VERSION_WIDTHS["tab25"]])

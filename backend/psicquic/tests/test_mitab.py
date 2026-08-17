@@ -222,8 +222,10 @@ def test_tab25_drops_placeholder_alt_ids():
 
 
 def test_version_widths_match_the_specs():
-    assert VERSION_WIDTHS == {"tab25": 15, "tab26": 36, "tab27": 42}
-    assert len(COLUMN_NAMES) == 42
+    # Deliberately restated rather than derived: adding a version should force
+    # someone to check the spec, not silently widen the output.
+    assert VERSION_WIDTHS == {"tab25": 15, "tab26": 36, "tab27": 42, "tab28": 46}
+    assert len(COLUMN_NAMES) == 46
 
 
 @pytest.mark.django_db
@@ -232,9 +234,11 @@ def test_wider_versions_are_prefixed_by_narrower_ones(interaction_with_data):
     t25 = format_interaction(interaction_with_data, "tab25").split("\t")
     t26 = format_interaction(interaction_with_data, "tab26").split("\t")
     t27 = format_interaction(interaction_with_data, "tab27").split("\t")
-    assert len(t25) == 15 and len(t26) == 36 and len(t27) == 42
+    t28 = format_interaction(interaction_with_data, "tab28").split("\t")
+    assert [len(t25), len(t26), len(t27), len(t28)] == [15, 36, 42, 46]
     assert t26[:15] == t25
     assert t27[:36] == t26
+    assert t28[:42] == t27
 
 
 @pytest.mark.django_db
@@ -293,3 +297,15 @@ def test_tab27_leaves_roles_unspecified_when_the_genes_do_not_match(
 def test_header_width_tracks_the_version(interaction_with_data):
     for version, width in VERSION_WIDTHS.items():
         assert header_for(version).count("\t") == width - 1
+
+
+@pytest.mark.django_db
+def test_tab28_causal_columns_are_empty_for_physical_interactions(
+    interaction_with_data,
+):
+    # 43-46 are CausalTAB: directional regulation. openPIP hosts undirected
+    # physical PPIs, so these are empty by nature and would be for any
+    # physical-interaction portal. Asserting it keeps a future contributor from
+    # "fixing" them with invented values.
+    cols = format_interaction(interaction_with_data, "tab28").split("\t")
+    assert cols[42:] == ["-", "-", "-", "-"]
