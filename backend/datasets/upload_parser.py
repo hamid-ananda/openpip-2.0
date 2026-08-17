@@ -234,6 +234,22 @@ def _clean_cell(raw: str) -> str | None:
     return value or None if value != "-" else None
 
 
+def _is_header_row(row: list[str]) -> bool:
+    """True for a header line, which MITAB marks with a leading '#'.
+
+    Row 0 used to be skipped unconditionally. Our own export writes a '#'
+    header so that looked fine, but PSICQUIC services return MITAB with no
+    header at all — so uploading a file fetched from IntAct silently lost its
+    first interaction. Identifier cells are "db:id"; a header cell such as
+    "ID(s) interactor A" has no colon, which separates the two cases without
+    assuming a position.
+    """
+    if not row or not row[0]:
+        return False
+    first = row[0].strip()
+    return first.startswith("#") or ":" not in first
+
+
 def _handle_participants(interaction: Interaction, protein_a, protein_b, row) -> None:
     """Record each side's role from MITAB columns 17-22, 37-44.
 
@@ -363,7 +379,7 @@ def fast_preview(file_bytes: bytes) -> dict:
     errors: list[dict] = []
 
     for row_num, row in enumerate(reader):
-        if row_num == 0 or (row and row[0].startswith("#")):
+        if _is_header_row(row):
             continue
         if not row or len(row) < 2:
             continue
@@ -456,7 +472,7 @@ def parse_and_ingest(
 
         for row_num, row in enumerate(reader):
             # Skip header row (row 0 or first row where col 0 starts with #)
-            if row_num == 0 or (row and row[0].startswith("#")):
+            if _is_header_row(row):
                 continue
             if not row:
                 continue
