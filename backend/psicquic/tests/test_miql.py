@@ -58,3 +58,23 @@ def test_unknown_taxon_returns_empty(two_proteins):
 def test_empty_query_returns_all(two_proteins):
     qs = parse_miql("*")
     assert qs.count() == 3
+
+
+@pytest.mark.django_db
+def test_species_matches_either_interactor(two_proteins):
+    # The bug that prompted this: species:9606 answered 0 against a database of
+    # entirely human interactions.
+    assert parse_miql("species:9606").count() == parse_miql("*").count()
+
+
+@pytest.mark.django_db
+def test_species_excludes_a_taxon_we_do_not_hold(two_proteins):
+    assert parse_miql("species:10090").count() == 0
+
+
+@pytest.mark.django_db
+def test_species_is_the_union_of_taxida_and_taxidb(two_proteins):
+    side_a = set(parse_miql("taxidA:9606").values_list("pk", flat=True))
+    side_b = set(parse_miql("taxidB:9606").values_list("pk", flat=True))
+    both = set(parse_miql("species:9606").values_list("pk", flat=True))
+    assert both == side_a | side_b

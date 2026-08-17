@@ -168,10 +168,9 @@ def test_psicquic_serves_each_tab_version(client, sample_interactions, fmt, widt
 @pytest.mark.parametrize(
     "query",
     [
-        "species:9606",
         'detmethod:"two hybrid"',
         "pubid:12345678",
-        "idA:BRCA1 AND species:9606",
+        "idA:BRCA1 AND idB:TP53",
         "idA:BRCA1 OR idB:TP53",
     ],
 )
@@ -192,7 +191,7 @@ def test_unsupported_miql_is_refused_not_answered_with_zero(
 
 @pytest.mark.django_db
 def test_the_count_endpoint_refuses_them_too(client, sample_interactions):
-    response = client.get("/psicquic/rest/query/count", {"q": "species:9606"})
+    response = client.get("/psicquic/rest/query/count", {"q": "pubid:12345678"})
     assert response.status_code == 400
 
 
@@ -201,3 +200,30 @@ def test_supported_queries_still_answer(client, sample_interactions):
     for query in ["BRCA1", "idA:BRCA1", "id:P38398", "taxidA:9606", "*"]:
         response = client.get("/psicquic/rest/query", {"q": query, "format": "count"})
         assert response.status_code == 200, query
+
+
+@pytest.mark.django_db
+def test_every_advertised_field_is_actually_answerable(client, sample_interactions):
+    """SUPPORTED_FIELDS must not disagree with the parser.
+
+    Adding `species` to the list while leaving its branch below the
+    unsupported-field guard produced exactly that: a field advertised in the
+    error message and then rejected by it. This checks the two cannot drift.
+    """
+    from psicquic.miql import SUPPORTED_FIELDS
+
+    for field in SUPPORTED_FIELDS:
+        value = "9606" if "taxid" in field or field == "species" else "BRCA1"
+        response = client.get(
+            "/psicquic/rest/query", {"q": f"{field}:{value}", "format": "count"}
+        )
+        assert response.status_code == 200, f"{field} is advertised but refused"
+
+
+@pytest.mark.django_db
+def test_species_now_answers_instead_of_refusing(client, sample_interactions):
+    response = client.get(
+        "/psicquic/rest/query", {"q": "species:9606", "format": "count"}
+    )
+    assert response.status_code == 200
+    assert response.content.decode().strip() == "1"

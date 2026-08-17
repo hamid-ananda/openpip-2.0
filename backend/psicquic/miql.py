@@ -9,6 +9,7 @@ Supported syntax:
   id:P38398           either interactor
   taxidA:9606         taxon filter on interactor A
   taxidB:9606         taxon filter on interactor B
+  species:9606        taxon filter on either interactor
   *                   return all interactions
 
 Anything else — other MIQL fields, and the AND / OR / NOT operators — raises
@@ -38,7 +39,7 @@ class UnsupportedQuery(ValueError):
 
 # Fields this parser implements. Everything else in MIQL is rejected rather
 # than guessed at, so the failure is visible to the caller.
-SUPPORTED_FIELDS = ("idA", "idB", "id", "taxidA", "taxidB")
+SUPPORTED_FIELDS = ("idA", "idB", "id", "taxidA", "taxidB", "species")
 
 # A leading token of the form field:value — the shape of every MIQL field query.
 _FIELD_QUERY = re.compile(r"^([A-Za-z_]+):", re.IGNORECASE)
@@ -104,6 +105,13 @@ def parse_miql(query: str) -> QuerySet:
     if m:
         pks = _proteins_by_taxon(m.group(1))
         return base.filter(interactor_B__in=pks)
+
+    # species:9606 — taxon on either side. MIQL's side-agnostic counterpart to
+    # taxidA/taxidB, and the same union that id: performs over identifiers.
+    m = re.fullmatch(r"species:(\S+)", q, re.IGNORECASE)
+    if m:
+        pks = _proteins_by_taxon(m.group(1))
+        return base.filter(Q(interactor_A__in=pks) | Q(interactor_B__in=pks))
 
     # Anything still carrying a field prefix or a boolean operator is MIQL we
     # do not implement. Falling through to the plain-text branch would search
