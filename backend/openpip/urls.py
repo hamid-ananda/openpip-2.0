@@ -19,6 +19,7 @@ urlpatterns = [
     path("api/", include("proteins.urls")),
     path("api/", include("datasets.urls")),
     path("api/", include("interactions.urls")),
+    path("api/", include("sharing.urls")),
     path("api/interactions/categories", InteractionCategoryListView.as_view()),
     path("psicquic/", include("psicquic.urls")),
 ]

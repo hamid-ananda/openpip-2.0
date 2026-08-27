@@ -8,8 +8,9 @@ import { CONTROL_BG, CONTROL_HEIGHT } from './LayoutDropdown'
  *
  * `up={false}` flips it for the ribbon under the navbar, where the button is
  * at the top edge and the panel has the whole page to drop into, and `plain`
- * drops the button chrome there for a themed heading over a chevron — a row of
- * bordered grey buttons reads as a toolbar, which the ribbon is not.
+ * drops the button chrome there for a bare themed heading — a row of bordered
+ * grey buttons reads as a toolbar, which the ribbon is not. A plain heading
+ * opens on hover; the click stays for touch and keyboard, which have none.
  */
 export function CanvasDropdown({ label, width = 232, up = true, plain = false, children }: {
   label: string
@@ -36,43 +37,43 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
     if (e.key === 'Escape') setOpen(false)
   }
 
+  // Hovering the heading opens it, and the panel counts as inside the heading
+  // for as long as it is a DOM child — so it sits flush underneath, with no gap
+  // to cross that would read as a mouse-out.
+  const hover = plain
+    ? { onMouseEnter: () => setOpen(true), onMouseLeave: () => setOpen(false) }
+    : {}
+
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
+    <div
+      ref={containerRef}
+      style={{ position: 'relative', display: 'inline-block' }}
+      onKeyDown={handleKeyDown}
+      {...hover}
+    >
       {plain ? (
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1,
-            background: 'none',
-            border: 'none',
-            padding: '3px 10px',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          <span style={{
             fontSize: 12,
             fontWeight: 700,
             color: 'var(--primary)',
             textTransform: 'uppercase',
             letterSpacing: '.08em',
             whiteSpace: 'nowrap',
-          }}>
-            {label}
-          </span>
-          <svg
-            width="11" height="11" viewBox="0 0 24 24" fill="none"
-            stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"
-            style={{ opacity: 0.7, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
-            aria-hidden="true"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
+            background: 'none',
+            border: 'none',
+            // Underlines the open one, which is the only cue left now that the
+            // chevron is gone.
+            borderBottom: `2px solid ${open ? 'var(--primary)' : 'transparent'}`,
+            padding: '4px 10px 3px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          {label}
         </button>
       ) : (
         <button
@@ -96,7 +97,10 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
           position: 'absolute',
           ...(up
             ? { right: 0, bottom: '100%', marginBottom: 4 }
-            : { top: '100%', marginTop: 4, ...(plain ? { left: '50%', transform: 'translateX(-50%)' } : { left: 0 }) }),
+            : plain
+              // Flush under the heading: a gap here is a mouse-out.
+              ? { top: '100%', left: '50%', transform: 'translateX(-50%)' }
+              : { top: '100%', marginTop: 4, left: 0 }),
           zIndex: 50,
           background: 'var(--surface)',
           border: '1px solid var(--border)',

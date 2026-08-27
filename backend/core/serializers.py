@@ -14,5 +14,11 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["name", "affiliation", "position", "website", "bio"]
-        extra_kwargs = {f: {"required": False, "allow_blank": True} for f in fields[1:]}
+        fields = ["name", "affiliation", "position", "website", "bio", "discoverable"]
+        # discoverable is a boolean, so it is left out of the blank-allowing
+        # sweep over the text fields.
+        extra_kwargs = {
+            f: {"required": False, "allow_blank": True}
+            for f in ["affiliation", "position", "website", "bio"]
+        }
+        extra_kwargs["discoverable"] = {"required": False}

@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
 import { SearchSidebar } from '../SearchSidebar'
 
 const navigate = vi.fn()
@@ -59,6 +60,17 @@ describe('SearchSidebar ribbon variant', () => {
 
     // Tools a search unlocks are here too, not only in the sidebar.
     expect(screen.getByRole('button', { name: /download/i })).toBeInTheDocument()
+  })
+
+  it('opens a section on hover, without a press', async () => {
+    const user = userEvent.setup()
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[]} variant="ribbon" />, { wrapper })
+
+    await user.hover(screen.getByRole('button', { name: /^Query$/i }))
+    expect(screen.getByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeInTheDocument()
+
+    await user.unhover(screen.getByRole('button', { name: /^Query$/i }))
+    expect(screen.queryByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeNull()
   })
 
   it('folds the whole row away and back', () => {

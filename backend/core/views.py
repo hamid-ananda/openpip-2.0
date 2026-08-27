@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.db.models import Q
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework.views import APIView
@@ -100,6 +101,14 @@ class RegisterView(APIView):
                 {"detail": "Username already taken."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # Checked here as well as by the database constraint: the reset flow
+        # looks an account up by email, so two accounts sharing one would make
+        # that lookup ambiguous.
+        if User.objects.filter(email__iexact=email).exists():
+            return Response(
+                {"detail": "Email already registered."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         User.objects.create_user(
             username=username,
             email=email,
@@ -129,6 +138,7 @@ def _profile_payload(user):
         "position": user.position,
         "website": user.website,
         "bio": user.bio,
+        "discoverable": user.discoverable,
         # Relative, like AdminSettings.logoUrl: the page is served from the
         # same origin, and an absolute URL would name the backend's own host.
         "avatar": user.avatar.url if user.avatar else None,
@@ -173,6 +183,66 @@ class MeView(APIView):
             user.save(update_fields=["avatar"])
 
         return Response(_profile_payload(user))
+
+
+def user_card(user):
+    """The slice of a profile other users are allowed to see."""
+    return {
+        "username": user.username,
+        "name": user.first_name,
+        "affiliation": user.affiliation,
+        "avatar": user.avatar.url if user.avatar else None,
+    }
+
+
+class UserSearchView(APIView):
+    """Find someone to share a network with, by name, username, lab or email."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        q = request.query_params.get("q", "").strip()
+        # Two characters is the point where the result list means something;
+        # below it every user in the deployment would match.
+        if len(q) < 2:
+            return Response([])
+        matches = (
+            User.objects.filter(is_active=True, discoverable=True)
+            .filter(
+                Q(username__icontains=q)
+                | Q(first_name__icontains=q)
+                | Q(affiliation__icontains=q)
+                # Exact only: a substring match would turn this into an
+                # address-harvesting endpoint.
+                | Q(email__iexact=q)
+            )
+            .exclude(pk=request.user.pk)
+            .order_by("first_name", "username")[:10]
+        )
+        return Response([user_card(u) for u in matches])
+
+
+class PublicProfileView(APIView):
+    """Whatever a user chose to put on their profile, shown to other users."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, username):
+        user = User.objects.filter(username=username, is_active=True).first()
+        if user is None:
+            return Response(
+                {"detail": "No such user."}, status=status.HTTP_404_NOT_FOUND
+            )
+        # discoverable only governs search and sharing: someone who has already
+        # been given a link to a profile can read it.
+        return Response(
+            {
+                **user_card(user),
+                "position": user.position,
+                "website": user.website,
+                "bio": user.bio,
+            }
+        )
 
 
 class SecurityQuestionView(APIView):

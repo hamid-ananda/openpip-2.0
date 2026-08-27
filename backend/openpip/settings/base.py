@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "datasets",
     "admin_panel",
     "psicquic",
+    "sharing",
 ]
 
 MIDDLEWARE = [

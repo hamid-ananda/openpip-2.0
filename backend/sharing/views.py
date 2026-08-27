@@ -1,0 +1,156 @@
+from django.db import transaction
+from django.db.models import Q
+from rest_framework import mixins, status, viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from core.models import User
+from .models import Comment, Notification, SavedView, Share
+from .serializers import (
+    CommentSerializer,
+    NotificationSerializer,
+    SavedViewSerializer,
+    ShareSerializer,
+)
+
+# Sharing with someone who does not exist and sharing with someone who has
+# turned discoverability off give the same answer, so the endpoint cannot be
+# used to test whether an account exists.
+NO_SUCH_USER = {"detail": "No such user."}
+
+
+def display_name(user) -> str:
+    return user.first_name or user.username
+
+
+def notify(user, text: str, link: str) -> None:
+    Notification.objects.create(user=user, text=text, link=link)
+
+
+# These lists are one user's own and short — a handful of saved views, the
+# networks shared with them, the newest notifications. The project default is
+# cursor pagination, which would wrap each one in an envelope for no gain.
+class SavedViewViewSet(viewsets.ModelViewSet):
+    serializer_class = SavedViewSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return SavedView.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class ShareViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = ShareSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        user = self.request.user
+        # Both parties can read and delete: delete is "revoke" for the sender
+        # and "dismiss" for the recipient.
+        qs = Share.objects.filter(Q(sender=user) | Q(recipient=user))
+        if self.action == "list":
+            if self.request.query_params.get("direction") == "sent":
+                qs = qs.filter(sender=user)
+            else:
+                qs = qs.filter(recipient=user)
+        return qs.select_related("saved_view", "sender", "recipient")
+
+    def create(self, request):
+        saved_view = SavedView.objects.filter(
+            pk=request.data.get("saved_view"), user=request.user
+        ).first()
+        if saved_view is None:
+            return Response(
+                {"detail": "No such saved view."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        recipient = User.objects.filter(
+            username=request.data.get("recipient", ""),
+            is_active=True,
+            discoverable=True,
+        ).first()
+        if recipient is None or recipient == request.user:
+            return Response(NO_SUCH_USER, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            share = Share.objects.create(
+                saved_view=saved_view,
+                sender=request.user,
+                recipient=recipient,
+                note=str(request.data.get("note", "")).strip(),
+            )
+            notify(
+                recipient,
+                f'{display_name(request.user)} shared "{saved_view.name}" with you',
+                f"/shared/{share.pk}",
+            )
+        return Response(ShareSerializer(share).data, status=status.HTTP_201_CREATED)
+
+
+class ShareCommentsView(APIView):
+    """Discussion attached to one shared network. Participants only."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_share(self, request, pk):
+        return Share.objects.filter(
+            Q(pk=pk) & (Q(sender=request.user) | Q(recipient=request.user))
+        ).first()
+
+    def get(self, request, pk):
+        share = self.get_share(request, pk)
+        if share is None:
+            return Response(NO_SUCH_USER, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            CommentSerializer(share.comments.select_related("author"), many=True).data
+        )
+
+    def post(self, request, pk):
+        share = self.get_share(request, pk)
+        if share is None:
+            return Response(NO_SUCH_USER, status=status.HTTP_404_NOT_FOUND)
+        body = str(request.data.get("body", "")).strip()
+        if not body:
+            return Response(
+                {"detail": "Comment cannot be empty."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            comment = Comment.objects.create(
+                share=share, author=request.user, body=body
+            )
+            other = share.recipient if request.user == share.sender else share.sender
+            notify(
+                other,
+                f'{display_name(request.user)} commented on "{share.saved_view.name}"',
+                f"/shared/{share.pk}",
+            )
+        return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
+
+
+class NotificationViewSet(
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = Notification.objects.filter(user=self.request.user)
+        # ponytail: newest 50, no pagination — the bell shows a short list and
+        # nobody scrolls a notification history. Paginate if that changes.
+        # Sliced for the list only: a slice cannot be filtered again, which
+        # get_object() does when marking one read.
+        return qs[:50] if self.action == "list" else qs

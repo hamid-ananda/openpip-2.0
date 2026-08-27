@@ -266,3 +266,121 @@ def test_security_answer_too_few_answers(api_client, question_user):
         format="json",
     )
     assert response.status_code == 400
+
+
+def _register(api_client, username, email):
+    return api_client.post(
+        "/api/auth/register",
+        {
+            "username": username,
+            "email": email,
+            "password": "pass1234",
+            "security_questions": [
+                {"question": "First pet?", "answer": "Rex"},
+                {"question": "Birth city?", "answer": "Regina"},
+                {"question": "First school?", "answer": "Elm"},
+            ],
+        },
+        format="json",
+    )
+
+
+@pytest.mark.django_db
+def test_register_rejects_duplicate_email_ignoring_case(api_client):
+    assert _register(api_client, "first", "shared@example.com").status_code == 201
+    response = _register(api_client, "second", "SHARED@example.com")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Email already registered."
+    assert not User.objects.filter(username="second").exists()
+
+
+@pytest.mark.django_db
+def test_blank_emails_do_not_collide(db):
+    """Accounts predating registration-time email all hold "" — the unique
+    constraint has to let them."""
+    User.objects.create_user("old_one", "", "pass12345")
+    User.objects.create_user("old_two", "", "pass12345")
+    assert User.objects.filter(email="").count() == 2
+
+
+@pytest.mark.django_db
+def test_user_search_matches_name_lab_and_exact_email(user_auth_client):
+    User.objects.create_user(
+        "hleung",
+        "hleung@example.com",
+        "pass12345",
+        first_name="Helen Leung",
+        affiliation="Helmy Lab",
+    )
+    User.objects.create_user("unrelated", "nobody@example.com", "pass12345")
+
+    def usernames(q):
+        return [
+            u["username"]
+            for u in user_auth_client.get(f"/api/users/search?q={q}").json()
+        ]
+
+    assert usernames("helen") == ["hleung"]
+    assert usernames("helmy lab") == ["hleung"]
+    assert usernames("hleung@example.com") == ["hleung"]
+    # Partial email would make this an address-harvesting endpoint.
+    assert usernames("hleung@exa") == []
+    # Below two characters everyone would match.
+    assert usernames("h") == []
+
+
+@pytest.mark.django_db
+def test_user_search_excludes_self_and_undiscoverable(user_auth_client, regular_user):
+    hidden = User.objects.create_user(
+        "hidden", "hidden@example.com", "pass12345", first_name="Hidden Person"
+    )
+    hidden.discoverable = False
+    hidden.save(update_fields=["discoverable"])
+    regular_user.first_name = "Hidden Twin"
+    regular_user.save(update_fields=["first_name"])
+
+    found = user_auth_client.get("/api/users/search?q=hidden").json()
+    assert found == []
+
+
+@pytest.mark.django_db
+def test_public_profile_visible_even_when_undiscoverable(user_auth_client):
+    person = User.objects.create_user(
+        "gbader",
+        "gbader@example.com",
+        "pass12345",
+        first_name="Gary Bader",
+        affiliation="University of Toronto",
+    )
+    person.discoverable = False
+    person.position = "Professor"
+    person.save(update_fields=["discoverable", "position"])
+
+    response = user_auth_client.get("/api/users/gbader")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Gary Bader"
+    assert body["affiliation"] == "University of Toronto"
+    assert body["position"] == "Professor"
+    # The card never carries an email address.
+    assert "email" not in body
+
+
+@pytest.mark.django_db
+def test_public_profile_unknown_user(user_auth_client):
+    assert user_auth_client.get("/api/users/ghost").status_code == 404
+
+
+@pytest.mark.django_db
+def test_user_search_requires_login(api_client):
+    assert api_client.get("/api/users/search?q=helen").status_code == 401
+
+
+@pytest.mark.django_db
+def test_discoverable_toggles_from_the_profile(user_auth_client):
+    assert user_auth_client.get("/api/auth/me").json()["discoverable"] is True
+    response = user_auth_client.patch(
+        "/api/auth/me", {"discoverable": False}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["discoverable"] is False
