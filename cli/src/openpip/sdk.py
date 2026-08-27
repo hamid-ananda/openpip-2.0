@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 from typing import Optional, Union
 from pathlib import Path
 from .client import APIClient
@@ -77,7 +78,7 @@ class OpenPIP:
         (e.g. UniProt IDs, which the search index doesn't cover).
         """
         data = self._client.search(query)
-        terms = [t.strip() for t in query.split(",") if t.strip()]
+        terms = [t for t in re.split(r"[,\s]+", query.strip()) if t]
         if data.get("all_proteins") or len(terms) != 1:
             return data
         # Single-term search returned nothing — resolve via protein detail, then re-search by gene name

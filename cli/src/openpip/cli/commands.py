@@ -1,3 +1,4 @@
+import re
 import click
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -75,7 +76,7 @@ def _print_search_results(data: dict, query: str) -> None:
         console.print(f"[yellow]No results found for '{query}'.[/yellow]")
         return
 
-    terms = [t.strip() for t in query.split(",") if t.strip()]
+    terms = [t for t in re.split(r"[,\s]+", query.strip()) if t]
     not_found = data.get("unfound_protein_summary", "").replace("<br>", ", ").strip(", ")
     is_multi = len(query_ids) > 1
 

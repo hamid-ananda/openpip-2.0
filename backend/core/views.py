@@ -9,12 +9,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenRefreshView
 from .tokens import CustomRefreshToken
 
 from .models import User
+from .serializers import ProfileSerializer
 
 logger = logging.getLogger(__name__)
 _token_generator = PasswordResetTokenGenerator()
@@ -112,18 +114,65 @@ class RegisterView(APIView):
         )
 
 
+AVATAR_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp"}
+AVATAR_MAX_BYTES = 2 * 1024 * 1024
+
+
+def _profile_payload(user):
+    return {
+        "username": user.username,
+        "email": user.email,
+        "is_admin": user.is_staff,
+        # The display name lives in first_name; openPIP asks for one name.
+        "name": user.first_name,
+        "affiliation": user.affiliation,
+        "position": user.position,
+        "website": user.website,
+        "bio": user.bio,
+        # Relative, like AdminSettings.logoUrl: the page is served from the
+        # same origin, and an absolute URL would name the backend's own host.
+        "avatar": user.avatar.url if user.avatar else None,
+    }
+
+
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get(self, request):
+        return Response(_profile_payload(request.user))
+
+    def patch(self, request):
+        """Update the optional profile details. Every field is optional, and
+        an omitted field is left alone; an empty string clears one."""
         user = request.user
-        return Response(
-            {
-                "username": user.username,
-                "email": user.email,
-                "is_admin": user.is_staff,
-            }
-        )
+        serializer = ProfileSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        # The avatar arrives as a file on the same PATCH; an empty "avatar"
+        # value clears the current one.
+        if "avatar" in request.FILES:
+            upload = request.FILES["avatar"]
+            if upload.content_type not in AVATAR_TYPES:
+                return Response(
+                    {"detail": "Unsupported image type."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if upload.size > AVATAR_MAX_BYTES:
+                return Response(
+                    {"detail": "Image must be 2 MB or smaller."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if user.avatar:
+                user.avatar.delete(save=False)
+            user.avatar = upload
+            user.save(update_fields=["avatar"])
+        elif request.data.get("avatar") == "" and user.avatar:
+            user.avatar.delete(save=False)
+            user.save(update_fields=["avatar"])
+
+        return Response(_profile_payload(user))
 
 
 class SecurityQuestionView(APIView):

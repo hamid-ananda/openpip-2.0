@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
-import { buildLinks } from '../externalLinks'
+import { buildLinks, LINK_ICON_STYLE } from '../externalLinks'
 import { useSearchStore } from '../searchStore'
 
 export function ExternalLinksDropdown() {
@@ -8,6 +8,7 @@ export function ExternalLinksDropdown() {
 
   const allProteins = useSearchStore((s) => s.allProteins)
   const queryProteinIds = useSearchStore((s) => s.queryProteinIds)
+  const allInteractions = useSearchStore((s) => s.allInteractions)
 
   useEffect(() => {
     if (!open) return
@@ -24,7 +25,7 @@ export function ExternalLinksDropdown() {
     if (e.key === 'Escape') setOpen(false)
   }
 
-  const links = buildLinks(allProteins, queryProteinIds)
+  const links = buildLinks(allProteins, queryProteinIds, allInteractions)
 
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }} onKeyDown={handleKeyDown}>
@@ -47,13 +48,14 @@ export function ExternalLinksDropdown() {
           borderRadius: 6,
           boxShadow: 'var(--shadow-md)',
           padding: '4px 0',
-          width: 176,
+          width: 200,
         }}>
           {allProteins.length === 0 ? (
             <div style={{ padding: '8px 16px', fontSize: 13, color: 'var(--text-muted)' }}>No proteins loaded.</div>
           ) : (
             links.map((link) => {
-              const itemStyle = { display: 'block', width: '100%', textAlign: 'left' as const, fontSize: 12, padding: '6px 16px', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none' }
+              const itemStyle = { display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left' as const, fontSize: 12, padding: '6px 16px', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none' }
+              const icon = <img src={link.icon} alt="" style={LINK_ICON_STYLE} />
               return link.href ? (
                 <a
                   key={link.id}
@@ -65,6 +67,7 @@ export function ExternalLinksDropdown() {
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                   onClick={() => setOpen(false)}
                 >
+                  {icon}
                   {link.label}
                 </a>
               ) : (
@@ -79,6 +82,7 @@ export function ExternalLinksDropdown() {
                     setOpen(false)
                   }}
                 >
+                  {icon}
                   {link.label}
                 </button>
               )

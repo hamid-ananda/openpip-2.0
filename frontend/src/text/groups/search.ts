@@ -163,9 +163,9 @@ export const searchGroup: TextGroup = {
 
     {
       key: 'search.filterMode.none',
-      label: 'None',
+      label: 'No Filter',
       section: 'Filter modes',
-      default: 'None',
+      default: 'No Filter',
     },
     {
       key: 'search.filterMode.queryQuery',
@@ -467,6 +467,16 @@ export const searchGroup: TextGroup = {
       default: 'No proteins loaded.',
     },
     {
+      key: 'search.ribbon.hide',
+      label: 'Ribbon: hide filters',
+      default: 'Hide filters',
+    },
+    {
+      key: 'search.ribbon.show',
+      label: 'Ribbon: show filters',
+      default: 'Show filters',
+    },
+    {
       key: 'search.save.placeholder',
       label: 'Save network: name placeholder',
       default: 'Network name',
@@ -509,7 +519,37 @@ export const searchGroup: TextGroup = {
     {
       key: 'search.resizeHint',
       label: 'Resize handle tooltip',
-      default: 'Drag to resize',
+      default: 'Drag to resize, click to reset',
+    },
+    {
+      key: 'search.resizeTall',
+      label: 'Taller network tooltip',
+      default: 'Taller network',
+    },
+    {
+      key: 'search.resizeShort',
+      label: 'Shorter network tooltip',
+      default: 'Shorter network',
+    },
+    {
+      key: 'search.filter',
+      label: 'Canvas filter button',
+      default: 'Filter',
+    },
+    {
+      key: 'search.confidence',
+      label: 'Canvas confidence button',
+      default: 'Confidence',
+    },
+    {
+      key: 'search.fullscreen',
+      label: 'Fullscreen button tooltip',
+      default: 'Fullscreen',
+    },
+    {
+      key: 'search.fullscreenExit',
+      label: 'Exit fullscreen tooltip',
+      default: 'Exit fullscreen',
     },
   ],
 }

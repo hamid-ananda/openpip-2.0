@@ -128,8 +128,9 @@ export function ResultTablePanel({ selectedProtein }: Props) {
   const summaryGene = summaryProtein?.protein_gene_name || summaryProtein?.protein_uniprot_id
 
   return (
-    <div>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{
+        flexShrink: 0,
         display: 'flex',
         flexWrap: 'wrap',
         borderTop: '1px solid var(--border)',
@@ -174,7 +175,9 @@ export function ResultTablePanel({ selectedProtein }: Props) {
         })}
       </div>
 
-      <div style={{ background: 'var(--bg)' }}>
+      {/* The one scrolling box on this page: the table headers stick to its
+          top, and the network above it never moves. */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg)' }}>
         {currentTab === 'interactions' ? (
           <InteractionsTable interactions={interactions} proteins={proteins} />
         ) : currentTab === 'interactors' ? (

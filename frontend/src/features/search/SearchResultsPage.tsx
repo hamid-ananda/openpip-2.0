@@ -1,24 +1,45 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSearch } from '../../api/search'
+import { useSettings } from '../../api/settings'
 import { useSearchStore } from './searchStore'
 import { filterProteinsAndInteractions } from './filterInteractions'
 import { CytoscapeNetwork } from './network/CytoscapeNetwork'
 import { ResultTablePanel } from './tables/ResultTablePanel'
 import { OverlaySystem } from './modals/OverlaySystem'
 import { SearchSidebar } from './SearchSidebar'
+import { QueryPanel } from './QueryPanel'
 import { NodeInfoPanel } from './NodeInfoPanel'
 import { EdgeInfoPanel } from './EdgeInfoPanel'
 import type { Protein, Interaction } from '../../types/api'
 import { useText } from '../../text'
+import { CONTROL_BG } from './toolbar/LayoutDropdown'
+
+const ARROW_STYLE: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  background: 'none',
+  border: 'none',
+  padding: '0 4px',
+  cursor: 'pointer',
+  color: 'var(--text-soft)',
+}
 
 const MIN_NETWORK_H = 150
 const MAX_NETWORK_H = window.innerHeight - 56 - 120
+const DEFAULT_NETWORK_H = 500
+/** How far the handle may move before a mouse-up counts as a drag, not a click. */
+const DRAG_SLOP = 4
+
+const clampHeight = (h: number) => Math.min(MAX_NETWORK_H, Math.max(MIN_NETWORK_H, h))
+const screenFraction = (f: number) => clampHeight(Math.round(window.innerHeight * f))
 
 export function SearchResultsPage() {
   const { term = '' } = useParams<{ term: string }>()
   const t = useText()
-  const [networkHeight, setNetworkHeight] = useState(500)
+  const [networkHeight, setNetworkHeight] = useState(DEFAULT_NETWORK_H)
+  const networkRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [selectedProtein, setSelectedProtein] = useState<Protein | null>(null)
   const [selectedInteraction, setSelectedInteraction] = useState<Interaction | null>(null)
   // Removed nodes are scoped to the current search term - automatically clears on new search
@@ -37,23 +58,48 @@ export function SearchResultsPage() {
     setSelectedProtein(null)
   }, [term])
 
+  // The grip both drags and clicks: a mouse-up that never moved is a click, and
+  // a click resets to the default height.
   function startDrag(e: React.MouseEvent) {
     e.preventDefault()
     const startY = e.clientY
     const startH = networkHeight
+    let dragged = false
 
     const onMove = (ev: MouseEvent) => {
-      const next = Math.min(MAX_NETWORK_H, Math.max(MIN_NETWORK_H, startH + ev.clientY - startY))
-      setNetworkHeight(next)
+      if (Math.abs(ev.clientY - startY) > DRAG_SLOP) dragged = true
+      setNetworkHeight(clampHeight(startH + ev.clientY - startY))
     }
     const onUp = () => {
+      if (!dragged) setNetworkHeight(DEFAULT_NETWORK_H)
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
   }
+
+  // Fullscreen is the browser's, so Esc and F11 stay in charge of leaving it —
+  // the flag only follows what actually happened.
+  useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(document.fullscreenElement === networkRef.current)
+      // Cytoscape sizes its canvas once; the new box has to be announced.
+      useSearchStore.getState().networkCy?.resize()
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen()
+    else networkRef.current?.requestFullscreen?.()
+  }
   const { data, isLoading, isError } = useSearch(term)
+  const { data: settings } = useSettings()
+  // Sidebar down the left, or a ribbon under the navbar — the deployment's
+  // choice, set in Admin → Settings → Search.
+  const ribbon = settings?.horizontalFilterBar === true
 
   const {
     setSearchData,
@@ -86,6 +132,8 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
   const visibleInteractionIds = interactions.map((ix) => ix.interaction_id)
 
   const renderMain = () => {
+    // Nothing searched yet: the canvas has nothing to draw, so it carries the
+    // query box itself rather than pointing at one somewhere else on the page.
     if (!term) {
       return (
         <div style={{
@@ -95,14 +143,27 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
           justifyContent: 'center',
           height: '100%',
           minHeight: 400,
-          gap: 8,
+          gap: 18,
           padding: 48,
         }}>
-          <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>
-            Search for a protein to see its interaction network.
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>
+              Search for a protein to see its interaction network.
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
+              Enter a gene symbol or UniProt ID, or start from an example.
+            </div>
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Enter a gene symbol or UniProt ID in the panel on the left.
+          <div style={{
+            width: '100%',
+            maxWidth: 340,
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            padding: 18,
+            boxShadow: 'var(--shadow-md)',
+          }}>
+            <QueryPanel term="" idPrefix="canvas-gene" />
           </div>
         </div>
       )
@@ -197,13 +258,39 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
     return (
       <>
         {/* Network */}
-        <div style={{ position: 'relative' }}>
+        <div ref={networkRef} style={{ position: 'relative', flexShrink: 0, background: 'var(--bg)' }}>
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? t('search.fullscreenExit') : t('search.fullscreen')}
+            aria-label={isFullscreen ? t('search.fullscreenExit') : t('search.fullscreen')}
+            className="op-btn"
+            style={{
+              position: 'absolute',
+              top: 12,
+              left: 12,
+              // Above the info panels, which share this corner.
+              zIndex: 20,
+              height: 30,
+              padding: '0 7px',
+              lineHeight: 0,
+              background: CONTROL_BG,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              {isFullscreen ? (
+                <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
+              ) : (
+                <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
+              )}
+            </svg>
+          </button>
           <CytoscapeNetwork
             proteins={proteins}
             interactions={interactions}
             queryProteinIds={queryProteinIds}
             layout={selectedLayout}
-            height={networkHeight}
+            height={isFullscreen ? window.innerHeight : networkHeight}
             onNodeClick={handleNodeClick}
             onEdgeClick={handleEdgeClick}
           />
@@ -226,28 +313,59 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
           )}
         </div>
 
-        {/* Drag handle */}
+        {/* Resize bar. The arrows point the way the divider travels: up shrinks
+            the canvas to a fifth of the screen, down grows it to three quarters. */}
         <div
-          onMouseDown={startDrag}
-          title={t('search.resizeHint')}
           style={{
-            height: 10,
+            height: 14,
             flexShrink: 0,
-            cursor: 'row-resize',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 10,
             background: 'var(--surface)',
             borderTop: '1px solid var(--border)',
             borderBottom: '1px solid var(--border)',
             userSelect: 'none',
           }}
         >
-          <svg width="20" height="6" viewBox="0 0 20 6" fill="none" aria-hidden="true">
-            <circle cx="4"  cy="3" r="1.5" fill="var(--text-soft)" />
-            <circle cx="10" cy="3" r="1.5" fill="var(--text-soft)" />
-            <circle cx="16" cy="3" r="1.5" fill="var(--text-soft)" />
-          </svg>
+          <button
+            type="button"
+            onClick={() => setNetworkHeight(screenFraction(0.2))}
+            title={t('search.resizeShort')}
+            aria-label={t('search.resizeShort')}
+            style={ARROW_STYLE}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+              <path d="m6 15 6-6 6 6" />
+            </svg>
+          </button>
+
+          <div
+            onMouseDown={startDrag}
+            role="separator"
+            aria-orientation="horizontal"
+            title={t('search.resizeHint')}
+            style={{ cursor: 'row-resize', display: 'flex', alignItems: 'center', padding: '0 4px' }}
+          >
+            <svg width="20" height="6" viewBox="0 0 20 6" fill="none" aria-hidden="true">
+              <circle cx="4"  cy="3" r="1.5" fill="var(--text-soft)" />
+              <circle cx="10" cy="3" r="1.5" fill="var(--text-soft)" />
+              <circle cx="16" cy="3" r="1.5" fill="var(--text-soft)" />
+            </svg>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setNetworkHeight(screenFraction(0.75))}
+            title={t('search.resizeTall')}
+            aria-label={t('search.resizeTall')}
+            style={ARROW_STYLE}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
         </div>
 
         {/* Tables */}
@@ -260,12 +378,32 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
   }
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 56px)' }}>
-      {/* Sidebar - left */}
-      <SearchSidebar key={term} term={term} visibleInteractionIds={visibleInteractionIds} />
+    <div style={{
+      display: 'flex',
+      flexDirection: ribbon ? 'column' : 'row',
+      height: 'calc(100vh - 56px)',
+    }}>
+      {/* Controls - down the left, or in a row above the results */}
+      <SearchSidebar
+        key={term}
+        term={term}
+        visibleInteractionIds={visibleInteractionIds}
+        variant={ribbon ? 'ribbon' : 'sidebar'}
+      />
 
       {/* Main - scrolls vertically */}
-      <main style={{ flex: 1, overflowY: 'auto', minWidth: 0, background: 'var(--bg)' }}>
+      {/* Main is a fixed column: network on top at whatever height was set,
+          results underneath with their own scrollbar. Nothing scrolls the
+          canvas out of view because the page itself does not scroll. */}
+      <main style={{
+        flex: 1,
+        minWidth: 0,
+        minHeight: 0,
+        background: 'var(--bg)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
         {renderMain()}
       </main>
     </div>

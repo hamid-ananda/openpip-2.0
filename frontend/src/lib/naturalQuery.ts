@@ -169,7 +169,7 @@ export function supportedPatterns() {
     genes: {
       title: 'Gene names',
       examples: ['TP53', 'TP53, MDM2'],
-      note: 'A single gene or a comma-separated list. These are searched exactly as before.',
+      note: 'A single gene, or a list separated by commas, spaces, or newlines.',
     },
     tissues: {
       title: 'A tissue',

@@ -27,6 +27,7 @@ describe('Types compile', () => {
       about: '', faq: '', contact: '', download: '',
       showTissueExpression: true,
   showSubcellularLocation: true,
+  horizontalFilterBar: false,
   showDownloads: true, showDownloadAll: true,
       example1: '', example2: '', example3: '',
       example1Type: '', example2Type: '', example3Type: '',

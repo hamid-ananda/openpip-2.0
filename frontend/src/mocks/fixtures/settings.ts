@@ -28,6 +28,7 @@ export const settingsFixture: AdminSettings = {
     '<p>Please contact the openPIP team at <a href="mailto:openpip@usask.ca">openpip@usask.ca</a> with questions about the interaction data or this web portal.</p>',
   download: '<p>Download full interaction datasets below.</p>',
   showTissueExpression: true,
+  horizontalFilterBar: false,
   showSubcellularLocation: true,
   showDownloads: true,
   showDownloadAll: true,

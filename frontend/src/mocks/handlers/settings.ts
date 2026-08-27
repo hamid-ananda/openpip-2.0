@@ -6,6 +6,7 @@ import type { AdminSettings } from '../../types/api'
 // In the browser, browser.ts uses passthrough() for all requests instead.
 let currentSettings: AdminSettings = {
   showTissueExpression: true,
+  horizontalFilterBar: false,
   showSubcellularLocation: true, ...settingsFixture }
 
 export const settingsHandlers = [

@@ -8,9 +8,10 @@ import {
   useTokenAutocomplete,
 } from '../../components/useGeneAutocomplete'
 import { GeneSuggestionList } from '../../components/GeneSuggestionList'
+import { useAutoGrow } from '../../components/useAutoGrow'
 import { useSearchStore } from '../search/searchStore'
 import { useText } from '../../text'
-import { normalizeExampleType, toFilterMode } from '../../lib/exampleType'
+import { exampleTypeLabel, toFilterMode } from '../../lib/exampleType'
 import { looksLikeGeneList, parseNaturalQuery } from '../../lib/naturalQuery'
 import { searchTissues } from '../../lib/tissues'
 
@@ -53,6 +54,7 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
     joiner: ' ',
   })
   const ac = isGeneList ? geneAc : tissueAc
+  const boxRef = useAutoGrow(query)
 
   const searchExamples = [
     { proteins: settings?.example1, type: settings?.example1Type },
@@ -123,13 +125,28 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
 
           <form onSubmit={handleSearch} style={{ display: 'flex', marginBottom: 36 }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                type="text"
+              <textarea
+                ref={boxRef}
+                rows={1}
                 value={query}
                 {...ac.inputProps}
+                onKeyDown={(e) => {
+                  ac.inputProps.onKeyDown(e)
+                  // Enter searches, as it did when this was one line; a newline
+                  // still separates genes, so shift-enter keeps that available.
+                  if (e.key === 'Enter' && !e.shiftKey && !e.defaultPrevented) handleSearch(e)
+                }}
                 placeholder={t('home.hero.searchPlaceholder')}
                 className="op-input"
-                style={{ borderRadius: '8px 0 0 8px', borderRight: 'none', width: '100%' }}
+                style={{
+                  borderRadius: '8px 0 0 8px',
+                  borderRight: 'none',
+                  width: '100%',
+                  lineHeight: 1.5,
+                  resize: 'none',
+                  overflowY: 'auto',
+                  display: 'block',
+                }}
                 aria-label={t('home.hero.searchLabel')}
               />
               {ac.showList && (
@@ -256,9 +273,9 @@ export function HeroSection({ shortTitle, proteins, interactions, datasets }: He
                     {preview}
                     <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font)' }}>
                       {/* Legacy rows spell the unfiltered case as "all" or
-                          leave it null; the filter is called None everywhere
-                          else in the UI, so the chip says None too. */}
-                      {normalizeExampleType(ex.type)}
+                          leave it null; the filter is called none everywhere
+                          else in the UI, so the chip says none too. */}
+                      {exampleTypeLabel(ex.type)}
                     </span>
                   </button>
                 )

@@ -55,10 +55,10 @@ describe('FilterDropdown', () => {
     expect(setCategoryFilter).toHaveBeenCalledWith('Published', false)
   })
 
-  it('renders the score slider when panel is open', () => {
+  it('renders the filter-mode radios when panel is open', () => {
     render(<FilterDropdown />, { wrapper: Wrapper })
     fireEvent.click(screen.getByRole('button', { name: /filter/i }))
-    // rc-slider renders a slider role or we can check for the label text
-    expect(screen.getByText(/min score/i)).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /no filter/i })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /query-interactor/i })).toBeInTheDocument()
   })
 })

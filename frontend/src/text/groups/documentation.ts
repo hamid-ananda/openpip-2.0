@@ -25,7 +25,7 @@ export const documentationGroup: TextGroup = {
       section: 'Searching',
       kind: 'multiline',
       default:
-        'Enter one or more gene names, UniProt IDs, or Ensembl IDs separated by commas or newlines. The database will return all known interactions involving your query proteins.',
+        'Enter one or more gene names, UniProt IDs, or Ensembl IDs separated by commas, spaces, or newlines. The database will return all known interactions involving your query proteins.',
     },
     {
       key: 'docs.searching.examplesHeading',

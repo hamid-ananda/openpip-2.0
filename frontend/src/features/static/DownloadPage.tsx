@@ -174,7 +174,7 @@ export function DownloadPage() {
                     alignItems: 'center',
                   }}
                 >
-                  <div>
+                  <div data-selectable>
                     <div
                       style={{
                         display: 'flex',
@@ -347,7 +347,7 @@ function SuppFileRow({ file, token }: { file: UploadedFile; token: string | null
         >
           .{ext}
         </span>
-        <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--mono)' }}>
+        <span data-selectable style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--mono)' }}>
           {file.file_name}
         </span>
       </div>

@@ -4,8 +4,8 @@ import { useAutocomplete } from '../api/proteins'
 interface TokenOptions {
   /** Candidate completions for the token being typed. */
   suggestions: string[]
-  /** What separates tokens: ',' for a gene list, ' ' for a phrase. */
-  separator: string
+  /** What separates tokens: commas/spaces for a gene list, ' ' for a phrase. */
+  separator: string | RegExp
   /** Rendered between tokens when a suggestion is accepted. */
   joiner: string
 }
@@ -48,14 +48,14 @@ export function useTokenAutocomplete(
     'aria-expanded': showList,
     'aria-controls': `${idPrefix}-list`,
     'aria-activedescendant': activeIndex >= 0 ? `${idPrefix}-option-${activeIndex}` : undefined,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       onChange(e.target.value)
       setShowSuggestions(true)
       setActiveIndex(-1)
     },
     onFocus: () => setShowSuggestions(true),
     onBlur: () => window.setTimeout(() => setShowSuggestions(false), 120),
-    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       if (!showList) return
       if (e.key === 'ArrowDown') {
         e.preventDefault()
@@ -76,16 +76,20 @@ export function useTokenAutocomplete(
   return { showList, suggestions, activeIndex, setActiveIndex, selectSuggestion, inputProps }
 }
 
+/** Same separators the backend splits a gene query on. */
+const GENE_SEPARATOR = /[,\s]+/
+
 /**
  * Gene-list autocomplete for the hero and the search sidebar: several genes
- * separated by commas, completing the one after the last comma.
+ * separated by commas, spaces, or newlines, completing the one after the last
+ * separator.
  */
 export function useGeneAutocomplete(
   value: string,
   onChange: (v: string) => void,
   idPrefix: string
 ) {
-  const tokens = value.split(',')
+  const tokens = value.split(GENE_SEPARATOR)
   const activeToken = (tokens[tokens.length - 1] ?? '').trim()
   const chosen = tokens.slice(0, -1).map((t) => t.trim().toLowerCase())
   const { data: raw = [] } = useAutocomplete(activeToken)
@@ -93,7 +97,7 @@ export function useGeneAutocomplete(
 
   return useTokenAutocomplete(value, onChange, idPrefix, {
     suggestions,
-    separator: ',',
+    separator: GENE_SEPARATOR,
     joiner: ', ',
   })
 }

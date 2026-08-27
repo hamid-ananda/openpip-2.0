@@ -54,6 +54,18 @@ def test_patch_settings_as_admin(auth_client):
 
 
 @pytest.mark.django_db
+def test_patch_settings_stores_per_page_nav_style(auth_client):
+    AdminSettings.objects.create(pk=1, nav_style="solid")
+    response = auth_client.patch(
+        "/api/settings",
+        {"navStyleOverrides": "home:gradient,search:light"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["navStyleOverrides"] == "home:gradient,search:light"
+
+
+@pytest.mark.django_db
 def test_get_announcements_returns_home_page_announcements(api_client):
     Announcement.objects.create(title="Shown", text="Hello", show_on_home_page=True)
     Announcement.objects.create(title="Hidden", text="World", show_on_home_page=False)

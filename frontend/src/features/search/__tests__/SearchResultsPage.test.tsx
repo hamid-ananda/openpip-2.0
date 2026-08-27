@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useSearch } from '../../../api/search'
@@ -8,7 +8,11 @@ import { searchFixture } from '../../../mocks/fixtures/search'
 import { useSearchStore } from '../searchStore'
 
 vi.mock('../SearchSidebar', () => ({ SearchSidebar: () => <div>Sidebar</div> }))
-vi.mock('../network/CytoscapeNetwork', () => ({ CytoscapeNetwork: () => <div>Network</div> }))
+vi.mock('../network/CytoscapeNetwork', () => ({
+  CytoscapeNetwork: ({ height }: { height: number }) => (
+    <div data-testid="network" data-height={height}>Network</div>
+  ),
+}))
 vi.mock('../tables/ResultTablePanel', () => ({ ResultTablePanel: () => <div>Tables</div> }))
 vi.mock('../enrichment/EnrichmentPanel', () => ({ EnrichmentPanel: () => <div>Enrichment</div> }))
 vi.mock('../NodeInfoPanel', () => ({ NodeInfoPanel: () => null }))
@@ -98,5 +102,31 @@ describe('SearchResultsPage', () => {
     expect(state.allProteins).toHaveLength(searchFixture.all_proteins.length)
     expect(state.allInteractions).toHaveLength(searchFixture.all_interactions.length)
     expect(state.searchTerm).toBe(searchFixture.search_term)
+  })
+
+  it('resizes the network from the bar: taller, shorter, and back to default', () => {
+    ;(useSearch as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: searchFixture,
+      isLoading: false,
+      isError: false,
+    })
+    renderWithRoute('BAD')
+
+    const network = screen.getByTestId('network')
+    const height = () => Number(network.getAttribute('data-height'))
+    const cap = window.innerHeight - 56 - 120
+    const start = height()
+
+    // The up arrow is labelled "shorter": it moves the divider up.
+    fireEvent.click(screen.getByRole('button', { name: /shorter network/i }))
+    expect(height()).toBe(Math.max(150, Math.round(window.innerHeight * 0.2)))
+
+    fireEvent.click(screen.getByRole('button', { name: /taller network/i }))
+    expect(height()).toBe(Math.min(cap, Math.round(window.innerHeight * 0.75)))
+
+    // A mouse-up that never moved is a click, and a click restores the default.
+    fireEvent.mouseDown(screen.getByRole('separator'))
+    fireEvent.mouseUp(document)
+    expect(height()).toBe(start)
   })
 })

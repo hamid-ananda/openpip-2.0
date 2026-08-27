@@ -20,6 +20,7 @@ from interactions.models import InteractionDataset
 from datasets.tests.factories import DatasetFactory
 from interactions.search_service import (
     _safe_float,
+    split_terms,
     execute_search,
     build_result_from_interaction_ids,
 )
@@ -45,6 +46,22 @@ def test_safe_float_returns_none_for_invalid_string():
 
 def test_safe_float_returns_none_for_non_numeric_type():
     assert _safe_float([1, 2]) is None
+
+
+# ── split_terms ──────────────────────────────────────────────────────────────
+
+
+def test_split_terms_accepts_commas_spaces_and_newlines():
+    assert split_terms(" TP53, MDM2\nBRCA1 BCL2 ,, ") == [
+        "TP53",
+        "MDM2",
+        "BRCA1",
+        "BCL2",
+    ]
+
+
+def test_split_terms_empty_query():
+    assert split_terms("   ") == []
 
 
 # ── execute_search — edge classification ─────────────────────────────────────
@@ -293,3 +310,16 @@ def test_build_result_interactor_only_edge():
     assert result["query_protein_id_array"] == []
     # The edge still appears
     assert len(result["all_interactions"]) == 1
+
+
+@pytest.mark.django_db
+def test_search_multi_term_separated_by_space_and_newline():
+    """A pasted list works whatever separates it."""
+    a = _protein_with_identifier("BAD")
+    b = _protein_with_identifier("BCL2L1")
+    InteractionFactory(interactor_A=a, interactor_B=b, removed="0")
+
+    for query in ("BAD,BCL2L1", "BAD BCL2L1", "BAD\nBCL2L1"):
+        result = execute_search(query)
+        assert sorted(result["query_protein_id_array"]) == sorted([a.id, b.id]), query
+        assert result["unfound_protein_summary"] == ""

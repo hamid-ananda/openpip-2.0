@@ -39,6 +39,8 @@ export interface AdminSettings {
   version: string
   logoUrl?: string | null
   navStyle?: string | null
+  /** Per-page navbar style, as `home:gradient,search:solid`. */
+  navStyleOverrides?: string | null
   mainColorScheme2?: string | null
   gradientAngle?: number | null
   about: string
@@ -48,6 +50,8 @@ export interface AdminSettings {
   /** Annotation features that only apply to a multicellular organism. */
   showTissueExpression: boolean
   showSubcellularLocation: boolean
+  /** Search controls as a ribbon under the navbar instead of a left sidebar. */
+  horizontalFilterBar: boolean
   showDownloads: boolean
   showDownloadAll: boolean
   example1: string

@@ -6,6 +6,17 @@ class User(AbstractUser):
     # [{"question": "...", "answer": "<hashed>"}, ...] — see core.views
     security_questions = models.JSONField(default=list, blank=True)
 
+    # Optional profile details. The display name reuses AbstractUser's
+    # first_name column rather than adding one: openPIP asks for a single
+    # name, not a given/family pair.
+    affiliation = models.CharField(max_length=200, blank=True)
+    position = models.CharField(max_length=100, blank=True)
+    website = models.URLField(blank=True)
+    bio = models.TextField(blank=True)
+    # FileField, not ImageField: Pillow is not a dependency, and the upload
+    # view checks the content type. See core.views.MeView.
+    avatar = models.FileField(upload_to="avatars/", null=True, blank=True)
+
     class Meta:
         db_table = "user"
 

@@ -2,7 +2,9 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '../../api/settings'
 import { injectCSSVars } from '../../lib/theme'
-import { EXAMPLE_TYPES, normalizeExampleType } from '../../lib/exampleType'
+import { NAV_PAGES, parseNavOverrides, formatNavOverrides } from '../../lib/navPages'
+import { mediaUrl } from '../../api/client'
+import { EXAMPLE_TYPES, exampleTypeLabel, normalizeExampleType } from '../../lib/exampleType'
 import type { AdminSettings } from '../../types/api'
 import { RichTextEditor } from '../../components/RichTextEditor'
 import { TEXT_GROUP_BY_ID } from '../../text'
@@ -107,6 +109,7 @@ type TabId = SettingsTabId
 /** Fields that only affect appearance — used for dirty-tracking and reset. */
 const COLOR_FIELDS: (keyof AdminSettings)[] = [
   'navStyle',
+  'navStyleOverrides',
   'mainColorScheme',
   'mainColorScheme2',
   'gradientAngle',
@@ -120,6 +123,19 @@ const COLOR_FIELDS: (keyof AdminSettings)[] = [
   'verifiedEdgeColor',
   'literatureEdgeColor',
 ]
+
+/** Small inline dropdown, as used by the per-page navbar and example types. */
+const SELECT_STYLE: React.CSSProperties = {
+  fontSize: 12,
+  padding: '4px 8px',
+  borderRadius: 6,
+  border: '1px solid var(--border-strong)',
+  background: 'var(--surface)',
+  color: 'var(--text)',
+  fontFamily: 'var(--font)',
+  cursor: 'pointer',
+  outline: 'none',
+}
 
 interface TabConfig {
   /** Settings columns edited on this tab. Drives the unsaved-changes marker. */
@@ -155,6 +171,7 @@ const TAB_CONFIG: Record<TabId, TabConfig> = {
       'example1', 'example2', 'example3',
       'example1Type', 'example2Type', 'example3Type',
       'showTissueExpression', 'showSubcellularLocation',
+      'horizontalFilterBar',
     ],
     // The phrase examples live beside the gene ones they sit next to on the
     // page, rather than on Home where the rest of the hero copy is edited.
@@ -621,7 +638,7 @@ function LogoUploadSection({ currentLogoUrl }: { currentLogoUrl?: string | null 
         >
           {currentLogoUrl ? (
             <img
-              src={currentLogoUrl}
+              src={mediaUrl(currentLogoUrl)}
               alt="Site logo"
               style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }}
             />
@@ -1098,6 +1115,16 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
     setForm((f) => ({ ...f, [field]: value }))
   }, [])
 
+  // Per-page navbar style. Stored as one string so it rides along with the
+  // rest of the settings form; a page with no entry follows navStyle.
+  const navOverrides = parseNavOverrides(form.navStyleOverrides)
+  function setNavOverride(pageId: string, style: string) {
+    const next = { ...navOverrides }
+    if (style) next[pageId] = style
+    else delete next[pageId]
+    set('navStyleOverrides', formatNavOverrides(next))
+  }
+
   const changedFields = useMemo(
     () =>
       (Object.keys(form) as (keyof AdminSettings)[]).filter(
@@ -1386,6 +1413,41 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
           )}
         </Section>
 
+        {/* Per-page overrides. The style above is the site's default; a page
+            listed here departs from it. */}
+        <Section title="Per-page navbar">
+          <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: '0 0 12px' }}>
+            Every page uses the style above unless you choose another for it here.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
+            {NAV_PAGES.map((page) => (
+              <label
+                key={page.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  fontSize: 13,
+                  color: 'var(--text)',
+                }}
+              >
+                {page.label}
+                <select
+                  value={navOverrides[page.id] ?? ''}
+                  onChange={(e) => setNavOverride(page.id, e.target.value)}
+                  style={SELECT_STYLE}
+                >
+                  <option value="">Site default</option>
+                  <option value="solid">Solid</option>
+                  <option value="gradient">Gradient</option>
+                  <option value="light">Light</option>
+                </select>
+              </label>
+            ))}
+          </div>
+        </Section>
+
         {/* Buttons */}
         <Section title="Buttons &amp; accents">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1457,21 +1519,11 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
                   <select
                     value={normalizeExampleType(form[typeKey])}
                     onChange={(e) => set(typeKey, e.target.value)}
-                    style={{
-                      fontSize: 12,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--border-strong)',
-                      background: 'var(--surface)',
-                      color: 'var(--text)',
-                      fontFamily: 'var(--font)',
-                      cursor: 'pointer',
-                      outline: 'none',
-                    }}
+                    style={SELECT_STYLE}
                   >
                     {EXAMPLE_TYPES.map((type) => (
                       <option key={type} value={type}>
-                        {type}
+                        {exampleTypeLabel(type)}
                       </option>
                     ))}
                   </select>
@@ -1525,6 +1577,24 @@ function SettingsForm({ initialSettings }: { initialSettings: AdminSettings }) {
               </label>
             ))}
           </div>
+        </Section>
+
+        <Section title="Filter layout">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '62ch' }}>
+            Search filters and tools normally sit in a sidebar down the left of
+            the results page. Turn this on and they move into a ribbon under the
+            navbar instead, each one opening its panel when pressed — more room
+            for the network, fewer controls in view at once.
+          </p>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={form.horizontalFilterBar ?? false}
+              onChange={(e) => set('horizontalFilterBar', e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <span style={{ color: 'var(--text)' }}>Show filters as a ribbon under the navbar</span>
+          </label>
         </Section>
 
         <PhraseHelp />

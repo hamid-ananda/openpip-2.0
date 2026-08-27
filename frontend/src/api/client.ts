@@ -5,6 +5,17 @@ import { useAuthStore } from '../store/authStore'
 // (`VITE_BASE`, e.g. `/v2/`) so raw-fetch callers stay on the same prefix as axios.
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? `${import.meta.env.BASE_URL}api`
 
+/**
+ * URL for an uploaded file the API reports as a MEDIA path ("/media/…").
+ * The app is mounted under a prefix in production (VITE_BASE=/v2/), which
+ * Django's MEDIA_URL knows nothing about, so the prefix is added here.
+ */
+export function mediaUrl(path: string | null | undefined): string | undefined {
+  if (!path) return undefined
+  if (/^https?:\/\//.test(path)) return path
+  return import.meta.env.BASE_URL.replace(/\/$/, '') + path
+}
+
 export const apiClient = axios.create({ baseURL: BASE_URL })
 
 apiClient.interceptors.request.use((config) => {

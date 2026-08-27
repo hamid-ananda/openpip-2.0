@@ -25,6 +25,13 @@ interface SearchState {
   setTissueFilter: (tissue: string, on: boolean) => void
   clearTissueFilter: () => void
   selectedLayout: LayoutName
+  /**
+   * The enrichment term whose proteins are lit up in the network, with the
+   * genes it covers. One selection across every enrichment table, as in legacy:
+   * picking a term anywhere replaces whatever was picked before.
+   */
+  highlight: { term: string; genes: string[] } | null
+  setHighlight: (h: { term: string; genes: string[] } | null) => void
   activeModal: ModalName | null
   activeTableTab: string
   setSearchData: (result: SearchResult) => void
@@ -57,6 +64,7 @@ const initialState = {
   filterMode: 'None' as const,
   tissueFilter: [] as string[],
   selectedLayout: 'cola' as LayoutName,
+  highlight: null as { term: string; genes: string[] } | null,
   activeModal: null as ModalName | null,
   activeTableTab: 'interactions',
 }
@@ -79,6 +87,8 @@ export const useSearchStore = create<SearchState>()((set) => ({
         foundSummary: result.found_protein_summary,
         unfoundSummary: result.unfound_protein_summary,
         categoryFilter,
+        // A term from the previous network means nothing in this one.
+        highlight: null,
       }
     }),
   setScoreFilter: (n) => set({ scoreFilter: n }),
@@ -95,6 +105,7 @@ export const useSearchStore = create<SearchState>()((set) => ({
     })),
   clearTissueFilter: () => set({ tissueFilter: [] }),
   setLayout: (name) => set({ selectedLayout: name }),
+  setHighlight: (h) => set({ highlight: h }),
   setModal: (name) => set({ activeModal: name }),
   setTableTab: (name) => set({ activeTableTab: name }),
   reset: () => set(initialState),

@@ -1,4 +1,5 @@
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes
@@ -97,6 +98,56 @@ def test_me_returns_user_info(user_auth_client, regular_user):
     data = response.json()
     assert data["username"] == regular_user.username
     assert "is_admin" in data
+
+
+@pytest.mark.django_db
+def test_me_patch_updates_optional_details(user_auth_client, regular_user):
+    response = user_auth_client.patch(
+        "/api/auth/me",
+        {"name": "Ada Lovelace", "affiliation": "UofT", "bio": "Networks."},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Ada Lovelace"
+    regular_user.refresh_from_db()
+    assert regular_user.first_name == "Ada Lovelace"
+    assert regular_user.affiliation == "UofT"
+    # An omitted field is left alone, an empty one clears.
+    response = user_auth_client.patch(
+        "/api/auth/me", {"affiliation": ""}, format="json"
+    )
+    assert response.json()["affiliation"] == ""
+    assert response.json()["bio"] == "Networks."
+
+
+@pytest.mark.django_db
+def test_me_patch_rejects_bad_website(user_auth_client):
+    response = user_auth_client.patch(
+        "/api/auth/me", {"website": "not a url"}, format="json"
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_me_patch_rejects_non_image_avatar(user_auth_client):
+    upload = SimpleUploadedFile("x.txt", b"not an image", content_type="text/plain")
+    response = user_auth_client.patch(
+        "/api/auth/me", {"avatar": upload}, format="multipart"
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_me_patch_stores_avatar(user_auth_client, regular_user):
+    upload = SimpleUploadedFile("a.png", b"\x89PNG fake", content_type="image/png")
+    response = user_auth_client.patch(
+        "/api/auth/me", {"avatar": upload}, format="multipart"
+    )
+    assert response.status_code == 200
+    assert response.json()["avatar"].endswith(".png")
+    regular_user.refresh_from_db()
+    assert regular_user.avatar
+    regular_user.avatar.delete(save=True)
 
 
 @pytest.mark.django_db

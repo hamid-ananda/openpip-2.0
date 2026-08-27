@@ -84,6 +84,9 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     navStyle = serializers.CharField(
         source="nav_style", allow_null=True, allow_blank=True, required=False
     )
+    navStyleOverrides = serializers.CharField(
+        source="nav_style_overrides", allow_null=True, allow_blank=True, required=False
+    )
     mainColorScheme2 = serializers.CharField(
         source="main_color_scheme_2", allow_null=True, allow_blank=True, required=False
     )
@@ -99,6 +102,9 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
     )
     showSubcellularLocation = serializers.BooleanField(
         source="show_subcellular_location", required=False
+    )
+    horizontalFilterBar = serializers.BooleanField(
+        source="horizontal_filter_bar", required=False
     )
     showDownloads = serializers.BooleanField(source="show_downloads", required=False)
     showDownloadAll = serializers.BooleanField(
@@ -148,6 +154,7 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
             "version",
             "logoUrl",
             "navStyle",
+            "navStyleOverrides",
             "mainColorScheme2",
             "gradientAngle",
             "about",
@@ -156,6 +163,7 @@ class AdminSettingsSerializer(serializers.ModelSerializer):
             "download",
             "showTissueExpression",
             "showSubcellularLocation",
+            "horizontalFilterBar",
             "showDownloads",
             "showDownloadAll",
             "example1",
