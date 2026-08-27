@@ -5,6 +5,33 @@ import type { SearchResult } from '../../types/search'
 type LayoutName = 'cola' | 'cose' | 'concentric' | 'circle' | 'grid'
 type ModalName = 'download' | 'cyRest' | 'loading' | 'directDownload'
 
+/**
+ * What it takes to look at a network the way someone else was looking at it:
+ * the filters and layout, not the data. A saved or shared view carries this
+ * and re-runs the search, so it always shows current data.
+ */
+export interface ViewState {
+  scoreFilter: number
+  categoryFilter: Record<string, boolean>
+  annotationFilter: Record<string, boolean>
+  filterMode: 'None' | 'query_query' | 'query_interactor'
+  tissueFilter: string[]
+  selectedLayout: LayoutName
+  highlight: { term: string; genes: string[] } | null
+  activeTableTab: string
+}
+
+const VIEW_STATE_KEYS: (keyof ViewState)[] = [
+  'scoreFilter',
+  'categoryFilter',
+  'annotationFilter',
+  'filterMode',
+  'tissueFilter',
+  'selectedLayout',
+  'highlight',
+  'activeTableTab',
+]
+
 interface SearchState {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   networkCy: any | null
@@ -42,6 +69,7 @@ interface SearchState {
   setLayout: (name: LayoutName) => void
   setModal: (name: ModalName | null) => void
   setTableTab: (name: string) => void
+  applyViewState: (v: Partial<ViewState>) => void
   reset: () => void
 }
 
@@ -108,8 +136,40 @@ export const useSearchStore = create<SearchState>()((set) => ({
   setHighlight: (h) => set({ highlight: h }),
   setModal: (name) => set({ activeModal: name }),
   setTableTab: (name) => set({ activeTableTab: name }),
+  // Only the view-state keys, so a saved payload can never overwrite the
+  // proteins and interactions the current search just loaded.
+  applyViewState: (v) =>
+    set(
+      Object.fromEntries(
+        VIEW_STATE_KEYS.filter((k) => v[k] !== undefined).map((k) => [k, v[k]]),
+      ),
+    ),
   reset: () => set(initialState),
 }))
+
+/** The current filters and layout, ready to save or share. */
+export function captureViewState(): ViewState {
+  const {
+    scoreFilter,
+    categoryFilter,
+    annotationFilter,
+    filterMode,
+    tissueFilter,
+    selectedLayout,
+    highlight,
+    activeTableTab,
+  } = useSearchStore.getState()
+  return {
+    scoreFilter,
+    categoryFilter,
+    annotationFilter,
+    filterMode,
+    tissueFilter,
+    selectedLayout,
+    highlight,
+    activeTableTab,
+  }
+}
 
 // Static method for test resets - exposes initial state snapshot
 ;(useSearchStore as unknown as { getInitialState: () => typeof initialState }).getInitialState =

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSearch } from '../../api/search'
 import { useSettings } from '../../api/settings'
-import { useSearchStore } from './searchStore'
+import { useSearchStore, type ViewState } from './searchStore'
 import { filterProteinsAndInteractions } from './filterInteractions'
 import { CytoscapeNetwork } from './network/CytoscapeNetwork'
 import { ResultTablePanel } from './tables/ResultTablePanel'
@@ -34,8 +34,18 @@ const DRAG_SLOP = 4
 const clampHeight = (h: number) => Math.min(MAX_NETWORK_H, Math.max(MIN_NETWORK_H, h))
 const screenFraction = (f: number) => clampHeight(Math.round(window.innerHeight * f))
 
-export function SearchResultsPage() {
-  const { term = '' } = useParams<{ term: string }>()
+interface SearchResultsPageProps {
+  /** Overrides the route parameter, for a network opened from a shared view. */
+  term?: string
+  /** Filters and layout to restore once the results land. */
+  viewState?: Partial<ViewState>
+  /** Rendered above the results — who shared this, and their note. */
+  banner?: React.ReactNode
+}
+
+export function SearchResultsPage({ term: termProp, viewState, banner }: SearchResultsPageProps = {}) {
+  const { term: routeTerm = '' } = useParams<{ term: string }>()
+  const term = termProp ?? routeTerm
   const t = useText()
   const [networkHeight, setNetworkHeight] = useState(DEFAULT_NETWORK_H)
   const networkRef = useRef<HTMLDivElement>(null)
@@ -113,11 +123,16 @@ export function SearchResultsPage() {
     filterMode,
     tissueFilter,
     unfoundSummary,
+    applyViewState,
   } = useSearchStore()
 
   useEffect(() => {
-    if (data) setSearchData(data)
-  }, [data, setSearchData])
+    if (!data) return
+    setSearchData(data)
+    // After, not before: setSearchData rebuilds the category filter and clears
+    // the highlight, which would undo a restored view.
+    if (viewState) applyViewState(viewState)
+  }, [data, setSearchData, viewState, applyViewState])
 
 const { proteins: filteredProteins, interactions } = filterProteinsAndInteractions(
     allProteins,
@@ -404,6 +419,7 @@ const { proteins: filteredProteins, interactions } = filterProteinsAndInteractio
         flexDirection: 'column',
         overflow: 'hidden',
       }}>
+        {banner}
         {renderMain()}
       </main>
     </div>

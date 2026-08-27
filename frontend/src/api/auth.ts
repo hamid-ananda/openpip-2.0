@@ -67,6 +67,8 @@ export interface Profile {
   website: string
   bio: string
   avatar: string | null
+  /** Off hides you from people search and stops others sharing networks with you. */
+  discoverable: boolean
 }
 
 export function useProfile() {

@@ -5,6 +5,7 @@ import type { Profile } from '../../api/auth'
 import { mediaUrl } from '../../api/client'
 import { useSavedNetworks, useDeleteNetwork } from '../../api/networks'
 import { useText } from '../../text'
+import { ProfileSharingSections } from '../sharing/ProfileSharingSections'
 
 // The admin shortcuts that used to sit here were a second, partial copy of the
 // admin sidebar. Admins reach the same screens from the Admin link in the nav.
@@ -218,6 +219,27 @@ export function ProfilePage() {
                 </p>
               )}
 
+              {/* Sharing is opt-out rather than a setting buried in the edit
+                  form: it governs whether colleagues can reach you at all. */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 12,
+                  color: 'var(--text-soft)',
+                  marginTop: 16,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={profile?.discoverable ?? true}
+                  onChange={(e) => updateProfile({ discoverable: e.target.checked })}
+                  style={{ accentColor: 'var(--primary)' }}
+                />
+                Let colleagues find me by name, lab, or email and share networks with me
+              </label>
+
               <button
                 className="op-btn"
                 onClick={() => {
@@ -314,6 +336,8 @@ export function ProfilePage() {
             </div>
           )}
         </div>
+
+        <ProfileSharingSections />
 
         {/* Sign out */}
         <button

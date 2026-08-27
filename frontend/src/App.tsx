@@ -16,6 +16,8 @@ import { RegisterPage } from './features/auth/RegisterPage'
 import { ProfilePage } from './features/auth/ProfilePage'
 import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage'
+import { PublicProfilePage } from './features/sharing/PublicProfilePage'
+import { SharedViewPage } from './features/sharing/SharedViewPage'
 import { ProteinsPage } from './features/proteins/ProteinsPage'
 import { LegacyProteinRedirect } from './features/proteins/LegacyProteinRedirect'
 import { DownloadPage } from './features/static/DownloadPage'
@@ -57,6 +59,11 @@ const router = createBrowserRouter(
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: 'profile', element: <ProtectedRoute><ProfilePage /></ProtectedRoute> },
+      {
+        path: 'profile/:username',
+        element: <ProtectedRoute><PublicProfilePage /></ProtectedRoute>,
+      },
+      { path: 'shared/:id', element: <ProtectedRoute><SharedViewPage /></ProtectedRoute> },
       {
         path: 'admin',
         element: (

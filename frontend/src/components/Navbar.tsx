@@ -3,6 +3,7 @@ import { useLogout } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
 import { useDarkMode } from '../store/darkModeStore'
 import { useText } from '../text'
+import { NotificationBell } from './NotificationBell'
 
 interface NavbarProps {
   isLoggedIn: boolean
@@ -93,6 +94,7 @@ export function Navbar({ isLoggedIn }: NavbarProps) {
         </button>
         {isLoggedIn ? (
           <>
+            <NotificationBell />
             {isAdmin && (
               <NavLink to="/admin" style={linkStyle}>
                 {t('nav.admin')}

@@ -9,6 +9,7 @@ import { buildStylesheet } from './cytoscapeStyles'
 import { useSettings } from '../../../api/settings'
 import { useSearchStore } from '../searchStore'
 import { LayoutDropdown } from '../toolbar/LayoutDropdown'
+import { SaveViewButton } from '../toolbar/SaveViewButton'
 import { FilterDropdown } from '../toolbar/FilterDropdown'
 import { ConfidenceDropdown } from '../toolbar/ConfidenceDropdown'
 import { useText } from '../../../text'
@@ -260,6 +261,8 @@ export function CytoscapeNetwork({
         <ConfidenceDropdown />
 
         <LayoutDropdown />
+
+        <SaveViewButton />
 
         {/* Hand the network to a desktop Cytoscape over CyREST. Icon-only
             beside the layout button, matched to its height; the name is on

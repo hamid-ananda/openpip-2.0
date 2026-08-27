@@ -1,0 +1,126 @@
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useNotifications, useMarkNotificationRead } from '../api/sharing'
+import { useAuthStore } from '../store/authStore'
+
+export function NotificationBell() {
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+  const { data: notifications = [] } = useNotifications()
+  const markRead = useMarkNotificationRead()
+
+  useEffect(() => {
+    if (!open) return
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  if (!isLoggedIn) return null
+
+  const unread = notifications.filter((n) => !n.read).length
+
+  function pick(id: number, link: string) {
+    markRead.mutate(id)
+    setOpen(false)
+    if (link) navigate(link)
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={unread ? `Notifications (${unread} unread)` : 'Notifications'}
+        aria-expanded={open}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'inherit',
+          position: 'relative',
+          padding: 4,
+          lineHeight: 0,
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+          <path d="M9 2a4.5 4.5 0 0 0-4.5 4.5c0 3.5-1.5 4.5-1.5 4.5h12s-1.5-1-1.5-4.5A4.5 4.5 0 0 0 9 2Z" />
+          <path d="M7.5 13.5a1.6 1.6 0 0 0 3 0" />
+        </svg>
+        {unread > 0 && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              minWidth: 15,
+              height: 15,
+              borderRadius: 8,
+              background: 'var(--primary)',
+              color: '#fff',
+              fontSize: 10,
+              lineHeight: '15px',
+              textAlign: 'center',
+              padding: '0 3px',
+            }}
+          >
+            {unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: '100%',
+            marginTop: 6,
+            zIndex: 60,
+            width: 300,
+            maxHeight: 340,
+            overflowY: 'auto',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
+          {notifications.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: 12, margin: 0 }}>
+              Nothing yet.
+            </p>
+          ) : (
+            notifications.map((n) => (
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => pick(n.id, n.link)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  background: n.read ? 'none' : 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                  border: 'none',
+                  borderBottom: '1px solid var(--border)',
+                  cursor: 'pointer',
+                  padding: '10px 12px',
+                  color: 'var(--text)',
+                  fontSize: 13,
+                }}
+              >
+                {n.text}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
