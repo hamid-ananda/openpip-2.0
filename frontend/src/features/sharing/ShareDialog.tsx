@@ -1,32 +1,75 @@
 import { useState } from 'react'
 import { Modal } from '../search/modals/Modal'
 import { useUserSearch, type UserCard } from '../../api/users'
-import { useCreateShare } from '../../api/sharing'
+import { useCreateShare, useCreateSavedView } from '../../api/sharing'
+import type { ViewState } from '../search/searchStore'
 
 interface ShareDialogProps {
-  savedViewId: number
+  /** An existing saved view, shared from the profile. */
+  savedViewId?: number
+  /** The dialog's title, and the default name in capture mode. */
   savedViewName: string
+  /**
+   * The network on screen right now. Given this instead of an id, sharing
+   * saves the view as it sends, so nothing has to be saved first.
+   */
+  capture?: { query: string; state: Partial<ViewState> }
   onClose: () => void
 }
 
-/** Hand one saved view to one colleague, with a note about what to look at. */
-export function ShareDialog({ savedViewId, savedViewName, onClose }: ShareDialogProps) {
+/** Hand one network to one colleague, with a note about what to look at. */
+export function ShareDialog({ savedViewId, savedViewName, capture, onClose }: ShareDialogProps) {
   const [term, setTerm] = useState('')
   const [picked, setPicked] = useState<UserCard | null>(null)
   const [note, setNote] = useState('')
+  const [name, setName] = useState(savedViewName)
   const { data: matches = [] } = useUserSearch(picked ? '' : term)
   const share = useCreateShare()
+  const createView = useCreateSavedView()
+  const [failed, setFailed] = useState(false)
 
-  function submit() {
+  async function submit() {
     if (!picked) return
-    share.mutate(
-      { saved_view: savedViewId, recipient: picked.username, note },
-      { onSuccess: onClose },
-    )
+    setFailed(false)
+    try {
+      const viewId =
+        savedViewId ??
+        (await createView.mutateAsync({
+          name: name.trim() || savedViewName,
+          query: capture!.query,
+          state: capture!.state,
+        })).id
+      await share.mutateAsync({ saved_view: viewId, recipient: picked.username, note })
+      onClose()
+    } catch {
+      setFailed(true)
+    }
   }
 
   return (
-    <Modal title={`Share "${savedViewName}"`} onClose={onClose}>
+    <Modal title={capture ? 'Share this network' : `Share "${savedViewName}"`} onClose={onClose}>
+      {capture && (
+        <>
+          <label htmlFor="share-view-name" style={{ fontSize: 13, color: 'var(--text-soft)' }}>
+            Name
+          </label>
+          <input
+            id="share-view-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={{
+              width: '100%',
+              marginTop: 4,
+              marginBottom: 12,
+              padding: '6px 8px',
+              background: 'var(--bg)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+            }}
+          />
+        </>
+      )}
       {picked ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <span style={{ fontSize: 14, color: 'var(--text)' }}>
@@ -114,7 +157,7 @@ export function ShareDialog({ savedViewId, savedViewName, onClose }: ShareDialog
         }}
       />
 
-      {share.isError && (
+      {failed && (
         <p style={{ color: 'var(--danger, #c00)', fontSize: 13 }}>
           That share did not go through. Check the person and try again.
         </p>
@@ -128,7 +171,7 @@ export function ShareDialog({ savedViewId, savedViewName, onClose }: ShareDialog
           type="button"
           className="op-btn op-btn-primary"
           onClick={submit}
-          disabled={!picked || share.isPending}
+          disabled={!picked || share.isPending || createView.isPending}
         >
           Share
         </button>

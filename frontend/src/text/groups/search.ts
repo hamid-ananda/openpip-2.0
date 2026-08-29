@@ -237,6 +237,13 @@ export const searchGroup: TextGroup = {
     },
 
     {
+      key: 'search.share.button',
+      label: 'Share button',
+      section: 'Share network',
+      default: 'Share Network',
+    },
+
+    {
       key: 'search.tab.interactions',
       label: 'Interactions',
       section: 'Result tabs',

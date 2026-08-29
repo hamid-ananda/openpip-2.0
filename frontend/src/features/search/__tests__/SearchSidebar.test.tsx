@@ -1,9 +1,11 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { SearchSidebar } from '../SearchSidebar'
+import { useAuthStore } from '../../../store/authStore'
+import { resetSharingStore } from '../../../mocks/handlers/sharing'
 
 const navigate = vi.fn()
 vi.mock('react-router-dom', async () => ({
@@ -86,5 +88,31 @@ describe('SearchSidebar ribbon variant', () => {
   it('leaves the sidebar showing its sections without a press', () => {
     render(<SearchSidebar term="BAD" visibleInteractionIds={[]} />, { wrapper })
     expect(screen.getByPlaceholderText(/Gene symbol or UniProt ID/i)).toBeInTheDocument()
+  })
+})
+
+describe('SearchSidebar share option', () => {
+  it('shares the network on screen without saving one first', async () => {
+    resetSharingStore()
+    localStorage.setItem('openpip_access_token', 'mock-token')
+    useAuthStore.setState({ isLoggedIn: true, isAdmin: false, token: 'mock-token' })
+
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[1]} />, { wrapper })
+
+    // Saving and sharing are separate options, side by side.
+    expect(screen.getByRole('button', { name: 'Save Network' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Share Network' }))
+
+    // The dialog names the view after the search, and shares straight from here.
+    expect(screen.getByLabelText('Name')).toHaveValue('BAD')
+    fireEvent.change(screen.getByLabelText(/name, username, lab, or email/i), {
+      target: { value: 'Helmy Lab' },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: /Helen Leung/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Share' })).toBeNull(),
+    )
   })
 })

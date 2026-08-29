@@ -2,7 +2,8 @@ import { useState, type CSSProperties } from 'react'
 import { buildLinks, LINK_ICON_STYLE } from './externalLinks'
 import { CanvasDropdown } from './toolbar/CanvasDropdown'
 import { QueryPanel } from './QueryPanel'
-import { useSearchStore } from './searchStore'
+import { useSearchStore, captureViewState } from './searchStore'
+import { ShareDialog } from '../sharing/ShareDialog'
 import { useAuthStore } from '../../store/authStore'
 import { useSettings } from '../../api/settings'
 import { useSaveNetwork } from '../../api/networks'
@@ -161,6 +162,9 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
   const [saveName, setSaveName] = useState(term)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
+  // Sharing is its own action: it never touches the saved networks above, and
+  // it keeps the filters and layout rather than the interaction list.
+  const [shareOpen, setShareOpen] = useState(false)
 
   async function handleSaveNetwork() {
     setSaveError('')
@@ -534,6 +538,31 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
     )
   )
 
+  const shareSection = term && isLoggedIn && (
+    <div style={variant === 'sidebar' ? { paddingTop: 6 } : undefined}>
+      <button
+        type="button"
+        onClick={() => setShareOpen(true)}
+        className="op-btn"
+        style={
+          variant === 'sidebar'
+            ? { width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }
+            : { fontSize: 12, padding: '7px 12px' }
+        }
+      >
+        {t('search.share.button')}
+      </button>
+    </div>
+  )
+
+  const shareDialog = shareOpen && (
+    <ShareDialog
+      savedViewName={term}
+      capture={{ query: term, state: captureViewState() }}
+      onClose={() => setShareOpen(false)}
+    />
+  )
+
   // A ribbon under the navbar: the same sections, centred in a row, each
   // opening its panel over the network when pressed.
   if (variant === 'ribbon') {
@@ -568,8 +597,10 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
             {downloadSection}
             {linksSection}
             {saveSection}
+            {shareSection}
           </div>
         )}
+        {shareDialog}
 
         {/* Folds the row away. Same grip the network/table divider uses, so the
             two things that give the canvas room behave alike. */}
@@ -631,8 +662,10 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
           {downloadSection}
           {linksSection}
           {saveSection}
+          {shareSection}
         </div>
       )}
+      {shareDialog}
     </aside>
   )
 }

@@ -23,14 +23,6 @@ vi.mock('../../../../text', () => ({
 }))
 
 // ------------------------------------------------------------------
-// The save-view button saves through the API; stub it so this test
-// needs no QueryClient
-// ------------------------------------------------------------------
-vi.mock('../../toolbar/SaveViewButton', () => ({
-  SaveViewButton: () => null,
-}))
-
-// ------------------------------------------------------------------
 // Mock cytoscape itself so .use() doesn't blow up in jsdom
 // ------------------------------------------------------------------
 vi.mock('cytoscape', () => {
