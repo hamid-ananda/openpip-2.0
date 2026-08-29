@@ -77,6 +77,9 @@ class Comment(models.Model):
     )
     body = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    # An author can rewrite a comment, so the discussion marks the ones that
+    # changed rather than letting them change silently.
+    edited = models.BooleanField(default=False)
 
     class Meta:
         db_table = "share_comments"

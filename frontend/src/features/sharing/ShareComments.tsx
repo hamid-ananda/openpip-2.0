@@ -1,17 +1,40 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useShareComments, useAddComment } from '../../api/sharing'
+import { useShareComments, useAddComment, useEditComment } from '../../api/sharing'
+import { useProfile } from '../../api/auth'
+
+const INPUT: React.CSSProperties = {
+  flex: 1,
+  padding: '6px 8px',
+  background: 'var(--bg)',
+  color: 'var(--text)',
+  border: '1px solid var(--border)',
+  borderRadius: 6,
+}
 
 /** Flat discussion between the two people a network is shared between. */
 export function ShareComments({ shareId }: { shareId: number }) {
   const [body, setBody] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [draft, setDraft] = useState('')
   const { data: comments = [] } = useShareComments(shareId)
+  const { data: me } = useProfile()
   const addComment = useAddComment(shareId)
+  const editComment = useEditComment(shareId)
 
   function submit() {
     const trimmed = body.trim()
     if (!trimmed) return
     addComment.mutate(trimmed, { onSuccess: () => setBody('') })
+  }
+
+  function saveEdit(commentId: number) {
+    const trimmed = draft.trim()
+    if (!trimmed) return
+    editComment.mutate(
+      { commentId, body: trimmed },
+      { onSuccess: () => setEditingId(null) },
+    )
   }
 
   return (
@@ -23,8 +46,58 @@ export function ShareComments({ shareId }: { shareId: number }) {
           </Link>
           <span style={{ color: 'var(--text-muted)', marginLeft: 6, fontSize: 12 }}>
             {new Date(c.created_at).toLocaleString()}
+            {c.edited && ' · edited'}
           </span>
-          <p style={{ margin: '2px 0 0', whiteSpace: 'pre-wrap' }}>{c.body}</p>
+          {c.author.username === me?.username && editingId !== c.id && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(c.id)
+                setDraft(c.body)
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                fontSize: 12,
+                padding: '0 6px',
+              }}
+            >
+              Edit
+            </button>
+          )}
+          {editingId === c.id ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <label htmlFor={`edit-${c.id}`} style={{ display: 'none' }}>
+                Edit comment
+              </label>
+              <input
+                id={`edit-${c.id}`}
+                value={draft}
+                autoFocus
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveEdit(c.id)
+                  if (e.key === 'Escape') setEditingId(null)
+                }}
+                style={INPUT}
+              />
+              <button
+                type="button"
+                className="op-btn"
+                onClick={() => saveEdit(c.id)}
+                disabled={!draft.trim() || editComment.isPending}
+              >
+                Save
+              </button>
+              <button type="button" className="op-btn" onClick={() => setEditingId(null)}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <p style={{ margin: '2px 0 0', whiteSpace: 'pre-wrap' }}>{c.body}</p>
+          )}
         </div>
       ))}
       {comments.length === 0 && (
@@ -41,14 +114,7 @@ export function ShareComments({ shareId }: { shareId: number }) {
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
           placeholder="Add a comment"
-          style={{
-            flex: 1,
-            padding: '6px 8px',
-            background: 'var(--bg)',
-            color: 'var(--text)',
-            border: '1px solid var(--border)',
-            borderRadius: 6,
-          }}
+          style={INPUT}
         />
         <button
           type="button"

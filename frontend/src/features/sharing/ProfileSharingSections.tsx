@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   useSavedViews,
   useDeleteSavedView,
-  useShares,
-  useDeleteShare,
   type SavedView,
 } from '../../api/sharing'
 import { ShareDialog } from './ShareDialog'
+import { ShareList } from './ShareList'
 
 const CARD_LABEL = {
   fontSize: 11,
@@ -36,9 +35,7 @@ const ROW = {
 export function ProfileSharingSections() {
   const navigate = useNavigate()
   const { data: views = [], isLoading: viewsLoading } = useSavedViews()
-  const { data: received = [] } = useShares('received')
   const deleteView = useDeleteSavedView()
-  const deleteShare = useDeleteShare()
   const [sharing, setSharing] = useState<SavedView | null>(null)
 
   return (
@@ -99,56 +96,8 @@ export function ProfileSharingSections() {
         )}
       </div>
 
-      <div className="op-card" style={{ padding: 28, marginBottom: 20 }}>
-        <div style={CARD_LABEL}>Shared With Me</div>
-        {received.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Nothing yet. Colleagues can send you a network from their own saved views.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {received.map((share) => (
-              <div key={share.id} style={ROW}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
-                    {share.saved_view.name}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    from{' '}
-                    <Link to={`/profile/${share.sender.username}`}>
-                      {share.sender.name || share.sender.username}
-                    </Link>
-                    {share.note && ` · ${share.note}`}
-                  </div>
-                </div>
-                <button
-                  className="op-btn"
-                  style={{ fontSize: 11, padding: '5px 10px' }}
-                  onClick={() => navigate(`/shared/${share.id}`)}
-                >
-                  Open
-                </button>
-                <button
-                  onClick={() => deleteShare.mutate(share.id)}
-                  aria-label={`Dismiss ${share.saved_view.name}`}
-                  title="Dismiss"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)',
-                    fontSize: 18,
-                    lineHeight: 1,
-                    padding: 4,
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <ShareList direction="received" />
+      <ShareList direction="sent" />
 
       {sharing && (
         <ShareDialog

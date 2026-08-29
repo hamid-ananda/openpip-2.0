@@ -97,18 +97,20 @@ class ShareViewSet(
         return Response(ShareSerializer(share).data, status=status.HTTP_201_CREATED)
 
 
+def visible_share(request, pk):
+    """The share, if this user is one of its two participants."""
+    return Share.objects.filter(
+        Q(pk=pk) & (Q(sender=request.user) | Q(recipient=request.user))
+    ).first()
+
+
 class ShareCommentsView(APIView):
     """Discussion attached to one shared network. Participants only."""
 
     permission_classes = [IsAuthenticated]
 
-    def get_share(self, request, pk):
-        return Share.objects.filter(
-            Q(pk=pk) & (Q(sender=request.user) | Q(recipient=request.user))
-        ).first()
-
     def get(self, request, pk):
-        share = self.get_share(request, pk)
+        share = visible_share(request, pk)
         if share is None:
             return Response(NO_SUCH_USER, status=status.HTTP_404_NOT_FOUND)
         return Response(
@@ -116,7 +118,7 @@ class ShareCommentsView(APIView):
         )
 
     def post(self, request, pk):
-        share = self.get_share(request, pk)
+        share = visible_share(request, pk)
         if share is None:
             return Response(NO_SUCH_USER, status=status.HTTP_404_NOT_FOUND)
         body = str(request.data.get("body", "")).strip()
@@ -136,6 +138,34 @@ class ShareCommentsView(APIView):
                 f"/shared/{share.pk}",
             )
         return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
+
+
+class ShareCommentDetailView(APIView):
+    """Editing one's own message. Only the author, and only the body."""
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk, comment_id):
+        share = visible_share(request, pk)
+        comment = (
+            None
+            if share is None
+            else Comment.objects.filter(
+                pk=comment_id, share=share, author=request.user
+            ).first()
+        )
+        if comment is None:
+            return Response(NO_SUCH_USER, status=status.HTTP_404_NOT_FOUND)
+        body = str(request.data.get("body", "")).strip()
+        if not body:
+            return Response(
+                {"detail": "Comment cannot be empty."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        comment.body = body
+        comment.edited = True
+        comment.save(update_fields=["body", "edited"])
+        return Response(CommentSerializer(comment).data)
 
 
 class NotificationViewSet(

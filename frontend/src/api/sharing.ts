@@ -27,6 +27,7 @@ export interface ShareComment {
   author: UserCard
   body: string
   created_at: string
+  edited: boolean
 }
 
 export interface Notification {
@@ -108,6 +109,19 @@ export function useShareComments(id: string | number) {
     // An open discussion is a live one — poll it like the bell.
     refetchInterval: 10 * 1000,
     refetchIntervalInBackground: true,
+  })
+}
+
+/** Only your own messages, and only the text. */
+export function useEditComment(id: string | number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ commentId, body }: { commentId: number; body: string }) =>
+      apiClient
+        .patch(`/shares/${id}/comments/${commentId}`, { body })
+        .then((r) => r.data as ShareComment),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['shareComments', String(id)] }),
   })
 }
 

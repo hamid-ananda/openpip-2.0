@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     NotificationViewSet,
     SavedViewViewSet,
+    ShareCommentDetailView,
     ShareCommentsView,
     ShareViewSet,
 )
@@ -15,5 +16,9 @@ router.register("notifications", NotificationViewSet, basename="notification")
 
 urlpatterns = [
     path("shares/<int:pk>/comments", ShareCommentsView.as_view()),
+    path(
+        "shares/<int:pk>/comments/<int:comment_id>",
+        ShareCommentDetailView.as_view(),
+    ),
     path("", include(router.urls)),
 ]

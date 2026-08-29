@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { SearchResultsPage } from '../search/SearchResultsPage'
 import { useShare } from '../../api/sharing'
+import { useProfile } from '../../api/auth'
 import { ShareComments } from './ShareComments'
 
 /**
@@ -41,8 +42,11 @@ export function SharedViewPage() {
 
 function ShareBanner({ shareId, share }: { shareId: number; share: ReturnType<typeof useShare>['data'] }) {
   const [showComments, setShowComments] = useState(false)
+  const { data: me } = useProfile()
   if (!share) return null
-  const sender = share.sender.name || share.sender.username
+  // The same page serves both people, so it names the other one.
+  const iSent = me?.username === share.sender.username
+  const other = iSent ? share.recipient : share.sender
 
   return (
     <div
@@ -57,7 +61,10 @@ function ShareBanner({ shareId, share }: { shareId: number; share: ReturnType<ty
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <strong>{share.saved_view.name}</strong>
         <span style={{ color: 'var(--text-muted)' }}>
-          shared by <Link to={`/profile/${share.sender.username}`}>{sender}</Link>
+          {iSent ? 'shared with' : 'shared by'}{' '}
+          <Link to={`/profile/${other.username}`}>{other.name || other.username}</Link>
+          {' · '}
+          {new Date(share.created_at).toLocaleDateString()}
         </span>
         <button
           type="button"

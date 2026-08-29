@@ -175,6 +175,65 @@ def test_empty_comment_rejected(user_auth_client, regular_user, other_user, save
 
 
 @pytest.mark.django_db
+def test_author_can_edit_their_own_comment(
+    user_auth_client, regular_user, other_user, saved_view
+):
+    share = Share.objects.create(
+        saved_view=saved_view, sender=regular_user, recipient=other_user
+    )
+    comment = Comment.objects.create(share=share, author=regular_user, body="frist")
+    assert not user_auth_client.get(f"/api/shares/{share.pk}/comments").json()[0][
+        "edited"
+    ]
+
+    response = user_auth_client.patch(
+        f"/api/shares/{share.pk}/comments/{comment.pk}",
+        {"body": "first"},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["body"] == "first"
+    assert response.json()["edited"] is True
+    comment.refresh_from_db()
+    assert comment.body == "first"
+
+
+@pytest.mark.django_db
+def test_other_party_cannot_edit_a_comment(
+    user_auth_client, regular_user, other_user, saved_view
+):
+    share = Share.objects.create(
+        saved_view=saved_view, sender=regular_user, recipient=other_user
+    )
+    comment = Comment.objects.create(share=share, author=regular_user, body="mine")
+    bearer(user_auth_client, other_user)
+    response = user_auth_client.patch(
+        f"/api/shares/{share.pk}/comments/{comment.pk}",
+        {"body": "not yours"},
+        format="json",
+    )
+    assert response.status_code == 404
+    comment.refresh_from_db()
+    assert comment.body == "mine"
+
+
+@pytest.mark.django_db
+def test_edited_comment_cannot_be_emptied(
+    user_auth_client, regular_user, other_user, saved_view
+):
+    share = Share.objects.create(
+        saved_view=saved_view, sender=regular_user, recipient=other_user
+    )
+    comment = Comment.objects.create(share=share, author=regular_user, body="mine")
+    response = user_auth_client.patch(
+        f"/api/shares/{share.pk}/comments/{comment.pk}", {"body": " "}, format="json"
+    )
+    assert response.status_code == 400
+    comment.refresh_from_db()
+    assert comment.body == "mine"
+
+
+@pytest.mark.django_db
 def test_deleting_a_share_takes_its_comments(
     user_auth_client, regular_user, other_user, saved_view
 ):

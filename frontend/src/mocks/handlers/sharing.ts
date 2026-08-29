@@ -9,7 +9,9 @@ const CARD: UserCard = {
   avatar: null,
 }
 
-const ME: UserCard = { username: 'testuser', name: 'Test User', affiliation: '', avatar: null }
+// The same person /api/auth/me returns, so "is this mine?" checks in the UI
+// line up with what these handlers store.
+const ME: UserCard = { username: 'admin', name: 'Test User', affiliation: '', avatar: null }
 
 let nextId = 1
 let views: SavedView[] = []
@@ -87,9 +89,21 @@ export const sharingHandlers = [
       author: ME,
       body,
       created_at: new Date().toISOString(),
+      edited: false,
     }
     comments.push(comment)
     return HttpResponse.json(comment, { status: 201 })
+  }),
+
+  http.patch('/api/shares/:id/comments/:commentId', async ({ params, request }) => {
+    const { body } = (await request.json()) as { body: string }
+    const comment = comments.find((c) => c.id === Number(params.commentId))
+    if (!comment || comment.author.username !== ME.username) {
+      return HttpResponse.json({ detail: 'No such user.' }, { status: 404 })
+    }
+    comment.body = body
+    comment.edited = true
+    return HttpResponse.json(comment)
   }),
 
   http.get('/api/shares/:id', ({ params }) => {

@@ -37,8 +37,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ["id", "author", "body", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "author", "body", "created_at", "edited"]
+        read_only_fields = ["id", "created_at", "edited"]
 
 
 class NotificationSerializer(serializers.ModelSerializer):
