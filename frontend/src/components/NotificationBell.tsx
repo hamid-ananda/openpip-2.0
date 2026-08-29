@@ -43,13 +43,15 @@ export function NotificationBell() {
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          color: 'inherit',
+          // Sits on the header bar, so it takes the header's own foreground
+          // like the theme toggle and the nav links beside it.
+          color: 'var(--color-header, #ffffff)',
           position: 'relative',
           padding: 4,
           lineHeight: 0,
         }}
       >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" style={{ opacity: 0.75 }}>
           <path d="M9 2a4.5 4.5 0 0 0-4.5 4.5c0 3.5-1.5 4.5-1.5 4.5h12s-1.5-1-1.5-4.5A4.5 4.5 0 0 0 9 2Z" />
           <path d="M7.5 13.5a1.6 1.6 0 0 0 3 0" />
         </svg>

@@ -105,6 +105,9 @@ export function useShareComments(id: string | number) {
     queryKey: ['shareComments', String(id)],
     queryFn: () => apiClient.get(`/shares/${id}/comments`).then((r) => r.data as ShareComment[]),
     enabled: !!id,
+    // An open discussion is a live one — poll it like the bell.
+    refetchInterval: 10 * 1000,
+    refetchIntervalInBackground: true,
   })
 }
 
@@ -126,7 +129,10 @@ export function useNotifications() {
     enabled: isLoggedIn,
     // ponytail: polling, not websockets. A share is not urgent enough to keep
     // a socket open per logged-in tab.
-    refetchInterval: 45 * 1000,
+    // In background too: a second window watching for a share is exactly the
+    // case that matters, and that window is by definition not the focused one.
+    refetchInterval: 10 * 1000,
+    refetchIntervalInBackground: true,
   })
 }
 
