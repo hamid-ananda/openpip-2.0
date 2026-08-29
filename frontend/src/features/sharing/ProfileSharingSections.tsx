@@ -5,6 +5,7 @@ import {
   useDeleteSavedView,
   type SavedView,
 } from '../../api/sharing'
+import { useSavedNetworks, useDeleteNetwork } from '../../api/networks'
 import { ShareDialog } from './ShareDialog'
 import { ShareList } from './ShareList'
 
@@ -27,56 +28,117 @@ const ROW = {
   background: 'var(--surface)',
 }
 
+const SMALL_BTN = { fontSize: 11, padding: '5px 10px' }
+
+/** Two kinds of record, one list. */
+interface Row {
+  key: string
+  id: number
+  name: string
+  query: string
+  /** Sorts the list; a legacy network may not carry one. */
+  when: string | null
+  live: boolean
+  detail: string
+  view?: SavedView
+}
+
 /**
- * Saved views and the networks other people have shared. Separate from the
- * legacy "Saved Networks" card above: those pin a fixed set of interactions,
- * these re-run the search and show current data.
+ * Everything you have kept, in one place: views that re-run the search with
+ * the filters you saved, and the older saved networks that pin a fixed set of
+ * interactions. Both stay on their own tables — the legacy one is Phase 1
+ * parity and does not get rewritten — so the list says which kind each row is.
  */
 export function ProfileSharingSections() {
   const navigate = useNavigate()
   const { data: views = [], isLoading: viewsLoading } = useSavedViews()
+  const { data: networks = [], isLoading: networksLoading } = useSavedNetworks()
   const deleteView = useDeleteSavedView()
+  const deleteNetwork = useDeleteNetwork()
   const [sharing, setSharing] = useState<SavedView | null>(null)
+
+  const rows: Row[] = [
+    ...views.map((view) => ({
+      key: `view-${view.id}`,
+      id: view.id,
+      name: view.name,
+      query: view.query,
+      when: view.updated_at,
+      live: true,
+      detail: 'filters and layout, re-run on open',
+      view,
+    })),
+    ...networks.map((net) => ({
+      key: `network-${net.id}`,
+      id: net.id,
+      name: net.name,
+      query: net.query,
+      when: net.created_at,
+      live: false,
+      detail: `${net.interaction_count} interactions, as they were`,
+    })),
+  ].sort((a, b) => (b.when ?? '').localeCompare(a.when ?? ''))
 
   return (
     <>
       <div className="op-card" style={{ padding: 28, marginBottom: 20 }}>
-        <div style={CARD_LABEL}>My Views</div>
-        {viewsLoading ? (
+        <div style={CARD_LABEL}>Saved Views</div>
+        {viewsLoading || networksLoading ? (
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</div>
-        ) : views.length === 0 ? (
+        ) : rows.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Save a view from the network toolbar to keep its filters and layout.
+            Nothing saved yet. Share or save a network from the search page and it
+            is kept here.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {views.map((view) => (
-              <div key={view.id} style={ROW}>
+            {rows.map((row) => (
+              <div key={row.key} style={ROW}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
-                    {view.name}
+                    {row.name}
                   </div>
-                  <span className="op-chip" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
-                    {view.query}
-                  </span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+                    <span className="op-chip" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
+                      {row.query}
+                    </span>
+                    <span
+                      style={{ fontSize: 11, color: 'var(--text-muted)' }}
+                      title={row.detail}
+                    >
+                      {row.live ? 'Live view' : 'Snapshot'} · {row.detail}
+                    </span>
+                  </div>
                 </div>
                 <button
                   className="op-btn"
-                  style={{ fontSize: 11, padding: '5px 10px' }}
-                  onClick={() => navigate(`/search/${encodeURIComponent(view.query)}`)}
+                  style={SMALL_BTN}
+                  onClick={() =>
+                    navigate(
+                      row.live
+                        ? `/views/${row.id}`
+                        : `/search/${encodeURIComponent(row.query)}`,
+                    )
+                  }
                 >
                   Open
                 </button>
+                {/* Only a live view can be shared: a share points at one, and a
+                    snapshot would hand over yesterday's interactions. */}
+                {row.view && (
+                  <button
+                    className="op-btn"
+                    style={SMALL_BTN}
+                    onClick={() => setSharing(row.view!)}
+                  >
+                    Share
+                  </button>
+                )}
                 <button
-                  className="op-btn"
-                  style={{ fontSize: 11, padding: '5px 10px' }}
-                  onClick={() => setSharing(view)}
-                >
-                  Share
-                </button>
-                <button
-                  onClick={() => deleteView.mutate(view.id)}
-                  aria-label={`Delete ${view.name}`}
+                  onClick={() =>
+                    row.live ? deleteView.mutate(row.id) : deleteNetwork.mutate(row.id)
+                  }
+                  aria-label={`Delete ${row.name}`}
                   title="Delete"
                   style={{
                     background: 'none',

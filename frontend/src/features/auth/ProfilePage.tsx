@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useProfile, useLogout, useUpdateProfile } from '../../api/auth'
 import type { Profile } from '../../api/auth'
 import { mediaUrl } from '../../api/client'
-import { useSavedNetworks, useDeleteNetwork } from '../../api/networks'
 import { useText } from '../../text'
 import { ProfileSharingSections } from '../sharing/ProfileSharingSections'
 
@@ -49,8 +48,6 @@ export function ProfilePage() {
   const [form, setForm] = useState<Record<string, string>>({})
   const fileInput = useRef<HTMLInputElement>(null)
   const { mutate: logout, isPending } = useLogout()
-  const { data: networks, isLoading: networksLoading } = useSavedNetworks()
-  const { mutate: deleteNetwork } = useDeleteNetwork()
   const t = useText()
 
   if (isLoading) {
@@ -256,83 +253,6 @@ export function ProfilePage() {
               >
                 Edit profile
               </button>
-            </div>
-          )}
-        </div>
-
-        {/* Saved Networks */}
-        <div className="op-card" style={{ padding: 28, marginBottom: 20 }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 500,
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '.08em',
-              marginBottom: 16,
-            }}
-          >
-            Saved Networks
-          </div>
-
-          {networksLoading ? (
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('auth.profile.loading')}</div>
-          ) : !networks || networks.length === 0 ? (
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('auth.profile.noNetworks')}</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {networks.map((net) => (
-                <div
-                  key={net.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border)',
-                    background: 'var(--surface)',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>
-                      {net.name}
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span className="op-chip" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
-                        {net.query}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {net.interaction_count} interactions
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/search/${encodeURIComponent(net.query)}`)}
-                    className="op-btn"
-                    style={{ fontSize: 11, padding: '5px 10px', flexShrink: 0 }}
-                  >
-                    Load
-                  </button>
-                  <button
-                    onClick={() => deleteNetwork(net.id)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: 'var(--text-muted)',
-                      fontSize: 18,
-                      lineHeight: 1,
-                      padding: '4px',
-                      flexShrink: 0,
-                    }}
-                    aria-label={`Delete ${net.name}`}
-                    title="Delete"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
             </div>
           )}
         </div>

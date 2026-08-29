@@ -18,6 +18,7 @@ import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage'
 import { PublicProfilePage } from './features/sharing/PublicProfilePage'
 import { SharedViewPage } from './features/sharing/SharedViewPage'
+import { SavedViewPage } from './features/sharing/SavedViewPage'
 import { ProteinsPage } from './features/proteins/ProteinsPage'
 import { LegacyProteinRedirect } from './features/proteins/LegacyProteinRedirect'
 import { DownloadPage } from './features/static/DownloadPage'
@@ -64,6 +65,7 @@ const router = createBrowserRouter(
         element: <ProtectedRoute><PublicProfilePage /></ProtectedRoute>,
       },
       { path: 'shared/:id', element: <ProtectedRoute><SharedViewPage /></ProtectedRoute> },
+      { path: 'views/:id', element: <ProtectedRoute><SavedViewPage /></ProtectedRoute> },
       {
         path: 'admin',
         element: (
