@@ -52,7 +52,13 @@ export const sharingHandlers = [
 
   http.get('/api/users/:username', ({ params }) =>
     params.username === CARD.username
-      ? HttpResponse.json({ ...CARD, position: 'Postdoc', website: '', bio: 'Networks.' })
+      ? HttpResponse.json({
+          ...CARD,
+          position: 'Postdoc',
+          website: '',
+          bio: 'Networks.',
+          joined: '2026-01-15T00:00:00Z',
+        })
       : HttpResponse.json({ detail: 'No such user.' }, { status: 404 }),
   ),
 

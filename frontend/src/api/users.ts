@@ -13,6 +13,7 @@ export interface PublicProfile extends UserCard {
   position: string
   website: string
   bio: string
+  joined: string
 }
 
 /** Name, username, lab, or exact email. The backend ignores anything shorter

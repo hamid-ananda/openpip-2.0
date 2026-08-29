@@ -241,6 +241,7 @@ class PublicProfileView(APIView):
                 "position": user.position,
                 "website": user.website,
                 "bio": user.bio,
+                "joined": user.date_joined,
             }
         )
 

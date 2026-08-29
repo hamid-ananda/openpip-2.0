@@ -362,6 +362,7 @@ def test_public_profile_visible_even_when_undiscoverable(user_auth_client):
     assert body["name"] == "Gary Bader"
     assert body["affiliation"] == "University of Toronto"
     assert body["position"] == "Professor"
+    assert body["joined"]
     # The card never carries an email address.
     assert "email" not in body
 
