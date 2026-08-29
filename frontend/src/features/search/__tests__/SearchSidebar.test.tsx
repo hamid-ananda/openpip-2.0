@@ -116,3 +116,24 @@ describe('SearchSidebar share option', () => {
     )
   })
 })
+
+describe('SearchSidebar ribbon share heading', () => {
+  it('reads as one of the row headings, not a toolbar button', () => {
+    localStorage.setItem('openpip_access_token', 'mock-token')
+    useAuthStore.setState({ isLoggedIn: true, isAdmin: false, token: 'mock-token' })
+
+    render(<SearchSidebar term="BAD" visibleInteractionIds={[1]} variant="ribbon" />, {
+      wrapper,
+    })
+
+    const share = screen.getByRole('button', { name: 'Share Network' })
+    const save = screen.getByRole('button', { name: 'Save Network' })
+    expect(share).not.toHaveClass('op-btn')
+    expect(share.style.color).toBe(save.style.color)
+    expect(share.style.textTransform).toBe(save.style.textTransform)
+
+    // Underlines on hover, the way the dropdown headings underline when open.
+    fireEvent.mouseEnter(share)
+    expect(share.style.borderBottom).toBe('2px solid var(--primary)')
+  })
+})

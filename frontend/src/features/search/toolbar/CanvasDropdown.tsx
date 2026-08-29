@@ -2,6 +2,46 @@ import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import { CONTROL_BG, CONTROL_HEIGHT } from './LayoutDropdown'
 
 /**
+ * The bare themed heading the ribbon uses instead of a button: no chrome, the
+ * deployment's colour, underlined while it is hovered or open. Shared so a
+ * ribbon control that opens something other than a panel — Share, which opens
+ * a dialog — reads as part of the same row.
+ */
+export function RibbonHeading({ label, active = false, onClick, ...rest }: {
+  label: string
+  active?: boolean
+  onClick: () => void
+} & React.ComponentProps<'button'>) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        fontSize: 12,
+        fontWeight: 700,
+        color: 'var(--primary)',
+        textTransform: 'uppercase',
+        letterSpacing: '.08em',
+        whiteSpace: 'nowrap',
+        background: 'none',
+        border: 'none',
+        // The only cue left now that the chevron is gone.
+        borderBottom: `2px solid ${active || hovered ? 'var(--primary)' : 'transparent'}`,
+        padding: '4px 10px 3px',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+      }}
+      {...rest}
+    >
+      {label}
+    </button>
+  )
+}
+
+/**
  * Shell for the controls floating over the network canvas: a button that
  * opens a panel upward, since the row sits at the bottom edge. Closes on a
  * click outside or Escape, so it behaves like the layout menu beside it.
@@ -52,29 +92,12 @@ export function CanvasDropdown({ label, width = 232, up = true, plain = false, c
       {...hover}
     >
       {plain ? (
-        <button
-          type="button"
+        <RibbonHeading
+          label={label}
+          active={open}
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'var(--primary)',
-            textTransform: 'uppercase',
-            letterSpacing: '.08em',
-            whiteSpace: 'nowrap',
-            background: 'none',
-            border: 'none',
-            // Underlines the open one, which is the only cue left now that the
-            // chevron is gone.
-            borderBottom: `2px solid ${open ? 'var(--primary)' : 'transparent'}`,
-            padding: '4px 10px 3px',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          {label}
-        </button>
+        />
       ) : (
         <button
           type="button"

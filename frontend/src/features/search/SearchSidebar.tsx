@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { buildLinks, LINK_ICON_STYLE } from './externalLinks'
-import { CanvasDropdown } from './toolbar/CanvasDropdown'
+import { CanvasDropdown, RibbonHeading } from './toolbar/CanvasDropdown'
 import { QueryPanel } from './QueryPanel'
 import { useSearchStore, captureViewState } from './searchStore'
 import { ShareDialog } from '../sharing/ShareDialog'
@@ -538,21 +538,24 @@ export function SearchSidebar({ term, visibleInteractionIds, variant = 'sidebar'
     )
   )
 
+  // In the ribbon it is a heading like the rest of the row, underlining on
+  // hover the way the dropdowns do — it just opens a dialog rather than a
+  // panel. In the sidebar it is a button under Save, like Save.
   const shareSection = term && isLoggedIn && (
-    <div style={variant === 'sidebar' ? { paddingTop: 6 } : undefined}>
-      <button
-        type="button"
-        onClick={() => setShareOpen(true)}
-        className="op-btn"
-        style={
-          variant === 'sidebar'
-            ? { width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }
-            : { fontSize: 12, padding: '7px 12px' }
-        }
-      >
-        {t('search.share.button')}
-      </button>
-    </div>
+    variant === 'ribbon' ? (
+      <RibbonHeading label={t('search.share.button')} onClick={() => setShareOpen(true)} />
+    ) : (
+      <div style={{ paddingTop: 6 }}>
+        <button
+          type="button"
+          onClick={() => setShareOpen(true)}
+          className="op-btn"
+          style={{ width: '100%', justifyContent: 'center', fontSize: 12, padding: '7px' }}
+        >
+          {t('search.share.button')}
+        </button>
+      </div>
+    )
   )
 
   const shareDialog = shareOpen && (
