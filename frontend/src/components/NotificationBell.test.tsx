@@ -73,4 +73,35 @@ describe('NotificationBell', () => {
       expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull(),
     )
   })
+
+  it('marks all read from the panel without deleting anything', async () => {
+    seedSharing({
+      notifications: [
+        { id: 1, text: 'Helen shared "MAPK cluster" with you', link: '/shared/3', read: false, created_at: '2026-08-27T00:00:00Z' },
+      ],
+    })
+    render(<NotificationBell />, { wrapper: Wrapper })
+
+    fireEvent.click(await screen.findByRole('button', { name: /1 unread/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }))
+
+    // Quieted, not deleted: the row stays, just no longer counted as unread.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument(),
+    )
+    expect(screen.getByText(/shared "MAPK cluster" with you/)).toBeInTheDocument()
+  })
+
+  it('shows a relative time under each notification', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    seedSharing({
+      notifications: [
+        { id: 1, text: 'Helen shared "MAPK cluster" with you', link: '/shared/3', read: false, created_at: oneHourAgo },
+      ],
+    })
+    render(<NotificationBell />, { wrapper: Wrapper })
+
+    fireEvent.click(await screen.findByRole('button', { name: /1 unread/i }))
+    expect(await screen.findByText(/hour ago/i)).toBeInTheDocument()
+  })
 })

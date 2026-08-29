@@ -191,3 +191,9 @@ class NotificationViewSet(
         """Empty the bell. The shares themselves stay on the profile."""
         Notification.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["post"], url_path="mark-all-read")
+    def mark_all_read(self, request):
+        """Quiet the badge without deleting anything, unlike clear()."""
+        Notification.objects.filter(user=request.user, read=False).update(read=True)
+        return Response(status=status.HTTP_204_NO_CONTENT)

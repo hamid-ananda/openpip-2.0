@@ -158,6 +158,15 @@ export function useClearNotifications() {
   })
 }
 
+/** Quiets the badge without deleting anything, unlike useClearNotifications. */
+export function useMarkAllRead() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiClient.post('/notifications/mark-all-read/'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient()
   return useMutation({

@@ -289,3 +289,20 @@ def test_clearing_notifications_leaves_other_users_alone(
 
     assert response.status_code == 204
     assert [n.user for n in Notification.objects.all()] == [other_user]
+
+
+@pytest.mark.django_db
+def test_marking_all_read_leaves_other_users_alone(
+    user_auth_client, regular_user, other_user
+):
+    mine = Notification.objects.create(user=regular_user, text="mine", link="")
+    theirs = Notification.objects.create(user=other_user, text="theirs", link="")
+
+    response = user_auth_client.post("/api/notifications/mark-all-read/")
+
+    assert response.status_code == 204
+    mine.refresh_from_db()
+    theirs.refresh_from_db()
+    assert mine.read is True
+    assert theirs.read is False
+    assert Notification.objects.count() == 2

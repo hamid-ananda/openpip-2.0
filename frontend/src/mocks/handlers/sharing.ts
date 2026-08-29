@@ -150,6 +150,13 @@ export const sharingHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
+  http.post('/api/notifications/mark-all-read/', () => {
+    notifications.forEach((n) => {
+      n.read = true
+    })
+    return new HttpResponse(null, { status: 204 })
+  }),
+
   http.patch('/api/notifications/:id', ({ params }) => {
     const note = notifications.find((n) => n.id === Number(params.id))
     if (note) note.read = true

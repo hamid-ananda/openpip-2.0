@@ -4,6 +4,7 @@ import {
   useNotifications,
   useMarkNotificationRead,
   useClearNotifications,
+  useMarkAllRead,
 } from '../api/sharing'
 import { useAuthStore } from '../store/authStore'
 import { playChime, chimeMuted, setChimeMuted } from '../lib/chime'
@@ -17,6 +18,28 @@ const PANEL_BTN: React.CSSProperties = {
   padding: '2px 4px',
 }
 
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['year', 60 * 60 * 24 * 365],
+  ['month', 60 * 60 * 24 * 30],
+  ['day', 60 * 60 * 24],
+  ['hour', 60 * 60],
+  ['minute', 60],
+]
+const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+
+/** "2 hours ago", "yesterday" — smallest unit Intl.RelativeTimeFormat won't
+ * need us to reimplement (it already knows "yesterday", "next week", etc). */
+function relativeTime(iso: string): string {
+  const seconds = (Date.now() - new Date(iso).getTime()) / 1000
+  if (seconds < 45) return 'just now'
+  for (const [unit, secondsInUnit] of RELATIVE_UNITS) {
+    if (seconds >= secondsInUnit) {
+      return rtf.format(-Math.round(seconds / secondsInUnit), unit)
+    }
+  }
+  return rtf.format(-Math.round(seconds / 60), 'minute')
+}
+
 export function NotificationBell() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const [open, setOpen] = useState(false)
@@ -25,6 +48,7 @@ export function NotificationBell() {
   const { data: notifications = [] } = useNotifications()
   const markRead = useMarkNotificationRead()
   const clearAll = useClearNotifications()
+  const markAllRead = useMarkAllRead()
   const [muted, setMuted] = useState(chimeMuted())
 
   useEffect(() => {
@@ -140,14 +164,26 @@ export function NotificationBell() {
               >
                 {muted ? 'Sound off' : 'Sound on'}
               </button>
-              <button
-                type="button"
-                onClick={() => clearAll.mutate()}
-                disabled={clearAll.isPending}
-                style={PANEL_BTN}
-              >
-                Clear
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => markAllRead.mutate()}
+                  disabled={markAllRead.isPending}
+                  title="Mark every notification read, but keep the list"
+                  style={PANEL_BTN}
+                >
+                  Mark all read
+                </button>
+                <button
+                  type="button"
+                  onClick={() => clearAll.mutate()}
+                  disabled={clearAll.isPending}
+                  title="Delete every notification"
+                  style={PANEL_BTN}
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           )}
           {notifications.length === 0 ? (
@@ -174,6 +210,9 @@ export function NotificationBell() {
                 }}
               >
                 {n.text}
+                <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
+                  {relativeTime(n.created_at)}
+                </div>
               </button>
             ))
           )}
