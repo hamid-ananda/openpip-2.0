@@ -1,10 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { NotificationBell } from './NotificationBell'
 import { useAuthStore } from '../store/authStore'
 import { resetSharingStore, seedSharing } from '../mocks/handlers/sharing'
+
+vi.mock('../lib/chime', async () => ({
+  ...(await vi.importActual<typeof import('../lib/chime')>('../lib/chime')),
+  playChime: vi.fn(),
+}))
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -46,5 +51,26 @@ describe('NotificationBell', () => {
     render(<NotificationBell />, { wrapper: Wrapper })
     fireEvent.click(await screen.findByRole('button', { name: /notifications/i }))
     expect(await screen.findByText(/nothing yet/i)).toBeInTheDocument()
+  })
+
+  it('empties the bell from the panel, and remembers the sound setting', async () => {
+    seedSharing({
+      notifications: [
+        { id: 1, text: 'Helen shared "MAPK cluster" with you', link: '/shared/3', read: false, created_at: '2026-08-27T00:00:00Z' },
+      ],
+    })
+    render(<NotificationBell />, { wrapper: Wrapper })
+
+    fireEvent.click(await screen.findByRole('button', { name: /1 unread/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sound on' }))
+    expect(screen.getByRole('button', { name: 'Sound off' })).toBeInTheDocument()
+    expect(localStorage.getItem('openpip_notify_sound')).toBe('off')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    expect(await screen.findByText(/nothing yet/i)).toBeInTheDocument()
+    // Cleared for good, not just hidden: nothing comes back on the next poll.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull(),
+    )
   })
 })

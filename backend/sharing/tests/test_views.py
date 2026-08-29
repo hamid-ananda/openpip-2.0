@@ -276,3 +276,16 @@ def test_sharing_requires_login(api_client, saved_view, other_user):
         format="json",
     )
     assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_clearing_notifications_leaves_other_users_alone(
+    user_auth_client, regular_user, other_user
+):
+    Notification.objects.create(user=regular_user, text="mine", link="")
+    Notification.objects.create(user=other_user, text="theirs", link="")
+
+    response = user_auth_client.post("/api/notifications/clear/")
+
+    assert response.status_code == 204
+    assert [n.user for n in Notification.objects.all()] == [other_user]

@@ -139,6 +139,11 @@ export const sharingHandlers = [
 
   http.get('/api/notifications/', () => HttpResponse.json([...notifications])),
 
+  http.post('/api/notifications/clear/', () => {
+    notifications = []
+    return new HttpResponse(null, { status: 204 })
+  }),
+
   http.patch('/api/notifications/:id', ({ params }) => {
     const note = notifications.find((n) => n.id === Number(params.id))
     if (note) note.read = true

@@ -150,6 +150,14 @@ export function useNotifications() {
   })
 }
 
+export function useClearNotifications() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiClient.post('/notifications/clear/'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient()
   return useMutation({

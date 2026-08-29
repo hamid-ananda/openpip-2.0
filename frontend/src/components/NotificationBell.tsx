@@ -1,7 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useNotifications, useMarkNotificationRead } from '../api/sharing'
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useClearNotifications,
+} from '../api/sharing'
 import { useAuthStore } from '../store/authStore'
+import { playChime, chimeMuted, setChimeMuted } from '../lib/chime'
+
+const PANEL_BTN: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  color: 'var(--text-muted)',
+  fontSize: 12,
+  padding: '2px 4px',
+}
 
 export function NotificationBell() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
@@ -10,6 +24,8 @@ export function NotificationBell() {
   const navigate = useNavigate()
   const { data: notifications = [] } = useNotifications()
   const markRead = useMarkNotificationRead()
+  const clearAll = useClearNotifications()
+  const [muted, setMuted] = useState(chimeMuted())
 
   useEffect(() => {
     if (!open) return
@@ -22,9 +38,17 @@ export function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
-  if (!isLoggedIn) return null
-
   const unread = notifications.filter((n) => !n.read).length
+
+  // Sound only for a count that grew: marking one read lowers it, and a
+  // reload should not announce what was already waiting.
+  const seenUnread = useRef<number | null>(null)
+  useEffect(() => {
+    if (seenUnread.current !== null && unread > seenUnread.current) playChime()
+    seenUnread.current = unread
+  }, [unread])
+
+  if (!isLoggedIn) return null
 
   function pick(id: number, link: string) {
     markRead.mutate(id)
@@ -94,6 +118,38 @@ export function NotificationBell() {
             boxShadow: 'var(--shadow-md)',
           }}
         >
+          {notifications.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '6px 10px',
+                borderBottom: '1px solid var(--border)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setChimeMuted(!muted)
+                  setMuted(!muted)
+                }}
+                aria-pressed={muted}
+                title={muted ? 'Sound off' : 'Sound on'}
+                style={PANEL_BTN}
+              >
+                {muted ? 'Sound off' : 'Sound on'}
+              </button>
+              <button
+                type="button"
+                onClick={() => clearAll.mutate()}
+                disabled={clearAll.isPending}
+                style={PANEL_BTN}
+              >
+                Clear
+              </button>
+            </div>
+          )}
           {notifications.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: 12, margin: 0 }}>
               Nothing yet.

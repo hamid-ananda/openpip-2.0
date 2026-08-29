@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useShareComments, useAddComment, useEditComment } from '../../api/sharing'
 import { useProfile } from '../../api/auth'
+import { playChime } from '../../lib/chime'
 
 const INPUT: React.CSSProperties = {
   flex: 1,
@@ -21,6 +22,22 @@ export function ShareComments({ shareId }: { shareId: number }) {
   const { data: me } = useProfile()
   const addComment = useAddComment(shareId)
   const editComment = useEditComment(shareId)
+
+  // A reply arriving while the discussion is open. Your own post is not news,
+  // and an edit does not change the count.
+  const seenCount = useRef<number | null>(null)
+  useEffect(() => {
+    const newest = comments[comments.length - 1]
+    if (
+      seenCount.current !== null &&
+      comments.length > seenCount.current &&
+      newest &&
+      newest.author.username !== me?.username
+    ) {
+      playChime()
+    }
+    seenCount.current = comments.length
+  }, [comments, me?.username])
 
   function submit() {
     const trimmed = body.trim()

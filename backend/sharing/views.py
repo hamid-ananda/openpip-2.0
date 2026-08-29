@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -184,3 +185,9 @@ class NotificationViewSet(
         # Sliced for the list only: a slice cannot be filtered again, which
         # get_object() does when marking one read.
         return qs[:50] if self.action == "list" else qs
+
+    @action(detail=False, methods=["post"])
+    def clear(self, request):
+        """Empty the bell. The shares themselves stay on the profile."""
+        Notification.objects.filter(user=request.user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
